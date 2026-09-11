@@ -193,22 +193,16 @@ async function onProjectSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
-  const computedEndDate = data.durationMonths ? calculateEndDate(data.startDate, Number(data.durationMonths)) : data.endDate;
-  if (!computedEndDate) {
-    toast("Bei keiner festen Laufzeit bitte ein Enddatum angeben");
-    return;
-  }
-  if (new Date(computedEndDate) < new Date(data.startDate)) {
+  if (new Date(data.endDate) < new Date(data.startDate)) {
     toast("Enddatum darf nicht vor dem Startdatum liegen");
     return;
   }
-  if (data.fundingBudgetId) {
-    const fundingBudget = state.fundingBudgets.find((budget) => budget.id === data.fundingBudgetId);
-    if (!fundingBudget) {
+  for (const fundingBudget of matchingFundingBudgets({ startDate: data.startDate, endDate: data.endDate })) {
+    if (false && !fundingBudget) {
       toast("Förderbudget wurde nicht gefunden");
       return;
     }
-    if (new Date(data.startDate) < new Date(fundingBudget.startDate) || new Date(data.endDate) > new Date(fundingBudget.endDate)) {
+    if (false && (new Date(data.startDate) < new Date(fundingBudget.startDate) || new Date(data.endDate) > new Date(fundingBudget.endDate))) {
       toast("Projektzeitraum muss im Zeitraum des Förderbudgets liegen");
       return;
     }
@@ -224,7 +218,6 @@ async function onProjectSubmit(event) {
     name: data.name.trim(),
     action: data.action,
     institutionIds: [...form.elements.institutionIds.selectedOptions].map((option) => option.value),
-    fundingBudgetId: data.fundingBudgetId,
     partners: data.partners.trim(),
     startDate: data.startDate,
     endDate: data.endDate,
@@ -382,12 +375,18 @@ async function onFundingBudgetSubmit(event) {
   }
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
-  if (new Date(data.endDate) < new Date(data.startDate)) {
+  const computedEndDate = data.durationMonths ? calculateEndDate(data.startDate, Number(data.durationMonths)) : data.endDate;
+  if (!computedEndDate) {
+    toast("Bei keiner festen Laufzeit bitte ein Enddatum angeben");
+    return;
+  }
+  if (new Date(computedEndDate) < new Date(data.startDate)) {
     toast("Enddatum darf nicht vor dem Startdatum liegen");
     return;
   }
-  const linkedProjects = state.projects.filter((project) => project.fundingBudgetId === data.id);
-  if (linkedProjects.some((project) => new Date(project.startDate) < new Date(data.startDate) || new Date(project.endDate) > new Date(computedEndDate))) {
+  const budgetDraft = { id: data.id || "new", startDate: data.startDate, endDate: computedEndDate };
+  const linkedProjects = state.projects.filter((project) => projectOverlapsFundingBudget(project, budgetDraft));
+  if (false && linkedProjects.some((project) => new Date(project.startDate) < new Date(data.startDate) || new Date(project.endDate) > new Date(computedEndDate))) {
     toast("Bestehende Projekte liegen außerhalb dieses Förderzeitraums");
     return;
   }
@@ -500,7 +499,9 @@ function renderDashboard() {
   const openTasks = state.tasks.filter((task) => task.status !== "Erledigt");
   const travellingStudents = state.students.filter((student) => student.role === "Teilnehmer").length;
   const remainingBudget = state.projects.reduce((sum, project) => sum + budgetRemaining(project.id), 0);
-  const fundingRemaining = state.fundingBudgets.reduce((sum, budget) => sum + fundingBudgetRemaining(budget.id), 0);
+  const fundingRemaining = state.fundingBudgets
+    .filter((budget) => budget.status !== "Inaktiv")
+    .reduce((sum, budget) => sum + fundingBudgetRemaining(budget.id), 0);
 
   document.querySelector("#kpi-grid").innerHTML = [
     kpi("Aktive Projekte", activeProjects.length),
@@ -529,7 +530,7 @@ function renderProjects() {
     `<strong>${escapeHtml(project.name)}</strong><div class="meta">${escapeHtml(project.action)} · ${projectInstitutionNames(project)}${project.partners ? `<br>${escapeHtml(project.partners)}` : ""}</div>`,
     `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`,
     `${money.format(project.budget)}<div class="meta">Rest ${money.format(budgetRemaining(project.id))}</div>`,
-    escapeHtml(fundingBudgetName(project.fundingBudgetId)),
+    projectFundingBudgetNames(project),
     badge(project.status, statusTone(project.status)),
     progressHtml(taskProgress(project.id)),
     actions("projects", project.id),
@@ -859,9 +860,17 @@ function fundingBudgetName(id) {
   return `${budget.name}${budget.status === "Inaktiv" ? " [inaktiv]" : ""}`;
 }
 
+function projectFundingBudgetNames(project) {
+  const budgets = matchingFundingBudgets(project);
+  if (!budgets.length) return "Kein passender Förderzeitraum";
+  return budgets.map((budget) => escapeHtml(fundingBudgetName(budget.id))).join("<br>");
+}
+
 function fundingBudgetAssigned(id, excludeProjectId = null) {
+  const budget = state.fundingBudgets.find((entry) => entry.id === id);
+  if (!budget) return 0;
   return state.projects
-    .filter((project) => project.fundingBudgetId === id && project.id !== excludeProjectId)
+    .filter((project) => project.id !== excludeProjectId && projectOverlapsFundingBudget(project, budget))
     .reduce((sum, project) => sum + Number(project.budget || 0), 0);
 }
 
@@ -870,13 +879,21 @@ function fundingBudgetRemaining(id) {
   return Number(budget?.amount || 0) - fundingBudgetAssigned(id);
 }
 
+function matchingFundingBudgets(project) {
+  return state.fundingBudgets.filter((budget) => budget.status !== "Inaktiv" && projectOverlapsFundingBudget(project, budget));
+}
+
+function projectOverlapsFundingBudget(project, budget) {
+  if (!project.startDate || !project.endDate || !budget.startDate || !budget.endDate) return false;
+  return new Date(project.startDate) <= new Date(budget.endDate) && new Date(project.endDate) >= new Date(budget.startDate);
+}
+
 function fillSelects() {
   fillOptionSelect("#project-form [name=action]", getSettingValues("leadActions"), "Bitte wählen");
   fillOptionSelect("#expense-form [name=category]", getSettingValues("expenseCategories"));
   fillOptionSelect("#document-form [name=type]", getSettingValues("documentTypes"));
   renderRequiredDocumentFields();
   fillInstitutionSelect();
-  fillFundingBudgetSelect();
   fillProjectSelect("#student-form [name=projectIds]", true);
   fillProjectSelect("#expense-form [name=projectId]");
   fillProjectSelect("#task-form [name=projectId]");
@@ -1008,7 +1025,6 @@ function editItem(store, id) {
 
   if (store === "projects") {
     fillInstitutionSelect(item.institutionIds || []);
-    fillFundingBudgetSelect(item.fundingBudgetId || "");
   }
 
   Object.entries(item).forEach(([key, value]) => {
@@ -1314,8 +1330,8 @@ async function seedData() {
       { id: ids.i3, name: "Liceo Verona", country: "Italien", city: "Verona", type: "Schule", note: "", visible: true },
     ],
     projects: [
-      { id: ids.p1, name: "Brücken nach Valencia", action: "KA1", institutionIds: [ids.i1], fundingBudgetId: ids.f1, partners: "Austauschgruppe Klasse 10", startDate: "2026-10-01", endDate: "2027-03-31", budget: 18500, status: "Aktiv" },
-      { id: ids.p2, name: "Green Schools Network", action: "KA2", institutionIds: [ids.i2, ids.i3], fundingBudgetId: ids.f2, partners: "Nachhaltigkeitsprojekt mit zwei Partnerschulen", startDate: "2027-02-10", endDate: "2027-09-30", budget: 42000, status: "Geplant" },
+      { id: ids.p1, name: "Brücken nach Valencia", action: "KA1", institutionIds: [ids.i1], partners: "Austauschgruppe Klasse 10", startDate: "2026-10-01", endDate: "2027-03-31", budget: 18500, status: "Aktiv" },
+      { id: ids.p2, name: "Green Schools Network", action: "KA2", institutionIds: [ids.i2, ids.i3], partners: "Nachhaltigkeitsprojekt mit zwei Partnerschulen", startDate: "2027-02-10", endDate: "2027-09-30", budget: 42000, status: "Geplant" },
     ],
     students: [
       { id: ids.s1, name: "Mila Schneider", className: "10b", birthDate: "2010-04-12", projectIds: [ids.p1], role: "Teilnehmer", documentStatus: "Vollständig", documents: { "Einverständniserklärung": true, Notfallkontakt: true, Versicherung: true, Beleg: true, Vertrag: true, Bericht: true, Sonstiges: true } },

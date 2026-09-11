@@ -50,7 +50,7 @@ Die Anwendung nutzt IndexedDB im Browser. Dadurch bleiben Projekte, Foerderbudge
 
 Partnereinrichtungen werden nicht geloescht. Im Admin-Panel koennen sie ausgeblendet werden; ihre ID und bestehende Projektzuordnungen bleiben erhalten.
 
-Foerderbudgets werden ebenfalls dauerhaft per ID referenziert. Projekte koennen einem Foerderbudget zugeordnet werden; die App berechnet daraus zugewiesenes Budget und verbleibende Foerdermittel. Bei 15 oder 24 Monaten wird das Enddatum automatisch aus dem Startdatum berechnet. Mit "Keine feste Laufzeit" wird ein manuelles Enddatum verwendet.
+Foerderbudgets werden dauerhaft per ID gespeichert. Alle Projekte, deren Laufzeit mit dem Zeitraum eines aktiven Foerderbudgets ueberlappt, reduzieren dessen verfuegbare Mittel automatisch. Bei 15 oder 24 Monaten wird das Enddatum automatisch aus dem Startdatum berechnet. Mit "Keine feste Laufzeit" wird ein manuelles Enddatum verwendet.
 
 Wichtige Stellen in `app.js`:
 
