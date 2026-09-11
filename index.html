@@ -400,11 +400,12 @@
             <label>Name <input name="name" required minlength="3" placeholder="Erasmus+ 2026-2028" /></label>
             <div class="form-row">
               <label>Startdatum <input name="startDate" type="date" required /></label>
-              <label>Enddatum <input name="endDate" type="date" required /></label>
+              <label>Enddatum <input name="endDate" type="date" /></label>
             </div>
             <div class="form-row">
               <label>Laufzeit
-                <select name="durationMonths" required>
+                <select name="durationMonths">
+                  <option value="">Keine feste Laufzeit</option>
                   <option value="15">15 Monate</option>
                   <option value="24">24 Monate</option>
                 </select>

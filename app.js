@@ -145,6 +145,8 @@ function bindForms() {
   document.querySelector("#user-form").addEventListener("submit", onUserSubmit);
   document.querySelector("#institution-form").addEventListener("submit", onInstitutionSubmit);
   document.querySelector("#fundingBudget-form").addEventListener("submit", onFundingBudgetSubmit);
+  document.querySelector("#fundingBudget-form [name=startDate]").addEventListener("change", updateFundingBudgetEndDate);
+  document.querySelector("#fundingBudget-form [name=durationMonths]").addEventListener("change", updateFundingBudgetEndDate);
   document.querySelectorAll("[data-setting-form]").forEach((form) => form.addEventListener("submit", onSettingSubmit));
   document.querySelectorAll("[data-reset-form]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -163,6 +165,9 @@ function resetForm(formId) {
   }
   if (formId === "institution-form") {
     form.elements.visible.checked = true;
+  }
+  if (formId === "fundingBudget-form") {
+    updateFundingBudgetEndDate();
   }
 }
 
@@ -188,7 +193,12 @@ async function onProjectSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
-  if (new Date(data.endDate) < new Date(data.startDate)) {
+  const computedEndDate = data.durationMonths ? calculateEndDate(data.startDate, Number(data.durationMonths)) : data.endDate;
+  if (!computedEndDate) {
+    toast("Bei keiner festen Laufzeit bitte ein Enddatum angeben");
+    return;
+  }
+  if (new Date(computedEndDate) < new Date(data.startDate)) {
     toast("Enddatum darf nicht vor dem Startdatum liegen");
     return;
   }
@@ -377,7 +387,7 @@ async function onFundingBudgetSubmit(event) {
     return;
   }
   const linkedProjects = state.projects.filter((project) => project.fundingBudgetId === data.id);
-  if (linkedProjects.some((project) => new Date(project.startDate) < new Date(data.startDate) || new Date(project.endDate) > new Date(data.endDate))) {
+  if (linkedProjects.some((project) => new Date(project.startDate) < new Date(data.startDate) || new Date(project.endDate) > new Date(computedEndDate))) {
     toast("Bestehende Projekte liegen außerhalb dieses Förderzeitraums");
     return;
   }
@@ -390,8 +400,8 @@ async function onFundingBudgetSubmit(event) {
     id: data.id || createId(),
     name: data.name.trim(),
     startDate: data.startDate,
-    endDate: data.endDate,
-    durationMonths: Number(data.durationMonths),
+    endDate: computedEndDate,
+    durationMonths: data.durationMonths ? Number(data.durationMonths) : null,
     amount: Number(data.amount),
     status: data.status,
     note: data.note.trim(),
@@ -649,7 +659,7 @@ function renderFundingBudgets() {
   renderTable("#funding-budgets-table", ["Name", "Zeitraum", "Laufzeit", "Budget", "Zugewiesen", "Rest", "Status", ""], state.fundingBudgets.map((budget) => [
     `<strong>${escapeHtml(budget.name)}</strong><div class="meta">${escapeHtml(budget.note || "")}</div>`,
     `${formatDate(budget.startDate)} - ${formatDate(budget.endDate)}`,
-    `${Number(budget.durationMonths || 0)} Monate`,
+    budget.durationMonths ? `${Number(budget.durationMonths)} Monate` : "Keine feste Laufzeit",
     money.format(Number(budget.amount || 0)),
     money.format(fundingBudgetAssigned(budget.id)),
     money.format(fundingBudgetRemaining(budget.id)),
@@ -730,6 +740,28 @@ function isAdmin() {
 
 function activeAdmins() {
   return state.users.filter((user) => user.role === "Admin" && user.status === "Aktiv");
+}
+
+function updateFundingBudgetEndDate() {
+  const form = document.querySelector("#fundingBudget-form");
+  const startDate = form.elements.startDate.value;
+  const durationMonths = form.elements.durationMonths.value;
+  const endDateField = form.elements.endDate;
+  const hasFixedDuration = Boolean(durationMonths);
+
+  endDateField.required = !hasFixedDuration;
+  endDateField.disabled = hasFixedDuration;
+  if (hasFixedDuration) {
+    endDateField.value = startDate ? calculateEndDate(startDate, Number(durationMonths)) : "";
+  }
+}
+
+function calculateEndDate(startDate, durationMonths) {
+  if (!startDate || !durationMonths) return "";
+  const date = new Date(startDate);
+  date.setMonth(date.getMonth() + durationMonths);
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().slice(0, 10);
 }
 
 async function toggleUserStatus(id) {
@@ -1005,6 +1037,10 @@ function editItem(store, id) {
     document.querySelector("#user-form-title").textContent = "Benutzer bearbeiten";
     form.elements.password.value = "";
     form.elements.password.placeholder = "Leer lassen, wenn unverändert";
+  }
+
+  if (store === "fundingBudgets") {
+    updateFundingBudgetEndDate();
   }
 
   form.scrollIntoView({ behavior: "smooth", block: "start" });
