@@ -6,7 +6,33 @@
     <title>Erasmus+ Management</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body class="auth-locked">
+    <section id="auth-screen" class="auth-screen" aria-label="Anmeldung">
+      <div class="auth-card">
+        <div class="brand auth-brand">
+          <div class="brand-mark">E+</div>
+          <div>
+            <strong>Erasmus+</strong>
+            <span>Management Login</span>
+          </div>
+        </div>
+        <form id="setup-form" class="auth-form">
+          <h1>Admin einrichten</h1>
+          <p class="muted">Beim ersten Start wird ein lokaler Admin-Benutzer angelegt.</p>
+          <label>Name <input name="name" required minlength="3" autocomplete="name" /></label>
+          <label>E-Mail <input name="email" type="email" required autocomplete="email" /></label>
+          <label>Passwort <input name="password" type="password" required minlength="8" autocomplete="new-password" /></label>
+          <button type="submit">Admin anlegen</button>
+        </form>
+        <form id="login-form" class="auth-form">
+          <h1>Anmelden</h1>
+          <label>E-Mail <input name="email" type="email" required autocomplete="email" /></label>
+          <label>Passwort <input name="password" type="password" required autocomplete="current-password" /></label>
+          <button type="submit">Einloggen</button>
+        </form>
+      </div>
+    </section>
+
     <aside class="sidebar" aria-label="Hauptnavigation">
       <div class="brand">
         <div class="brand-mark">E+</div>
@@ -22,6 +48,7 @@
         <button class="nav-item" data-view="expenses">Aufwände</button>
         <button class="nav-item" data-view="tasks">Aufgaben</button>
         <button class="nav-item" data-view="documents">Dokumente</button>
+        <button class="nav-item" data-view="admin" data-admin-only>Admin</button>
         <button class="nav-item" data-view="backup">Backup</button>
       </nav>
     </aside>
@@ -34,6 +61,10 @@
         </div>
         <div class="search-wrap">
           <input id="global-search" type="search" placeholder="Suchen: Projekte, Schüler, Belege..." />
+        </div>
+        <div class="userbar">
+          <span id="current-user"></span>
+          <button id="logout" class="secondary small" type="button">Abmelden</button>
         </div>
       </header>
 
@@ -70,12 +101,7 @@
             <label>Projektname <input name="name" required minlength="3" /></label>
             <div class="form-row">
               <label>Leitaktion
-                <select name="action" required>
-                  <option value="">Bitte wählen</option>
-                  <option>KA1</option>
-                  <option>KA2</option>
-                  <option>KA3</option>
-                </select>
+                <select name="action" required></select>
               </label>
               <label>Status
                 <select name="status" required>
@@ -91,7 +117,9 @@
               <label>Startdatum <input name="startDate" type="date" required /></label>
               <label>Enddatum <input name="endDate" type="date" required /></label>
             </div>
-            <label>Budget gesamt <input name="budget" type="number" min="0" step="0.01" required /></label>
+            <label>Budget gesamt
+              <span class="input-addon"><input name="budget" type="number" min="0" step="0.01" required /><span>€</span></span>
+            </label>
             <div class="form-actions">
               <button type="submit">Speichern</button>
               <button type="button" class="secondary" data-reset-form="project-form">Zurücksetzen</button>
@@ -141,9 +169,7 @@
             </div>
             <fieldset>
               <legend>Dokumente</legend>
-              <label class="check"><input type="checkbox" name="consent" /> Einverständniserklärung</label>
-              <label class="check"><input type="checkbox" name="emergency" /> Notfallkontakt</label>
-              <label class="check"><input type="checkbox" name="insurance" /> Versicherung</label>
+              <div id="required-document-fields" class="check-grid"></div>
             </fieldset>
             <div class="form-actions">
               <button type="submit">Speichern</button>
@@ -173,15 +199,11 @@
             <label>Schüler <select name="studentId"><option value="">Ohne Schülerbezug</option></select></label>
             <div class="form-row">
               <label>Kategorie
-                <select name="category" required>
-                  <option>Reisekosten</option>
-                  <option>Unterkunft</option>
-                  <option>Verpflegung</option>
-                  <option>Taschengeld</option>
-                  <option>Sonstiges</option>
-                </select>
+                <select name="category" required></select>
               </label>
-              <label>Betrag <input name="amount" type="number" min="0.01" step="0.01" required /></label>
+              <label>Betrag
+                <span class="input-addon"><input name="amount" type="number" min="0.01" step="0.01" required /><span>€</span></span>
+              </label>
             </div>
             <div class="form-row">
               <label>Datum <input name="date" type="date" required /></label>
@@ -262,15 +284,7 @@
             <label>Titel <input name="title" required minlength="3" placeholder="Einverständnis Mila Schneider" /></label>
             <div class="form-row">
               <label>Typ
-                <select name="type" required>
-                  <option>Einverständniserklärung</option>
-                  <option>Notfallkontakt</option>
-                  <option>Versicherung</option>
-                  <option>Beleg</option>
-                  <option>Vertrag</option>
-                  <option>Bericht</option>
-                  <option>Sonstiges</option>
-                </select>
+                <select name="type" required></select>
               </label>
               <label>Status
                 <select name="status">
@@ -327,6 +341,73 @@
             <h2>Beispieldaten</h2>
             <p class="muted">Füllt die Anwendung mit einem kleinen Erasmus+-Szenario zum Ausprobieren.</p>
             <button id="seed-data" class="secondary">Beispieldaten laden</button>
+          </section>
+        </div>
+      </section>
+
+      <section id="admin" class="view">
+        <div class="section-layout">
+          <form id="user-form" class="panel form-panel">
+            <h2>Benutzer verwalten</h2>
+            <input type="hidden" name="id" />
+            <label>Name <input name="name" required minlength="3" autocomplete="off" /></label>
+            <label>E-Mail <input name="email" type="email" required autocomplete="off" /></label>
+            <div class="form-row">
+              <label>Rolle
+                <select name="role" required>
+                  <option>Benutzer</option>
+                  <option>Admin</option>
+                </select>
+              </label>
+              <label>Status
+                <select name="status" required>
+                  <option>Aktiv</option>
+                  <option>Gesperrt</option>
+                </select>
+              </label>
+            </div>
+            <label>Passwort <input name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Leer lassen beim Bearbeiten" /></label>
+            <div class="form-actions">
+              <button type="submit">Speichern</button>
+              <button type="button" class="secondary" data-reset-form="user-form">Zurücksetzen</button>
+            </div>
+          </form>
+          <section class="panel table-panel">
+            <div class="panel-head">
+              <h2>Managementbenutzer</h2>
+            </div>
+            <div class="table-wrap"><table id="users-table"></table></div>
+          </section>
+          <section class="panel wide">
+            <div class="panel-head">
+              <h2>Stammdaten</h2>
+            </div>
+            <div class="settings-grid">
+              <form class="setting-box" data-setting-form="expenseCategories">
+                <h3>Kategorien Aufwände</h3>
+                <div class="inline-form">
+                  <input name="value" required minlength="2" placeholder="Neue Kategorie" />
+                  <button type="submit">Hinzufügen</button>
+                </div>
+                <div id="expense-categories-list" class="chip-list"></div>
+              </form>
+              <form class="setting-box" data-setting-form="documentTypes">
+                <h3>Benötigte Dokumente</h3>
+                <div class="inline-form">
+                  <input name="value" required minlength="2" placeholder="Neuer Dokumenttyp" />
+                  <button type="submit">Hinzufügen</button>
+                </div>
+                <div id="document-types-list" class="chip-list"></div>
+              </form>
+              <form class="setting-box" data-setting-form="leadActions">
+                <h3>Leitaktionen</h3>
+                <div class="inline-form">
+                  <input name="value" required minlength="2" placeholder="Neue Leitaktion" />
+                  <button type="submit">Hinzufügen</button>
+                </div>
+                <div id="lead-actions-list" class="chip-list"></div>
+              </form>
+            </div>
           </section>
         </div>
       </section>

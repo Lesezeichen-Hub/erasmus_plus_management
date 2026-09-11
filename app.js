@@ -1,6 +1,12 @@
 const DB_NAME = "erasmus_plus_management";
-const DB_VERSION = 2;
-const STORES = ["projects", "students", "expenses", "tasks", "documents"];
+const DB_VERSION = 4;
+const STORES = ["projects", "students", "expenses", "tasks", "documents", "users", "settings"];
+const SESSION_KEY = "erasmus_plus_management_user";
+const DEFAULT_SETTINGS = {
+  leadActions: ["KA1", "KA2", "KA3"],
+  expenseCategories: ["Reisekosten", "Unterkunft", "Verpflegung", "Taschengeld", "Sonstiges"],
+  documentTypes: ["Einverständniserklärung", "Notfallkontakt", "Versicherung", "Beleg", "Vertrag", "Bericht", "Sonstiges"],
+};
 
 const state = {
   projects: [],
@@ -8,6 +14,9 @@ const state = {
   expenses: [],
   tasks: [],
   documents: [],
+  users: [],
+  settings: { ...DEFAULT_SETTINGS },
+  currentUser: null,
   view: "dashboard",
   search: "",
 };
@@ -24,6 +33,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindForms();
   bindFilters();
   bindBackup();
+  bindAuth();
+  ensureAuth();
   render();
 });
 
@@ -87,12 +98,14 @@ function clearStore(storeName) {
 }
 
 async function loadState() {
-  const [projects, students, expenses, tasks, documents] = await Promise.all(STORES.map(getAll));
+  const [projects, students, expenses, tasks, documents, users, settings] = await Promise.all(STORES.map(getAll));
   state.projects = projects.sort(sortByName);
   state.students = students.sort(sortByName);
   state.expenses = expenses.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   state.tasks = tasks.sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""));
   state.documents = documents.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  state.users = users.sort(sortByName);
+  state.settings = settings.reduce((config, item) => ({ ...config, [item.id]: item.values || [] }), { ...DEFAULT_SETTINGS });
 }
 
 async function persist(storeName, value) {
@@ -122,12 +135,20 @@ function bindForms() {
   document.querySelector("#expense-form").addEventListener("submit", onExpenseSubmit);
   document.querySelector("#task-form").addEventListener("submit", onTaskSubmit);
   document.querySelector("#document-form").addEventListener("submit", onDocumentSubmit);
+  document.querySelector("#user-form").addEventListener("submit", onUserSubmit);
+  document.querySelectorAll("[data-setting-form]").forEach((form) => form.addEventListener("submit", onSettingSubmit));
   document.querySelectorAll("[data-reset-form]").forEach((button) => {
     button.addEventListener("click", () => {
       document.querySelector(`#${button.dataset.resetForm}`).reset();
       document.querySelector(`#${button.dataset.resetForm} [name=id]`).value = "";
     });
   });
+}
+
+function bindAuth() {
+  document.querySelector("#setup-form").addEventListener("submit", onSetupSubmit);
+  document.querySelector("#login-form").addEventListener("submit", onLoginSubmit);
+  document.querySelector("#logout").addEventListener("click", logout);
 }
 
 function bindFilters() {
@@ -182,11 +203,7 @@ async function onStudentSubmit(event) {
     projectIds,
     role: data.get("role"),
     documentStatus: data.get("documentStatus"),
-    documents: {
-      consent: data.has("consent"),
-      emergency: data.has("emergency"),
-      insurance: data.has("insurance"),
-    },
+    documents: Object.fromEntries(getSettingValues("documentTypes").map((type) => [type, data.getAll("requiredDocuments").includes(type)])),
   });
   form.reset();
 }
@@ -240,10 +257,123 @@ async function onDocumentSubmit(event) {
   form.reset();
 }
 
+async function onUserSubmit(event) {
+  event.preventDefault();
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Benutzer verwalten");
+    return;
+  }
+
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  const existing = data.id ? state.users.find((user) => user.id === data.id) : null;
+  const normalizedEmail = data.email.trim().toLowerCase();
+  const duplicate = state.users.find((user) => user.email.toLowerCase() === normalizedEmail && user.id !== data.id);
+
+  if (duplicate) {
+    toast("Diese E-Mail ist bereits vergeben");
+    return;
+  }
+  if (!existing && data.password.length < 8) {
+    toast("Passwort braucht mindestens 8 Zeichen");
+    return;
+  }
+  if (existing && existing.id === state.currentUser.id && data.status !== "Aktiv") {
+    toast("Der eigene Benutzer kann nicht gesperrt werden");
+    return;
+  }
+  if (existing && existing.role === "Admin" && data.role !== "Admin" && activeAdmins().length === 1) {
+    toast("Der letzte aktive Admin muss Admin bleiben");
+    return;
+  }
+
+  const passwordFields = data.password ? await createPasswordFields(data.password) : {};
+  await persist("users", {
+    ...existing,
+    id: data.id || createId(),
+    name: data.name.trim(),
+    email: normalizedEmail,
+    role: data.role,
+    status: data.status,
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    ...passwordFields,
+  });
+  form.reset();
+}
+
+async function onSetupSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  if (state.users.length) {
+    toast("Die Ersteinrichtung ist bereits abgeschlossen");
+    return;
+  }
+  const passwordFields = await createPasswordFields(data.password);
+  const user = {
+    id: createId(),
+    name: data.name.trim(),
+    email: data.email.trim().toLowerCase(),
+    role: "Admin",
+    status: "Aktiv",
+    createdAt: new Date().toISOString(),
+    lastLoginAt: new Date().toISOString(),
+    ...passwordFields,
+  };
+  await put("users", user);
+  await loadState();
+  loginAs(user);
+  form.reset();
+  render();
+  toast("Admin wurde angelegt");
+}
+
+async function onLoginSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  const user = state.users.find((entry) => entry.email.toLowerCase() === data.email.trim().toLowerCase());
+  if (!user || user.status !== "Aktiv" || !(await verifyPassword(data.password, user))) {
+    toast("Login fehlgeschlagen");
+    return;
+  }
+  user.lastLoginAt = new Date().toISOString();
+  await put("users", user);
+  await loadState();
+  loginAs(user);
+  form.reset();
+  render();
+}
+
+async function onSettingSubmit(event) {
+  event.preventDefault();
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Stammdaten ändern");
+    return;
+  }
+  const form = event.currentTarget;
+  const key = form.dataset.settingForm;
+  const value = new FormData(form).get("value").trim();
+  const values = getSettingValues(key);
+  if (values.some((item) => item.toLowerCase() === value.toLowerCase())) {
+    toast("Eintrag ist bereits vorhanden");
+    return;
+  }
+  await saveSetting(key, [...values, value].sort((a, b) => a.localeCompare(b, "de")));
+  form.reset();
+}
+
 function render() {
+  renderAuth();
+  if (!state.currentUser) return;
+  if (state.view === "admin" && !isAdmin()) state.view = "dashboard";
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active-view", view.id === state.view));
-  document.querySelectorAll(".nav-item").forEach((item) => item.classList.toggle("active", item.dataset.view === state.view));
+  document.querySelectorAll(".nav-item").forEach((item) => {
+    item.hidden = item.hasAttribute("data-admin-only") && !isAdmin();
+    item.classList.toggle("active", item.dataset.view === state.view);
+  });
   document.querySelector("#page-title").textContent = document.querySelector(`[data-view="${state.view}"]`).textContent;
+  document.querySelector("#current-user").textContent = `${state.currentUser.name} · ${state.currentUser.role}`;
   fillSelects();
   renderDashboard();
   renderProjects();
@@ -251,6 +381,8 @@ function render() {
   renderExpenses();
   renderTasks();
   renderDocuments();
+  renderUsers();
+  renderSettings();
 }
 
 function renderDashboard() {
@@ -347,16 +479,120 @@ function renderDocuments() {
   ]));
 
   const studentRows = filterText(state.students).filter((student) => !onlyMissing || missingDocs(student).length);
-  renderTable("#documents-table", ["Schüler", "Einverständnis", "Notfallkontakt", "Versicherung", "Status"], studentRows.map((student) => [
+  const documentTypes = getSettingValues("documentTypes");
+  renderTable("#documents-table", ["Schüler", ...documentTypes, "Status"], studentRows.map((student) => [
     `<strong>${escapeHtml(student.name)}</strong><div class="meta">${student.projectIds.map(projectName).map(escapeHtml).join(", ")}</div>`,
-    yesNo(student.documents?.consent),
-    yesNo(student.documents?.emergency),
-    yesNo(student.documents?.insurance),
+    ...documentTypes.map((type) => yesNo(hasDocument(student, type))),
     badge(missingDocs(student).length ? "Unvollständig" : "Vollständig", missingDocs(student).length ? "danger" : "ok"),
   ]));
 }
 
+function renderUsers() {
+  if (!isAdmin()) return;
+  renderTable("#users-table", ["Name", "E-Mail", "Rolle", "Status", "Letzter Login", ""], state.users.map((user) => [
+    `<strong>${escapeHtml(user.name)}</strong>`,
+    escapeHtml(user.email),
+    badge(user.role, user.role === "Admin" ? "ok" : ""),
+    badge(user.status, user.status === "Aktiv" ? "ok" : "danger"),
+    formatDate(user.lastLoginAt),
+    user.id === state.currentUser.id ? `<span class="meta">Aktueller Benutzer</span>` : actions("users", user.id),
+  ]));
+}
+
+function renderSettings() {
+  if (!isAdmin()) return;
+  renderSettingList("expenseCategories", "#expense-categories-list", (value) => state.expenses.some((expense) => expense.category === value));
+  renderSettingList("documentTypes", "#document-types-list", (value) => state.documents.some((doc) => doc.type === value));
+  renderSettingList("leadActions", "#lead-actions-list", (value) => state.projects.some((project) => project.action === value));
+}
+
+function renderSettingList(key, selector, isUsed) {
+  const values = getSettingValues(key);
+  document.querySelector(selector).innerHTML = values.map((value) => `
+    <span class="chip">
+      ${escapeHtml(value)}
+      <button type="button" title="Entfernen" data-setting-delete="${key}" data-value="${escapeHtml(value)}" ${isUsed(value) ? "disabled" : ""}>x</button>
+    </span>
+  `).join("");
+  document.querySelectorAll(`[data-setting-delete="${key}"]`).forEach((button) => {
+    button.addEventListener("click", () => deleteSettingValue(key, button.dataset.value));
+  });
+}
+
+function renderAuth() {
+  const hasUsers = state.users.length > 0;
+  document.body.classList.toggle("auth-locked", !state.currentUser);
+  document.querySelector("#auth-screen").hidden = Boolean(state.currentUser);
+  document.querySelector("#setup-form").hidden = hasUsers;
+  document.querySelector("#login-form").hidden = !hasUsers;
+}
+
+function ensureAuth() {
+  const sessionUserId = sessionStorage.getItem(SESSION_KEY);
+  state.currentUser = state.users.find((user) => user.id === sessionUserId && user.status === "Aktiv") || null;
+}
+
+function loginAs(user) {
+  sessionStorage.setItem(SESSION_KEY, user.id);
+  state.currentUser = user;
+  document.body.classList.remove("auth-locked");
+}
+
+function logout() {
+  sessionStorage.removeItem(SESSION_KEY);
+  state.currentUser = null;
+  state.view = "dashboard";
+  render();
+}
+
+function isAdmin() {
+  return state.currentUser?.role === "Admin";
+}
+
+function activeAdmins() {
+  return state.users.filter((user) => user.role === "Admin" && user.status === "Aktiv");
+}
+
+function getSettingValues(key) {
+  return state.settings[key]?.length ? state.settings[key] : DEFAULT_SETTINGS[key] || [];
+}
+
+async function saveSetting(key, values) {
+  await put("settings", { id: key, values });
+  await loadState();
+  render();
+  toast("Stammdaten gespeichert");
+}
+
+async function deleteSettingValue(key, value) {
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Stammdaten ändern");
+    return;
+  }
+  if (settingValueInUse(key, value)) {
+    toast("Eintrag wird noch verwendet");
+    return;
+  }
+  const next = getSettingValues(key).filter((item) => item !== value);
+  if (!next.length) {
+    toast("Mindestens ein Eintrag muss bleiben");
+    return;
+  }
+  await saveSetting(key, next);
+}
+
+function settingValueInUse(key, value) {
+  if (key === "expenseCategories") return state.expenses.some((expense) => expense.category === value);
+  if (key === "documentTypes") return state.documents.some((doc) => doc.type === value) || state.students.some((student) => Object.prototype.hasOwnProperty.call(student.documents || {}, value));
+  if (key === "leadActions") return state.projects.some((project) => project.action === value);
+  return false;
+}
+
 function fillSelects() {
+  fillOptionSelect("#project-form [name=action]", getSettingValues("leadActions"), "Bitte wählen");
+  fillOptionSelect("#expense-form [name=category]", getSettingValues("expenseCategories"));
+  fillOptionSelect("#document-form [name=type]", getSettingValues("documentTypes"));
+  renderRequiredDocumentFields();
   fillProjectSelect("#student-form [name=projectIds]", true);
   fillProjectSelect("#expense-form [name=projectId]");
   fillProjectSelect("#task-form [name=projectId]");
@@ -364,6 +600,25 @@ function fillSelects() {
   fillProjectSelect("#task-filter", false, "Alle Projekte");
   fillStudentSelect("#expense-form [name=studentId]");
   fillStudentSelect("#document-form [name=studentId]");
+}
+
+function renderRequiredDocumentFields() {
+  const container = document.querySelector("#required-document-fields");
+  const checked = [...container.querySelectorAll("[name=requiredDocuments]:checked")].map((input) => input.value);
+  container.innerHTML = getSettingValues("documentTypes").map((type) => `
+    <label class="check"><input type="checkbox" name="requiredDocuments" value="${escapeHtml(type)}" ${checked.includes(type) ? "checked" : ""} /> ${escapeHtml(type)}</label>
+  `).join("");
+}
+
+function fillOptionSelect(selector, values, emptyLabel = null) {
+  const select = document.querySelector(selector);
+  const current = select.value;
+  select.innerHTML = emptyLabel ? `<option value="">${emptyLabel}</option>` : "";
+  values.forEach((value) => {
+    const option = new Option(value, value);
+    option.selected = current === value;
+    select.add(option);
+  });
 }
 
 function fillProjectSelect(selector, multiple = false, emptyLabel = null) {
@@ -428,8 +683,13 @@ function actions(store, id) {
 
 function editItem(store, id) {
   const item = state[store].find((entry) => entry.id === id);
+  if (!item) return;
+
+  state.view = store;
+  render();
+
   const form = document.querySelector(`#${store.slice(0, -1)}-form`);
-  if (!item || !form) return;
+  if (!form) return;
 
   Object.entries(item).forEach(([key, value]) => {
     const field = form.elements[key];
@@ -448,18 +708,35 @@ function editItem(store, id) {
   });
 
   if (store === "students") {
-    form.elements.consent.checked = Boolean(item.documents?.consent);
-    form.elements.emergency.checked = Boolean(item.documents?.emergency);
-    form.elements.insurance.checked = Boolean(item.documents?.insurance);
+    form.querySelectorAll("[name=requiredDocuments]").forEach((input) => {
+      input.checked = hasDocument(item, input.value);
+    });
   }
 
-  state.view = store;
-  render();
+  if (store === "users") {
+    form.elements.password.value = "";
+  }
+
   form.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 async function deleteItem(store, id) {
   if (!confirm("Eintrag wirklich löschen?")) return;
+  if (store === "users") {
+    const user = state.users.find((entry) => entry.id === id);
+    if (!isAdmin()) {
+      toast("Nur Admins dürfen Benutzer löschen");
+      return;
+    }
+    if (id === state.currentUser.id) {
+      toast("Der eigene Benutzer kann nicht gelöscht werden");
+      return;
+    }
+    if (user?.role === "Admin" && activeAdmins().length === 1) {
+      toast("Der letzte aktive Admin kann nicht gelöscht werden");
+      return;
+    }
+  }
   if (store === "projects") {
     await cleanupProjectReferences(id);
   }
@@ -526,20 +803,21 @@ function studentName(id) {
 }
 
 function missingDocs(student) {
-  const docs = student.documents || {};
-  return [
-    ["consent", "Einverständnis"],
-    ["emergency", "Notfallkontakt"],
-    ["insurance", "Versicherung"],
-  ].filter(([key]) => !docs[key]).map(([, label]) => label);
+  return getSettingValues("documentTypes").filter((type) => !hasDocument(student, type));
 }
 
 function documentBadges(student) {
-  return [
-    ["Einverständnis", student.documents?.consent],
-    ["Notfall", student.documents?.emergency],
-    ["Versicherung", student.documents?.insurance],
-  ].map(([label, ok]) => badge(label, ok ? "ok" : "danger")).join(" ");
+  return getSettingValues("documentTypes").map((type) => badge(type, hasDocument(student, type) ? "ok" : "danger")).join(" ");
+}
+
+function hasDocument(student, type) {
+  const docs = student.documents || {};
+  const legacy = {
+    "Einverständniserklärung": "consent",
+    "Notfallkontakt": "emergency",
+    "Versicherung": "insurance",
+  };
+  return Boolean(docs[type] ?? docs[legacy[type]]);
 }
 
 function yesNo(value) {
@@ -571,6 +849,47 @@ function sortByName(a, b) {
 
 function createId() {
   return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+// Lokale Passwortspeicherung: Es wird nur Salt + PBKDF2-Hash in IndexedDB abgelegt,
+// niemals das Klartextpasswort. In einer statischen Browser-App bleibt das ein lokaler Schutz.
+async function createPasswordFields(password) {
+  const saltBytes = crypto.getRandomValues(new Uint8Array(16));
+  const salt = bytesToBase64(saltBytes);
+  return {
+    passwordSalt: salt,
+    passwordHash: await hashPassword(password, salt),
+    passwordUpdatedAt: new Date().toISOString(),
+  };
+}
+
+async function verifyPassword(password, user) {
+  if (!user.passwordSalt || !user.passwordHash) return false;
+  return (await hashPassword(password, user.passwordSalt)) === user.passwordHash;
+}
+
+async function hashPassword(password, salt) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: base64ToBytes(salt),
+      iterations: 120000,
+      hash: "SHA-256",
+    },
+    key,
+    256
+  );
+  return bytesToBase64(new Uint8Array(bits));
+}
+
+function bytesToBase64(bytes) {
+  return btoa(String.fromCharCode(...bytes));
+}
+
+function base64ToBytes(value) {
+  return Uint8Array.from(atob(value), (char) => char.charCodeAt(0));
 }
 
 function emptyState() {
@@ -619,13 +938,21 @@ async function importData() {
   if (!confirm("Import ersetzt alle lokalen Daten. Fortfahren?")) return;
 
   const payload = JSON.parse(await file.text());
+  const hasUserBackup = Array.isArray(payload.data?.users);
+  const importedUsers = hasUserBackup ? payload.data.users : [];
+  if (hasUserBackup && !importedUsers.some((user) => user.role === "Admin" && user.status === "Aktiv")) {
+    toast("Import braucht mindestens einen aktiven Admin");
+    return;
+  }
   for (const store of STORES) {
+    if (store === "users" && !hasUserBackup) continue;
     await clearStore(store);
     for (const item of payload.data?.[store] || []) {
       await put(store, item);
     }
   }
   await loadState();
+  ensureAuth();
   render();
   toast("Import abgeschlossen");
 }
@@ -643,8 +970,8 @@ async function seedData() {
       { id: ids.p2, name: "Green Schools Network", action: "KA2", partners: "Finnland - Helsinki Upper School; Italien - Liceo Verona", startDate: "2027-02-10", endDate: "2027-09-30", budget: 42000, status: "Geplant" },
     ],
     students: [
-      { id: ids.s1, name: "Mila Schneider", className: "10b", birthDate: "2010-04-12", projectIds: [ids.p1], role: "Teilnehmer", documentStatus: "Vollständig", documents: { consent: true, emergency: true, insurance: true } },
-      { id: ids.s2, name: "Jonas Weber", className: "9a", birthDate: "2011-08-25", projectIds: [ids.p1, ids.p2], role: "Nachrücker", documentStatus: "Unvollständig", documents: { consent: true, emergency: false, insurance: false } },
+      { id: ids.s1, name: "Mila Schneider", className: "10b", birthDate: "2010-04-12", projectIds: [ids.p1], role: "Teilnehmer", documentStatus: "Vollständig", documents: { "Einverständniserklärung": true, Notfallkontakt: true, Versicherung: true, Beleg: true, Vertrag: true, Bericht: true, Sonstiges: true } },
+      { id: ids.s2, name: "Jonas Weber", className: "9a", birthDate: "2011-08-25", projectIds: [ids.p1, ids.p2], role: "Nachrücker", documentStatus: "Unvollständig", documents: { "Einverständniserklärung": true, Notfallkontakt: false, Versicherung: false, Beleg: true, Vertrag: true, Bericht: false, Sonstiges: true } },
     ],
     expenses: [
       { id: createId(), projectId: ids.p1, studentId: ids.s1, category: "Reisekosten", amount: 390, date: "2026-10-15", receiptStatus: "Vorhanden", note: "Flug Frankfurt-Valencia" },
@@ -659,6 +986,7 @@ async function seedData() {
       { id: createId(), title: "Einverständnis Mila Schneider", type: "Einverständniserklärung", projectId: ids.p1, studentId: ids.s1, date: "2026-09-08", status: "Abgelegt", storageHint: "Ordner Valencia / Mila-Schneider.pdf" },
       { id: createId(), title: "Versicherungsnachweis Jonas Weber", type: "Versicherung", projectId: ids.p1, studentId: ids.s2, date: "2026-09-10", status: "Fehlt", storageHint: "" },
     ],
+    settings: Object.entries(DEFAULT_SETTINGS).map(([id, values]) => ({ id, values })),
   };
 
   for (const store of STORES) {
