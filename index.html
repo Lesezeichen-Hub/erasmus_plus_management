@@ -114,6 +114,7 @@
             </div>
             <label>Partnereinrichtungen (Schulen) <select name="institutionIds" multiple size="5"></select></label>
             <label>Weitere Partnerdetails <textarea name="partners" rows="2" placeholder="Zusatzinfos, Kontakte oder Besonderheiten"></textarea></label>
+            <label>Förderbudget <select name="fundingBudgetId"></select></label>
             <div class="form-row">
               <label>Startdatum <input name="startDate" type="date" required /></label>
               <label>Enddatum <input name="endDate" type="date" required /></label>
@@ -392,6 +393,43 @@
               </div>
             </div>
             <div class="table-wrap"><table id="users-table"></table></div>
+          </section>
+          <form id="fundingBudget-form" class="panel form-panel wide">
+            <h2>Förderbudget verwalten</h2>
+            <input type="hidden" name="id" />
+            <label>Name <input name="name" required minlength="3" placeholder="Erasmus+ 2026-2028" /></label>
+            <div class="form-row">
+              <label>Startdatum <input name="startDate" type="date" required /></label>
+              <label>Enddatum <input name="endDate" type="date" required /></label>
+            </div>
+            <div class="form-row">
+              <label>Laufzeit
+                <select name="durationMonths" required>
+                  <option value="15">15 Monate</option>
+                  <option value="24">24 Monate</option>
+                </select>
+              </label>
+              <label>Gesamtfördergeldbudget
+                <span class="input-addon"><input name="amount" type="number" min="0" step="0.01" required /><span>€</span></span>
+              </label>
+            </div>
+            <label>Status
+              <select name="status">
+                <option>Aktiv</option>
+                <option>Inaktiv</option>
+              </select>
+            </label>
+            <label>Notiz <textarea name="note" rows="2"></textarea></label>
+            <div class="form-actions">
+              <button type="submit">Speichern</button>
+              <button type="button" class="secondary" data-reset-form="fundingBudget-form">Zurücksetzen</button>
+            </div>
+          </form>
+          <section class="panel table-panel wide">
+            <div class="panel-head">
+              <h2>Förderbudgets</h2>
+            </div>
+            <div class="table-wrap"><table id="funding-budgets-table"></table></div>
           </section>
           <form id="institution-form" class="panel form-panel wide">
             <h2>Partnereinrichtung verwalten</h2>

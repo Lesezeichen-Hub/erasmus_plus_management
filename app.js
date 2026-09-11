@@ -1,6 +1,6 @@
 const DB_NAME = "erasmus_plus_management";
-const DB_VERSION = 5;
-const STORES = ["projects", "students", "expenses", "tasks", "documents", "users", "settings", "institutions"];
+const DB_VERSION = 6;
+const STORES = ["projects", "students", "expenses", "tasks", "documents", "users", "settings", "institutions", "fundingBudgets"];
 const SESSION_KEY = "erasmus_plus_management_user";
 const DEFAULT_SETTINGS = {
   leadActions: ["KA1", "KA2", "KA3"],
@@ -17,6 +17,7 @@ const state = {
   users: [],
   settings: { ...DEFAULT_SETTINGS },
   institutions: [],
+  fundingBudgets: [],
   currentUser: null,
   view: "dashboard",
   search: "",
@@ -99,7 +100,7 @@ function clearStore(storeName) {
 }
 
 async function loadState() {
-  const [projects, students, expenses, tasks, documents, users, settings, institutions] = await Promise.all(STORES.map(getAll));
+  const [projects, students, expenses, tasks, documents, users, settings, institutions, fundingBudgets] = await Promise.all(STORES.map(getAll));
   state.projects = projects.sort(sortByName);
   state.students = students.sort(sortByName);
   state.expenses = expenses.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -108,6 +109,7 @@ async function loadState() {
   state.users = users.sort(sortByName);
   state.settings = settings.reduce((config, item) => ({ ...config, [item.id]: item.values || [] }), { ...DEFAULT_SETTINGS });
   state.institutions = institutions.sort(sortByName);
+  state.fundingBudgets = fundingBudgets.sort((a, b) => (b.startDate || "").localeCompare(a.startDate || ""));
   if (state.currentUser) {
     state.currentUser = state.users.find((user) => user.id === state.currentUser.id && user.status === "Aktiv") || null;
   }
@@ -142,6 +144,7 @@ function bindForms() {
   document.querySelector("#document-form").addEventListener("submit", onDocumentSubmit);
   document.querySelector("#user-form").addEventListener("submit", onUserSubmit);
   document.querySelector("#institution-form").addEventListener("submit", onInstitutionSubmit);
+  document.querySelector("#fundingBudget-form").addEventListener("submit", onFundingBudgetSubmit);
   document.querySelectorAll("[data-setting-form]").forEach((form) => form.addEventListener("submit", onSettingSubmit));
   document.querySelectorAll("[data-reset-form]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -189,12 +192,29 @@ async function onProjectSubmit(event) {
     toast("Enddatum darf nicht vor dem Startdatum liegen");
     return;
   }
+  if (data.fundingBudgetId) {
+    const fundingBudget = state.fundingBudgets.find((budget) => budget.id === data.fundingBudgetId);
+    if (!fundingBudget) {
+      toast("Förderbudget wurde nicht gefunden");
+      return;
+    }
+    if (new Date(data.startDate) < new Date(fundingBudget.startDate) || new Date(data.endDate) > new Date(fundingBudget.endDate)) {
+      toast("Projektzeitraum muss im Zeitraum des Förderbudgets liegen");
+      return;
+    }
+    const assigned = fundingBudgetAssigned(fundingBudget.id, data.id || null) + Number(data.budget || 0);
+    if (assigned > Number(fundingBudget.amount || 0)) {
+      toast("Projektbudget überschreitet das verfügbare Förderbudget");
+      return;
+    }
+  }
 
   await persist("projects", {
     id: data.id || createId(),
     name: data.name.trim(),
     action: data.action,
     institutionIds: [...form.elements.institutionIds.selectedOptions].map((option) => option.value),
+    fundingBudgetId: data.fundingBudgetId,
     partners: data.partners.trim(),
     startDate: data.startDate,
     endDate: data.endDate,
@@ -344,6 +364,41 @@ async function onInstitutionSubmit(event) {
   resetForm("institution-form");
 }
 
+async function onFundingBudgetSubmit(event) {
+  event.preventDefault();
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Förderbudgets verwalten");
+    return;
+  }
+  const form = event.currentTarget;
+  const data = Object.fromEntries(new FormData(form));
+  if (new Date(data.endDate) < new Date(data.startDate)) {
+    toast("Enddatum darf nicht vor dem Startdatum liegen");
+    return;
+  }
+  const linkedProjects = state.projects.filter((project) => project.fundingBudgetId === data.id);
+  if (linkedProjects.some((project) => new Date(project.startDate) < new Date(data.startDate) || new Date(project.endDate) > new Date(data.endDate))) {
+    toast("Bestehende Projekte liegen außerhalb dieses Förderzeitraums");
+    return;
+  }
+  const assigned = linkedProjects.reduce((sum, project) => sum + Number(project.budget || 0), 0);
+  if (assigned > Number(data.amount || 0)) {
+    toast("Gesamtbudget ist kleiner als bereits zugewiesene Projektbudgets");
+    return;
+  }
+  await persist("fundingBudgets", {
+    id: data.id || createId(),
+    name: data.name.trim(),
+    startDate: data.startDate,
+    endDate: data.endDate,
+    durationMonths: Number(data.durationMonths),
+    amount: Number(data.amount),
+    status: data.status,
+    note: data.note.trim(),
+  });
+  form.reset();
+}
+
 async function onSetupSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
@@ -425,6 +480,7 @@ function render() {
   renderTasks();
   renderDocuments();
   renderUsers();
+  renderFundingBudgets();
   renderInstitutions();
   renderSettings();
 }
@@ -434,10 +490,12 @@ function renderDashboard() {
   const openTasks = state.tasks.filter((task) => task.status !== "Erledigt");
   const travellingStudents = state.students.filter((student) => student.role === "Teilnehmer").length;
   const remainingBudget = state.projects.reduce((sum, project) => sum + budgetRemaining(project.id), 0);
+  const fundingRemaining = state.fundingBudgets.reduce((sum, budget) => sum + fundingBudgetRemaining(budget.id), 0);
 
   document.querySelector("#kpi-grid").innerHTML = [
     kpi("Aktive Projekte", activeProjects.length),
-    kpi("Verbleibendes Budget", money.format(remainingBudget)),
+    kpi("Projekt-Restbudgets", money.format(remainingBudget)),
+    kpi("Fördermittel Rest", money.format(fundingRemaining)),
     kpi("Offene Aufgaben", openTasks.length),
     kpi("Reisende Schüler", travellingStudents),
   ].join("");
@@ -457,10 +515,11 @@ function renderDashboard() {
 function renderProjects() {
   const status = document.querySelector("#project-filter").value;
   const rows = filterText(state.projects).filter((project) => !status || project.status === status);
-  renderTable("#projects-table", ["Projekt", "Zeitraum", "Budget", "Status", "Fortschritt", ""], rows.map((project) => [
+  renderTable("#projects-table", ["Projekt", "Zeitraum", "Budget", "Fördertopf", "Status", "Fortschritt", ""], rows.map((project) => [
     `<strong>${escapeHtml(project.name)}</strong><div class="meta">${escapeHtml(project.action)} · ${projectInstitutionNames(project)}${project.partners ? `<br>${escapeHtml(project.partners)}` : ""}</div>`,
     `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`,
     `${money.format(project.budget)}<div class="meta">Rest ${money.format(budgetRemaining(project.id))}</div>`,
+    escapeHtml(fundingBudgetName(project.fundingBudgetId)),
     badge(project.status, statusTone(project.status)),
     progressHtml(taskProgress(project.id)),
     actions("projects", project.id),
@@ -583,6 +642,30 @@ function renderInstitutions() {
     String(state.projects.filter((project) => (project.institutionIds || []).includes(institution.id)).length),
     institutionActions(institution),
   ]));
+}
+
+function renderFundingBudgets() {
+  if (!isAdmin()) return;
+  renderTable("#funding-budgets-table", ["Name", "Zeitraum", "Laufzeit", "Budget", "Zugewiesen", "Rest", "Status", ""], state.fundingBudgets.map((budget) => [
+    `<strong>${escapeHtml(budget.name)}</strong><div class="meta">${escapeHtml(budget.note || "")}</div>`,
+    `${formatDate(budget.startDate)} - ${formatDate(budget.endDate)}`,
+    `${Number(budget.durationMonths || 0)} Monate`,
+    money.format(Number(budget.amount || 0)),
+    money.format(fundingBudgetAssigned(budget.id)),
+    money.format(fundingBudgetRemaining(budget.id)),
+    badge(budget.status || "Aktiv", budget.status === "Inaktiv" ? "warn" : "ok"),
+    fundingBudgetActions(budget),
+  ]));
+}
+
+function fundingBudgetActions(budget) {
+  const toggleLabel = budget.status === "Inaktiv" ? "Aktivieren" : "Deaktivieren";
+  return `
+    <div class="row-actions">
+      <button class="small secondary" data-edit data-store="fundingBudgets" data-id="${budget.id}">Bearbeiten</button>
+      <button class="small secondary" data-funding-budget-toggle="${budget.id}">${toggleLabel}</button>
+    </div>
+  `;
 }
 
 function institutionActions(institution) {
@@ -715,6 +798,16 @@ async function toggleInstitution(id) {
   await persist("institutions", { ...institution, visible: institution.visible === false });
 }
 
+async function toggleFundingBudget(id) {
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Förderbudgets verwalten");
+    return;
+  }
+  const budget = state.fundingBudgets.find((entry) => entry.id === id);
+  if (!budget) return;
+  await persist("fundingBudgets", { ...budget, status: budget.status === "Inaktiv" ? "Aktiv" : "Inaktiv" });
+}
+
 function institutionName(id) {
   const institution = state.institutions.find((entry) => entry.id === id);
   if (!institution) return "Unbekannte Partnereinrichtung";
@@ -727,12 +820,31 @@ function projectInstitutionNames(project) {
   return ids.map(institutionName).map(escapeHtml).join(", ");
 }
 
+function fundingBudgetName(id) {
+  if (!id) return "Nicht zugeordnet";
+  const budget = state.fundingBudgets.find((entry) => entry.id === id);
+  if (!budget) return "Unbekanntes Förderbudget";
+  return `${budget.name}${budget.status === "Inaktiv" ? " [inaktiv]" : ""}`;
+}
+
+function fundingBudgetAssigned(id, excludeProjectId = null) {
+  return state.projects
+    .filter((project) => project.fundingBudgetId === id && project.id !== excludeProjectId)
+    .reduce((sum, project) => sum + Number(project.budget || 0), 0);
+}
+
+function fundingBudgetRemaining(id) {
+  const budget = state.fundingBudgets.find((entry) => entry.id === id);
+  return Number(budget?.amount || 0) - fundingBudgetAssigned(id);
+}
+
 function fillSelects() {
   fillOptionSelect("#project-form [name=action]", getSettingValues("leadActions"), "Bitte wählen");
   fillOptionSelect("#expense-form [name=category]", getSettingValues("expenseCategories"));
   fillOptionSelect("#document-form [name=type]", getSettingValues("documentTypes"));
   renderRequiredDocumentFields();
   fillInstitutionSelect();
+  fillFundingBudgetSelect();
   fillProjectSelect("#student-form [name=projectIds]", true);
   fillProjectSelect("#expense-form [name=projectId]");
   fillProjectSelect("#task-form [name=projectId]");
@@ -740,6 +852,20 @@ function fillSelects() {
   fillProjectSelect("#task-filter", false, "Alle Projekte");
   fillStudentSelect("#expense-form [name=studentId]");
   fillStudentSelect("#document-form [name=studentId]");
+}
+
+function fillFundingBudgetSelect(selectedId = null) {
+  const select = document.querySelector("#project-form [name=fundingBudgetId]");
+  const selected = selectedId ?? select.value;
+  select.innerHTML = `<option value="">Kein Förderbudget zugeordnet</option>`;
+  state.fundingBudgets
+    .filter((budget) => budget.status !== "Inaktiv" || budget.id === selected)
+    .forEach((budget) => {
+      const label = `${budget.name} · ${formatDate(budget.startDate)}-${formatDate(budget.endDate)} · Rest ${money.format(fundingBudgetRemaining(budget.id))}${budget.status === "Inaktiv" ? " · inaktiv" : ""}`;
+      const option = new Option(label, budget.id);
+      option.selected = selected === budget.id;
+      select.add(option);
+    });
 }
 
 function fillInstitutionSelect(selectedIds = null) {
@@ -811,6 +937,7 @@ function renderTable(selector, headers, rows) {
   table.querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => deleteItem(button.dataset.store, button.dataset.id)));
   table.querySelectorAll("[data-institution-toggle]").forEach((button) => button.addEventListener("click", () => toggleInstitution(button.dataset.institutionToggle)));
   table.querySelectorAll("[data-user-toggle]").forEach((button) => button.addEventListener("click", () => toggleUserStatus(button.dataset.userToggle)));
+  table.querySelectorAll("[data-funding-budget-toggle]").forEach((button) => button.addEventListener("click", () => toggleFundingBudget(button.dataset.fundingBudgetToggle)));
 }
 
 function renderList(selector, items) {
@@ -849,6 +976,7 @@ function editItem(store, id) {
 
   if (store === "projects") {
     fillInstitutionSelect(item.institutionIds || []);
+    fillFundingBudgetSelect(item.fundingBudgetId || "");
   }
 
   Object.entries(item).forEach(([key, value]) => {
@@ -886,6 +1014,10 @@ async function deleteItem(store, id) {
   if (!confirm("Eintrag wirklich löschen?")) return;
   if (store === "institutions") {
     await toggleInstitution(id);
+    return;
+  }
+  if (store === "fundingBudgets") {
+    await toggleFundingBudget(id);
     return;
   }
   if (store === "users") {
@@ -1132,16 +1264,22 @@ async function seedData() {
     i1: createId(),
     i2: createId(),
     i3: createId(),
+    f1: createId(),
+    f2: createId(),
   };
   const seed = {
+    fundingBudgets: [
+      { id: ids.f1, name: "Erasmus+ Förderbudget 2026/27", startDate: "2026-09-01", endDate: "2027-11-30", durationMonths: 15, amount: 65000, status: "Aktiv", note: "Kurzlaufzeit fuer Mobilitaeten und Abschlussbericht" },
+      { id: ids.f2, name: "Erasmus+ Förderbudget 2027/29", startDate: "2027-01-01", endDate: "2028-12-31", durationMonths: 24, amount: 98000, status: "Aktiv", note: "Mehrjaehrige Projektlinie" },
+    ],
     institutions: [
       { id: ids.i1, name: "IES Valencia", country: "Spanien", city: "Valencia", type: "Schule", note: "Koordination: International Office", visible: true },
       { id: ids.i2, name: "Helsinki Upper School", country: "Finnland", city: "Helsinki", type: "Schule", note: "", visible: true },
       { id: ids.i3, name: "Liceo Verona", country: "Italien", city: "Verona", type: "Schule", note: "", visible: true },
     ],
     projects: [
-      { id: ids.p1, name: "Brücken nach Valencia", action: "KA1", institutionIds: [ids.i1], partners: "Austauschgruppe Klasse 10", startDate: "2026-10-01", endDate: "2027-03-31", budget: 18500, status: "Aktiv" },
-      { id: ids.p2, name: "Green Schools Network", action: "KA2", institutionIds: [ids.i2, ids.i3], partners: "Nachhaltigkeitsprojekt mit zwei Partnerschulen", startDate: "2027-02-10", endDate: "2027-09-30", budget: 42000, status: "Geplant" },
+      { id: ids.p1, name: "Brücken nach Valencia", action: "KA1", institutionIds: [ids.i1], fundingBudgetId: ids.f1, partners: "Austauschgruppe Klasse 10", startDate: "2026-10-01", endDate: "2027-03-31", budget: 18500, status: "Aktiv" },
+      { id: ids.p2, name: "Green Schools Network", action: "KA2", institutionIds: [ids.i2, ids.i3], fundingBudgetId: ids.f2, partners: "Nachhaltigkeitsprojekt mit zwei Partnerschulen", startDate: "2027-02-10", endDate: "2027-09-30", budget: 42000, status: "Geplant" },
     ],
     students: [
       { id: ids.s1, name: "Mila Schneider", className: "10b", birthDate: "2010-04-12", projectIds: [ids.p1], role: "Teilnehmer", documentStatus: "Vollständig", documents: { "Einverständniserklärung": true, Notfallkontakt: true, Versicherung: true, Beleg: true, Vertrag: true, Bericht: true, Sonstiges: true } },

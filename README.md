@@ -42,12 +42,15 @@ Im Admin-Panel koennen ausserdem Stammdaten gepflegt werden:
 - benoetigte beziehungsweise verwendete Dokumenttypen
 - Leitaktionen
 - Partnereinrichtungen, also teilnehmende Schulen oder Organisationen
+- Foerderbudgets mit Gesamtbudget, Zeitraum und Laufzeit 15 oder 24 Monate
 
 ## Datenhaltung
 
-Die Anwendung nutzt IndexedDB im Browser. Dadurch bleiben Projekte, Partnereinrichtungen, Schueler, Aufwaende, Aufgaben, Dokumente, Stammdaten und Managementbenutzer lokal erhalten, bis Browserdaten geloescht werden.
+Die Anwendung nutzt IndexedDB im Browser. Dadurch bleiben Projekte, Foerderbudgets, Partnereinrichtungen, Schueler, Aufwaende, Aufgaben, Dokumente, Stammdaten und Managementbenutzer lokal erhalten, bis Browserdaten geloescht werden.
 
 Partnereinrichtungen werden nicht geloescht. Im Admin-Panel koennen sie ausgeblendet werden; ihre ID und bestehende Projektzuordnungen bleiben erhalten.
+
+Foerderbudgets werden ebenfalls dauerhaft per ID referenziert. Projekte koennen einem Foerderbudget zugeordnet werden; die App berechnet daraus zugewiesenes Budget und verbleibende Foerdermittel.
 
 Wichtige Stellen in `app.js`:
 
@@ -59,7 +62,7 @@ Wichtige Stellen in `app.js`:
 ## Funktionen
 
 - Dashboard mit KPIs, Projektstatus, Restbudget und Risikoueberblick
-- Projekte mit Leitaktion, Partnereinrichtungen, Zeitraum, Budget und Status
+- Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
 - Schueler mit Projektzuordnung, Rolle und Dokumentenstatus
 - Aufwaende mit Kategorie, Betrag, Belegstatus, Projekt- und Schuelerbezug
 - Aufgaben je Projekt mit Fortschrittsbalken
@@ -68,6 +71,7 @@ Wichtige Stellen in `app.js`:
 - Admin-Panel fuer Managementbenutzer mit Rollen Admin und Benutzer
 - Vollstaendige Benutzerverwaltung mit Statuswechsel, Passwort-Neuvergabe und Filtern
 - Admin-Konfiguration fuer Aufwandskategorien, Dokumenttypen, Leitaktionen und Partnereinrichtungen
+- Admin-Verwaltung fuer Foerderbudgets mit 15- oder 24-monatiger Laufzeit
 - Euro-Anzeige direkt an Budget- und Betragsfeldern
 - Globale Suche und fachliche Filter
 - JSON-Export und Import als Backup inklusive Benutzerstruktur
