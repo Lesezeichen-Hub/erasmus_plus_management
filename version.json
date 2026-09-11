@@ -1,0 +1,11 @@
+{
+  "name": "Erasmus+ Management",
+  "version": "1.0.0",
+  "description": "Lokale Web-App zur Verwaltung von Erasmus+ Schueleraustausch-Projekten, Teilnehmenden, Aufwaenden, Aufgaben und Dokumenten.",
+  "entry": "index.html",
+  "storage": "IndexedDB",
+  "backup": {
+    "export": "JSON",
+    "import": "JSON"
+  }
+}

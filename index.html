@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Erasmus+ Management</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <aside class="sidebar" aria-label="Hauptnavigation">
+      <div class="brand">
+        <div class="brand-mark">E+</div>
+        <div>
+          <strong>Erasmus+</strong>
+          <span>Schüleraustausch</span>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <button class="nav-item active" data-view="dashboard">Dashboard</button>
+        <button class="nav-item" data-view="projects">Projekte</button>
+        <button class="nav-item" data-view="students">Schüler</button>
+        <button class="nav-item" data-view="expenses">Aufwände</button>
+        <button class="nav-item" data-view="tasks">Aufgaben</button>
+        <button class="nav-item" data-view="documents">Dokumente</button>
+        <button class="nav-item" data-view="backup">Backup</button>
+      </nav>
+    </aside>
+
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Lokale Verwaltungs-App</p>
+          <h1 id="page-title">Dashboard</h1>
+        </div>
+        <div class="search-wrap">
+          <input id="global-search" type="search" placeholder="Suchen: Projekte, Schüler, Belege..." />
+        </div>
+      </header>
+
+      <section id="dashboard" class="view active-view" aria-labelledby="page-title">
+        <div class="kpi-grid" id="kpi-grid"></div>
+        <div class="content-grid">
+          <section class="panel wide">
+            <div class="panel-head">
+              <h2>Projektstatus</h2>
+              <select id="dashboard-status-filter">
+                <option value="">Alle Status</option>
+                <option>Geplant</option>
+                <option>Aktiv</option>
+                <option>Abgeschlossen</option>
+                <option>Abrechnung</option>
+              </select>
+            </div>
+            <div id="project-status-list" class="list"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-head">
+              <h2>Offene Risiken</h2>
+            </div>
+            <div id="risk-list" class="list compact"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="projects" class="view">
+        <div class="section-layout">
+          <form id="project-form" class="panel form-panel">
+            <h2>Projekt erfassen</h2>
+            <input type="hidden" name="id" />
+            <label>Projektname <input name="name" required minlength="3" /></label>
+            <div class="form-row">
+              <label>Leitaktion
+                <select name="action" required>
+                  <option value="">Bitte wählen</option>
+                  <option>KA1</option>
+                  <option>KA2</option>
+                  <option>KA3</option>
+                </select>
+              </label>
+              <label>Status
+                <select name="status" required>
+                  <option>Geplant</option>
+                  <option>Aktiv</option>
+                  <option>Abgeschlossen</option>
+                  <option>Abrechnung</option>
+                </select>
+              </label>
+            </div>
+            <label>Partnerländer/-schulen <textarea name="partners" rows="3" placeholder="Spanien - IES Madrid, Frankreich - Lycée Lyon"></textarea></label>
+            <div class="form-row">
+              <label>Startdatum <input name="startDate" type="date" required /></label>
+              <label>Enddatum <input name="endDate" type="date" required /></label>
+            </div>
+            <label>Budget gesamt <input name="budget" type="number" min="0" step="0.01" required /></label>
+            <div class="form-actions">
+              <button type="submit">Speichern</button>
+              <button type="button" class="secondary" data-reset-form="project-form">Zurücksetzen</button>
+            </div>
+          </form>
+          <section class="panel table-panel">
+            <div class="panel-head">
+              <h2>Projektkatalog</h2>
+              <select id="project-filter">
+                <option value="">Alle</option>
+                <option>Geplant</option>
+                <option>Aktiv</option>
+                <option>Abgeschlossen</option>
+                <option>Abrechnung</option>
+              </select>
+            </div>
+            <div class="table-wrap"><table id="projects-table"></table></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="students" class="view">
+        <div class="section-layout">
+          <form id="student-form" class="panel form-panel">
+            <h2>Schüler erfassen</h2>
+            <input type="hidden" name="id" />
+            <label>Name <input name="name" required minlength="3" /></label>
+            <div class="form-row">
+              <label>Klasse <input name="className" required placeholder="10b" /></label>
+              <label>Geburtsdatum <input name="birthDate" type="date" required /></label>
+            </div>
+            <label>Projektzuordnung <select name="projectIds" multiple size="4" required></select></label>
+            <div class="form-row">
+              <label>Rolle
+                <select name="role">
+                  <option>Teilnehmer</option>
+                  <option>Nachrücker</option>
+                </select>
+              </label>
+              <label>Dokumentenstatus
+                <select name="documentStatus">
+                  <option>Vollständig</option>
+                  <option>Unvollständig</option>
+                  <option>Prüfen</option>
+                </select>
+              </label>
+            </div>
+            <fieldset>
+              <legend>Dokumente</legend>
+              <label class="check"><input type="checkbox" name="consent" /> Einverständniserklärung</label>
+              <label class="check"><input type="checkbox" name="emergency" /> Notfallkontakt</label>
+              <label class="check"><input type="checkbox" name="insurance" /> Versicherung</label>
+            </fieldset>
+            <div class="form-actions">
+              <button type="submit">Speichern</button>
+              <button type="button" class="secondary" data-reset-form="student-form">Zurücksetzen</button>
+            </div>
+          </form>
+          <section class="panel table-panel">
+            <div class="panel-head">
+              <h2>Teilnehmerindex</h2>
+              <select id="student-filter">
+                <option value="">Alle Rollen</option>
+                <option>Teilnehmer</option>
+                <option>Nachrücker</option>
+              </select>
+            </div>
+            <div class="table-wrap"><table id="students-table"></table></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="expenses" class="view">
+        <div class="section-layout">
+          <form id="expense-form" class="panel form-panel">
+            <h2>Aufwand erfassen</h2>
+            <input type="hidden" name="id" />
+            <label>Projekt <select name="projectId" required></select></label>
+            <label>Schüler <select name="studentId"><option value="">Ohne Schülerbezug</option></select></label>
+            <div class="form-row">
+              <label>Kategorie
+                <select name="category" required>
+                  <option>Reisekosten</option>
+                  <option>Unterkunft</option>
+                  <option>Verpflegung</option>
+                  <option>Taschengeld</option>
+                  <option>Sonstiges</option>
+                </select>
+              </label>
+              <label>Betrag <input name="amount" type="number" min="0.01" step="0.01" required /></label>
+            </div>
+            <div class="form-row">
+              <label>Datum <input name="date" type="date" required /></label>
+              <label>Beleg-Status
+                <select name="receiptStatus">
+                  <option>Vorhanden</option>
+                  <option>Fehlend</option>
+                  <option>Angefordert</option>
+                </select>
+              </label>
+            </div>
+            <label>Notiz <textarea name="note" rows="2"></textarea></label>
+            <div class="form-actions">
+              <button type="submit">Speichern</button>
+              <button type="button" class="secondary" data-reset-form="expense-form">Zurücksetzen</button>
+            </div>
+          </form>
+          <section class="panel table-panel">
+            <div class="panel-head">
+              <h2>Finanzindex</h2>
+              <select id="receipt-filter">
+                <option value="">Alle Belege</option>
+                <option>Vorhanden</option>
+                <option>Fehlend</option>
+                <option>Angefordert</option>
+              </select>
+            </div>
+            <div class="table-wrap"><table id="expenses-table"></table></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="tasks" class="view">
+        <div class="section-layout">
+          <form id="task-form" class="panel form-panel">
+            <h2>Aufgabe erfassen</h2>
+            <input type="hidden" name="id" />
+            <label>Projekt <select name="projectId" required></select></label>
+            <label>Titel <input name="title" required minlength="3" placeholder="Flüge gebucht" /></label>
+            <div class="form-row">
+              <label>Fällig am <input name="dueDate" type="date" required /></label>
+              <label>Status
+                <select name="status">
+                  <option>Offen</option>
+                  <option>In Arbeit</option>
+                  <option>Erledigt</option>
+                </select>
+              </label>
+            </div>
+            <label>Priorität
+              <select name="priority">
+                <option>Normal</option>
+                <option>Hoch</option>
+                <option>Niedrig</option>
+              </select>
+            </label>
+            <div class="form-actions">
+              <button type="submit">Speichern</button>
+              <button type="button" class="secondary" data-reset-form="task-form">Zurücksetzen</button>
+            </div>
+          </form>
+          <section class="panel table-panel">
+            <div class="panel-head">
+              <h2>Status-Checkliste</h2>
+              <select id="task-filter"><option value="">Alle Aufgaben</option></select>
+            </div>
+            <div id="task-progress-list" class="list"></div>
+            <div class="table-wrap"><table id="tasks-table"></table></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="documents" class="view">
+        <div class="section-layout">
+          <form id="document-form" class="panel form-panel">
+            <h2>Dokument erfassen</h2>
+            <input type="hidden" name="id" />
+            <label>Titel <input name="title" required minlength="3" placeholder="Einverständnis Mila Schneider" /></label>
+            <div class="form-row">
+              <label>Typ
+                <select name="type" required>
+                  <option>Einverständniserklärung</option>
+                  <option>Notfallkontakt</option>
+                  <option>Versicherung</option>
+                  <option>Beleg</option>
+                  <option>Vertrag</option>
+                  <option>Bericht</option>
+                  <option>Sonstiges</option>
+                </select>
+              </label>
+              <label>Status
+                <select name="status">
+                  <option>Abgelegt</option>
+                  <option>Fehlt</option>
+                  <option>Prüfen</option>
+                </select>
+              </label>
+            </div>
+            <label>Projekt <select name="projectId" required></select></label>
+            <label>Schüler <select name="studentId"><option value="">Ohne Schülerbezug</option></select></label>
+            <div class="form-row">
+              <label>Datum <input name="date" type="date" required /></label>
+              <label>Ablageort / Dateiname <input name="storageHint" placeholder="Ordner, Aktenzeichen oder Dateiname" /></label>
+            </div>
+            <div class="form-actions">
+              <button type="submit">Speichern</button>
+              <button type="button" class="secondary" data-reset-form="document-form">Zurücksetzen</button>
+            </div>
+          </form>
+          <section class="panel table-panel">
+            <div class="panel-head">
+              <h2>Dokumentenindex</h2>
+              <select id="document-filter">
+                <option value="">Alle</option>
+                <option value="missing">Nur offene Dokumente</option>
+              </select>
+            </div>
+            <div class="table-wrap"><table id="document-index-table"></table></div>
+          </section>
+          <section class="panel table-panel wide">
+            <div class="panel-head">
+              <h2>Pflichtdokumente Schüler</h2>
+            </div>
+            <div class="table-wrap"><table id="documents-table"></table></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="backup" class="view">
+        <div class="content-grid">
+          <section class="panel">
+            <h2>Backup exportieren</h2>
+            <p class="muted">Speichert alle Projekte, Schüler, Aufwände und Aufgaben als JSON-Datei.</p>
+            <button id="export-data">Export herunterladen</button>
+          </section>
+          <section class="panel">
+            <h2>Backup importieren</h2>
+            <p class="muted">Import ersetzt den aktuellen lokalen Datenbestand im Browser.</p>
+            <input id="import-file" type="file" accept="application/json" />
+            <button id="import-data" class="danger">Import starten</button>
+          </section>
+          <section class="panel">
+            <h2>Beispieldaten</h2>
+            <p class="muted">Füllt die Anwendung mit einem kleinen Erasmus+-Szenario zum Ausprobieren.</p>
+            <button id="seed-data" class="secondary">Beispieldaten laden</button>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <template id="empty-state">
+      <div class="empty">Noch keine passenden Einträge vorhanden.</div>
+    </template>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
