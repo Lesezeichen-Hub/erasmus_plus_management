@@ -112,7 +112,8 @@
                 </select>
               </label>
             </div>
-            <label>Partnerländer/-schulen <textarea name="partners" rows="3" placeholder="Spanien - IES Madrid, Frankreich - Lycée Lyon"></textarea></label>
+            <label>Partnereinrichtungen (Schulen) <select name="institutionIds" multiple size="5"></select></label>
+            <label>Weitere Partnerdetails <textarea name="partners" rows="2" placeholder="Zusatzinfos, Kontakte oder Besonderheiten"></textarea></label>
             <div class="form-row">
               <label>Startdatum <input name="startDate" type="date" required /></label>
               <label>Enddatum <input name="endDate" type="date" required /></label>
@@ -346,9 +347,10 @@
       </section>
 
       <section id="admin" class="view">
+        <div class="kpi-grid admin-kpis" id="admin-user-kpis"></div>
         <div class="section-layout">
           <form id="user-form" class="panel form-panel">
-            <h2>Benutzer verwalten</h2>
+            <h2 id="user-form-title">Benutzer anlegen</h2>
             <input type="hidden" name="id" />
             <label>Name <input name="name" required minlength="3" autocomplete="off" /></label>
             <label>E-Mail <input name="email" type="email" required autocomplete="off" /></label>
@@ -366,7 +368,8 @@
                 </select>
               </label>
             </div>
-            <label>Passwort <input name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Leer lassen beim Bearbeiten" /></label>
+            <label>Passwort <input name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Pflicht bei neuem Benutzer" /></label>
+            <p class="hint">Beim Bearbeiten leer lassen, wenn das Passwort unverändert bleiben soll.</p>
             <div class="form-actions">
               <button type="submit">Speichern</button>
               <button type="button" class="secondary" data-reset-form="user-form">Zurücksetzen</button>
@@ -375,8 +378,51 @@
           <section class="panel table-panel">
             <div class="panel-head">
               <h2>Managementbenutzer</h2>
+              <div class="filter-row">
+                <select id="user-role-filter">
+                  <option value="">Alle Rollen</option>
+                  <option>Admin</option>
+                  <option>Benutzer</option>
+                </select>
+                <select id="user-status-filter">
+                  <option value="">Alle Status</option>
+                  <option>Aktiv</option>
+                  <option>Gesperrt</option>
+                </select>
+              </div>
             </div>
             <div class="table-wrap"><table id="users-table"></table></div>
+          </section>
+          <form id="institution-form" class="panel form-panel wide">
+            <h2>Partnereinrichtung verwalten</h2>
+            <input type="hidden" name="id" />
+            <div class="form-row">
+              <label>Name <input name="name" required minlength="3" placeholder="IES Valencia" /></label>
+              <label>Land <input name="country" required minlength="2" placeholder="Spanien" /></label>
+            </div>
+            <div class="form-row">
+              <label>Ort <input name="city" placeholder="Valencia" /></label>
+              <label>Typ
+                <select name="type">
+                  <option>Schule</option>
+                  <option>Berufsschule</option>
+                  <option>Organisation</option>
+                  <option>Sonstiges</option>
+                </select>
+              </label>
+            </div>
+            <label>Kontakt / Notiz <textarea name="note" rows="2"></textarea></label>
+            <label class="check"><input type="checkbox" name="visible" checked /> In Projekt-Dropdowns anzeigen</label>
+            <div class="form-actions">
+              <button type="submit">Speichern</button>
+              <button type="button" class="secondary" data-reset-form="institution-form">Zurücksetzen</button>
+            </div>
+          </form>
+          <section class="panel table-panel wide">
+            <div class="panel-head">
+              <h2>Partnereinrichtungen</h2>
+            </div>
+            <div class="table-wrap"><table id="institutions-table"></table></div>
           </section>
           <section class="panel wide">
             <div class="panel-head">

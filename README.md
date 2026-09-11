@@ -34,15 +34,20 @@ Beim ersten Start legt die App einen lokalen Admin-Benutzer an. Danach ist die A
 
 Passwoerter werden lokal im Browser per Web Crypto PBKDF2 mit Salt gehasht und in IndexedDB gespeichert. Da die App rein statisch im Browser laeuft, ist das ein lokaler Zugriffsschutz und kein Ersatz fuer serverseitige Authentifizierung.
 
+Die Benutzerverwaltung bietet Anlegen, Bearbeiten, Rollenwechsel, Passwort-Neuvergabe, Sperren, Entsperren, Loeschen, Filter und Kennzahlen. Der letzte aktive Admin und der eigene aktive Zugang sind gegen versehentliches Sperren oder Loeschen geschuetzt.
+
 Im Admin-Panel koennen ausserdem Stammdaten gepflegt werden:
 
 - Kategorien fuer Aufwaende
 - benoetigte beziehungsweise verwendete Dokumenttypen
 - Leitaktionen
+- Partnereinrichtungen, also teilnehmende Schulen oder Organisationen
 
 ## Datenhaltung
 
-Die Anwendung nutzt IndexedDB im Browser. Dadurch bleiben Projekte, Schueler, Aufwaende, Aufgaben, Dokumente, Stammdaten und Managementbenutzer lokal erhalten, bis Browserdaten geloescht werden.
+Die Anwendung nutzt IndexedDB im Browser. Dadurch bleiben Projekte, Partnereinrichtungen, Schueler, Aufwaende, Aufgaben, Dokumente, Stammdaten und Managementbenutzer lokal erhalten, bis Browserdaten geloescht werden.
+
+Partnereinrichtungen werden nicht geloescht. Im Admin-Panel koennen sie ausgeblendet werden; ihre ID und bestehende Projektzuordnungen bleiben erhalten.
 
 Wichtige Stellen in `app.js`:
 
@@ -54,14 +59,15 @@ Wichtige Stellen in `app.js`:
 ## Funktionen
 
 - Dashboard mit KPIs, Projektstatus, Restbudget und Risikoueberblick
-- Projekte mit Leitaktion, Partnern, Zeitraum, Budget und Status
+- Projekte mit Leitaktion, Partnereinrichtungen, Zeitraum, Budget und Status
 - Schueler mit Projektzuordnung, Rolle und Dokumentenstatus
 - Aufwaende mit Kategorie, Betrag, Belegstatus, Projekt- und Schuelerbezug
 - Aufgaben je Projekt mit Fortschrittsbalken
 - Dokumentenindex fuer projekt- und schuelerbezogene Unterlagen
 - Dokumentenmonitor fuer Einverstaendnis, Notfallkontakt und Versicherung
 - Admin-Panel fuer Managementbenutzer mit Rollen Admin und Benutzer
-- Admin-Konfiguration fuer Aufwandskategorien, Dokumenttypen und Leitaktionen
+- Vollstaendige Benutzerverwaltung mit Statuswechsel, Passwort-Neuvergabe und Filtern
+- Admin-Konfiguration fuer Aufwandskategorien, Dokumenttypen, Leitaktionen und Partnereinrichtungen
 - Euro-Anzeige direkt an Budget- und Betragsfeldern
 - Globale Suche und fachliche Filter
 - JSON-Export und Import als Backup inklusive Benutzerstruktur

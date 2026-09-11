@@ -1,6 +1,6 @@
 const DB_NAME = "erasmus_plus_management";
-const DB_VERSION = 4;
-const STORES = ["projects", "students", "expenses", "tasks", "documents", "users", "settings"];
+const DB_VERSION = 5;
+const STORES = ["projects", "students", "expenses", "tasks", "documents", "users", "settings", "institutions"];
 const SESSION_KEY = "erasmus_plus_management_user";
 const DEFAULT_SETTINGS = {
   leadActions: ["KA1", "KA2", "KA3"],
@@ -16,6 +16,7 @@ const state = {
   documents: [],
   users: [],
   settings: { ...DEFAULT_SETTINGS },
+  institutions: [],
   currentUser: null,
   view: "dashboard",
   search: "",
@@ -98,7 +99,7 @@ function clearStore(storeName) {
 }
 
 async function loadState() {
-  const [projects, students, expenses, tasks, documents, users, settings] = await Promise.all(STORES.map(getAll));
+  const [projects, students, expenses, tasks, documents, users, settings, institutions] = await Promise.all(STORES.map(getAll));
   state.projects = projects.sort(sortByName);
   state.students = students.sort(sortByName);
   state.expenses = expenses.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -106,6 +107,10 @@ async function loadState() {
   state.documents = documents.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   state.users = users.sort(sortByName);
   state.settings = settings.reduce((config, item) => ({ ...config, [item.id]: item.values || [] }), { ...DEFAULT_SETTINGS });
+  state.institutions = institutions.sort(sortByName);
+  if (state.currentUser) {
+    state.currentUser = state.users.find((user) => user.id === state.currentUser.id && user.status === "Aktiv") || null;
+  }
 }
 
 async function persist(storeName, value) {
@@ -136,13 +141,26 @@ function bindForms() {
   document.querySelector("#task-form").addEventListener("submit", onTaskSubmit);
   document.querySelector("#document-form").addEventListener("submit", onDocumentSubmit);
   document.querySelector("#user-form").addEventListener("submit", onUserSubmit);
+  document.querySelector("#institution-form").addEventListener("submit", onInstitutionSubmit);
   document.querySelectorAll("[data-setting-form]").forEach((form) => form.addEventListener("submit", onSettingSubmit));
   document.querySelectorAll("[data-reset-form]").forEach((button) => {
     button.addEventListener("click", () => {
-      document.querySelector(`#${button.dataset.resetForm}`).reset();
-      document.querySelector(`#${button.dataset.resetForm} [name=id]`).value = "";
+      resetForm(button.dataset.resetForm);
     });
   });
+}
+
+function resetForm(formId) {
+  const form = document.querySelector(`#${formId}`);
+  form.reset();
+  form.querySelector("[name=id]").value = "";
+  if (formId === "user-form") {
+    document.querySelector("#user-form-title").textContent = "Benutzer anlegen";
+    form.elements.password.placeholder = "Pflicht bei neuem Benutzer";
+  }
+  if (formId === "institution-form") {
+    form.elements.visible.checked = true;
+  }
 }
 
 function bindAuth() {
@@ -152,7 +170,7 @@ function bindAuth() {
 }
 
 function bindFilters() {
-  ["dashboard-status-filter", "project-filter", "student-filter", "receipt-filter", "task-filter", "document-filter"].forEach((id) => {
+  ["dashboard-status-filter", "project-filter", "student-filter", "receipt-filter", "task-filter", "document-filter", "user-role-filter", "user-status-filter"].forEach((id) => {
     document.querySelector(`#${id}`).addEventListener("change", render);
   });
 }
@@ -176,6 +194,7 @@ async function onProjectSubmit(event) {
     id: data.id || createId(),
     name: data.name.trim(),
     action: data.action,
+    institutionIds: [...form.elements.institutionIds.selectedOptions].map((option) => option.value),
     partners: data.partners.trim(),
     startDate: data.startDate,
     endDate: data.endDate,
@@ -298,7 +317,31 @@ async function onUserSubmit(event) {
     createdAt: existing?.createdAt || new Date().toISOString(),
     ...passwordFields,
   });
-  form.reset();
+  resetForm("user-form");
+}
+
+async function onInstitutionSubmit(event) {
+  event.preventDefault();
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Partnereinrichtungen verwalten");
+    return;
+  }
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  const id = data.get("id") || createId();
+  const existing = state.institutions.find((institution) => institution.id === id);
+  await persist("institutions", {
+    ...existing,
+    id,
+    name: data.get("name").trim(),
+    country: data.get("country").trim(),
+    city: data.get("city").trim(),
+    type: data.get("type"),
+    note: data.get("note").trim(),
+    visible: data.has("visible"),
+    createdAt: existing?.createdAt || new Date().toISOString(),
+  });
+  resetForm("institution-form");
 }
 
 async function onSetupSubmit(event) {
@@ -382,6 +425,7 @@ function render() {
   renderTasks();
   renderDocuments();
   renderUsers();
+  renderInstitutions();
   renderSettings();
 }
 
@@ -414,7 +458,7 @@ function renderProjects() {
   const status = document.querySelector("#project-filter").value;
   const rows = filterText(state.projects).filter((project) => !status || project.status === status);
   renderTable("#projects-table", ["Projekt", "Zeitraum", "Budget", "Status", "Fortschritt", ""], rows.map((project) => [
-    `<strong>${escapeHtml(project.name)}</strong><div class="meta">${escapeHtml(project.action)} · ${escapeHtml(project.partners || "Keine Partner erfasst")}</div>`,
+    `<strong>${escapeHtml(project.name)}</strong><div class="meta">${escapeHtml(project.action)} · ${projectInstitutionNames(project)}${project.partners ? `<br>${escapeHtml(project.partners)}` : ""}</div>`,
     `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`,
     `${money.format(project.budget)}<div class="meta">Rest ${money.format(budgetRemaining(project.id))}</div>`,
     badge(project.status, statusTone(project.status)),
@@ -489,14 +533,66 @@ function renderDocuments() {
 
 function renderUsers() {
   if (!isAdmin()) return;
-  renderTable("#users-table", ["Name", "E-Mail", "Rolle", "Status", "Letzter Login", ""], state.users.map((user) => [
-    `<strong>${escapeHtml(user.name)}</strong>`,
+  const roleFilter = document.querySelector("#user-role-filter").value;
+  const statusFilter = document.querySelector("#user-status-filter").value;
+  const users = filterText(state.users)
+    .filter((user) => !roleFilter || user.role === roleFilter)
+    .filter((user) => !statusFilter || user.status === statusFilter);
+  const activeCount = state.users.filter((user) => user.status === "Aktiv").length;
+  const adminCount = activeAdmins().length;
+  const lockedCount = state.users.filter((user) => user.status === "Gesperrt").length;
+
+  document.querySelector("#admin-user-kpis").innerHTML = [
+    kpi("Benutzer gesamt", state.users.length),
+    kpi("Aktiv", activeCount),
+    kpi("Admins", adminCount),
+    kpi("Gesperrt", lockedCount),
+  ].join("");
+
+  renderTable("#users-table", ["Name", "E-Mail", "Rolle", "Status", "Angelegt", "Letzter Login", ""], users.map((user) => [
+    `<strong>${escapeHtml(user.name)}</strong>${user.id === state.currentUser.id ? `<div class="meta">Aktueller Benutzer</div>` : ""}`,
     escapeHtml(user.email),
     badge(user.role, user.role === "Admin" ? "ok" : ""),
     badge(user.status, user.status === "Aktiv" ? "ok" : "danger"),
+    formatDate(user.createdAt),
     formatDate(user.lastLoginAt),
-    user.id === state.currentUser.id ? `<span class="meta">Aktueller Benutzer</span>` : actions("users", user.id),
+    userActions(user),
   ]));
+}
+
+function userActions(user) {
+  const canDelete = user.id !== state.currentUser.id && !(user.role === "Admin" && activeAdmins().length === 1);
+  const canToggle = user.id !== state.currentUser.id && !(user.role === "Admin" && user.status === "Aktiv" && activeAdmins().length === 1);
+  const toggleLabel = user.status === "Aktiv" ? "Sperren" : "Entsperren";
+  return `
+    <div class="row-actions">
+      <button class="small secondary" data-edit data-store="users" data-id="${user.id}">Bearbeiten</button>
+      <button class="small secondary" data-user-toggle="${user.id}" ${canToggle ? "" : "disabled"}>${toggleLabel}</button>
+      <button class="small danger" data-delete data-store="users" data-id="${user.id}" ${canDelete ? "" : "disabled"}>Löschen</button>
+    </div>
+  `;
+}
+
+function renderInstitutions() {
+  if (!isAdmin()) return;
+  renderTable("#institutions-table", ["Name", "Land/Ort", "Typ", "Sichtbarkeit", "Verknüpft", ""], state.institutions.map((institution) => [
+    `<strong>${escapeHtml(institution.name)}</strong><div class="meta">${escapeHtml(institution.note || "")}</div>`,
+    `${escapeHtml(institution.country)}${institution.city ? ` / ${escapeHtml(institution.city)}` : ""}`,
+    escapeHtml(institution.type),
+    badge(institution.visible === false ? "Ausgeblendet" : "Sichtbar", institution.visible === false ? "warn" : "ok"),
+    String(state.projects.filter((project) => (project.institutionIds || []).includes(institution.id)).length),
+    institutionActions(institution),
+  ]));
+}
+
+function institutionActions(institution) {
+  const toggleLabel = institution.visible === false ? "Einblenden" : "Ausblenden";
+  return `
+    <div class="row-actions">
+      <button class="small secondary" data-edit data-store="institutions" data-id="${institution.id}">Bearbeiten</button>
+      <button class="small secondary" data-institution-toggle="${institution.id}">${toggleLabel}</button>
+    </div>
+  `;
 }
 
 function renderSettings() {
@@ -553,6 +649,27 @@ function activeAdmins() {
   return state.users.filter((user) => user.role === "Admin" && user.status === "Aktiv");
 }
 
+async function toggleUserStatus(id) {
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Benutzer verwalten");
+    return;
+  }
+  const user = state.users.find((entry) => entry.id === id);
+  if (!user) return;
+  if (user.id === state.currentUser.id) {
+    toast("Der eigene Benutzer kann nicht gesperrt werden");
+    return;
+  }
+  if (user.role === "Admin" && user.status === "Aktiv" && activeAdmins().length === 1) {
+    toast("Der letzte aktive Admin kann nicht gesperrt werden");
+    return;
+  }
+  await persist("users", {
+    ...user,
+    status: user.status === "Aktiv" ? "Gesperrt" : "Aktiv",
+  });
+}
+
 function getSettingValues(key) {
   return state.settings[key]?.length ? state.settings[key] : DEFAULT_SETTINGS[key] || [];
 }
@@ -588,11 +705,34 @@ function settingValueInUse(key, value) {
   return false;
 }
 
+async function toggleInstitution(id) {
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Partnereinrichtungen verwalten");
+    return;
+  }
+  const institution = state.institutions.find((entry) => entry.id === id);
+  if (!institution) return;
+  await persist("institutions", { ...institution, visible: institution.visible === false });
+}
+
+function institutionName(id) {
+  const institution = state.institutions.find((entry) => entry.id === id);
+  if (!institution) return "Unbekannte Partnereinrichtung";
+  return `${institution.name} (${institution.country})${institution.visible === false ? " [ausgeblendet]" : ""}`;
+}
+
+function projectInstitutionNames(project) {
+  const ids = project.institutionIds || [];
+  if (!ids.length) return escapeHtml(project.partners || "Keine Partnereinrichtungen erfasst");
+  return ids.map(institutionName).map(escapeHtml).join(", ");
+}
+
 function fillSelects() {
   fillOptionSelect("#project-form [name=action]", getSettingValues("leadActions"), "Bitte wählen");
   fillOptionSelect("#expense-form [name=category]", getSettingValues("expenseCategories"));
   fillOptionSelect("#document-form [name=type]", getSettingValues("documentTypes"));
   renderRequiredDocumentFields();
+  fillInstitutionSelect();
   fillProjectSelect("#student-form [name=projectIds]", true);
   fillProjectSelect("#expense-form [name=projectId]");
   fillProjectSelect("#task-form [name=projectId]");
@@ -600,6 +740,20 @@ function fillSelects() {
   fillProjectSelect("#task-filter", false, "Alle Projekte");
   fillStudentSelect("#expense-form [name=studentId]");
   fillStudentSelect("#document-form [name=studentId]");
+}
+
+function fillInstitutionSelect(selectedIds = null) {
+  const select = document.querySelector("#project-form [name=institutionIds]");
+  const selected = selectedIds || [...select.selectedOptions].map((option) => option.value);
+  select.innerHTML = "";
+  state.institutions
+    .filter((institution) => institution.visible !== false || selected.includes(institution.id))
+    .forEach((institution) => {
+      const label = `${institution.name} (${institution.country}${institution.city ? `, ${institution.city}` : ""})${institution.visible === false ? " - ausgeblendet" : ""}`;
+      const option = new Option(label, institution.id);
+      option.selected = selected.includes(institution.id);
+      select.add(option);
+    });
 }
 
 function renderRequiredDocumentFields() {
@@ -655,6 +809,8 @@ function renderTable(selector, headers, rows) {
   `;
   table.querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => editItem(button.dataset.store, button.dataset.id)));
   table.querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => deleteItem(button.dataset.store, button.dataset.id)));
+  table.querySelectorAll("[data-institution-toggle]").forEach((button) => button.addEventListener("click", () => toggleInstitution(button.dataset.institutionToggle)));
+  table.querySelectorAll("[data-user-toggle]").forEach((button) => button.addEventListener("click", () => toggleUserStatus(button.dataset.userToggle)));
 }
 
 function renderList(selector, items) {
@@ -691,6 +847,10 @@ function editItem(store, id) {
   const form = document.querySelector(`#${store.slice(0, -1)}-form`);
   if (!form) return;
 
+  if (store === "projects") {
+    fillInstitutionSelect(item.institutionIds || []);
+  }
+
   Object.entries(item).forEach(([key, value]) => {
     const field = form.elements[key];
     if (!field) return;
@@ -714,7 +874,9 @@ function editItem(store, id) {
   }
 
   if (store === "users") {
+    document.querySelector("#user-form-title").textContent = "Benutzer bearbeiten";
     form.elements.password.value = "";
+    form.elements.password.placeholder = "Leer lassen, wenn unverändert";
   }
 
   form.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -722,6 +884,10 @@ function editItem(store, id) {
 
 async function deleteItem(store, id) {
   if (!confirm("Eintrag wirklich löschen?")) return;
+  if (store === "institutions") {
+    await toggleInstitution(id);
+    return;
+  }
   if (store === "users") {
     const user = state.users.find((entry) => entry.id === id);
     if (!isAdmin()) {
@@ -963,11 +1129,19 @@ async function seedData() {
     p2: createId(),
     s1: createId(),
     s2: createId(),
+    i1: createId(),
+    i2: createId(),
+    i3: createId(),
   };
   const seed = {
+    institutions: [
+      { id: ids.i1, name: "IES Valencia", country: "Spanien", city: "Valencia", type: "Schule", note: "Koordination: International Office", visible: true },
+      { id: ids.i2, name: "Helsinki Upper School", country: "Finnland", city: "Helsinki", type: "Schule", note: "", visible: true },
+      { id: ids.i3, name: "Liceo Verona", country: "Italien", city: "Verona", type: "Schule", note: "", visible: true },
+    ],
     projects: [
-      { id: ids.p1, name: "Brücken nach Valencia", action: "KA1", partners: "Spanien - IES Valencia", startDate: "2026-10-01", endDate: "2027-03-31", budget: 18500, status: "Aktiv" },
-      { id: ids.p2, name: "Green Schools Network", action: "KA2", partners: "Finnland - Helsinki Upper School; Italien - Liceo Verona", startDate: "2027-02-10", endDate: "2027-09-30", budget: 42000, status: "Geplant" },
+      { id: ids.p1, name: "Brücken nach Valencia", action: "KA1", institutionIds: [ids.i1], partners: "Austauschgruppe Klasse 10", startDate: "2026-10-01", endDate: "2027-03-31", budget: 18500, status: "Aktiv" },
+      { id: ids.p2, name: "Green Schools Network", action: "KA2", institutionIds: [ids.i2, ids.i3], partners: "Nachhaltigkeitsprojekt mit zwei Partnerschulen", startDate: "2027-02-10", endDate: "2027-09-30", budget: 42000, status: "Geplant" },
     ],
     students: [
       { id: ids.s1, name: "Mila Schneider", className: "10b", birthDate: "2010-04-12", projectIds: [ids.p1], role: "Teilnehmer", documentStatus: "Vollständig", documents: { "Einverständniserklärung": true, Notfallkontakt: true, Versicherung: true, Beleg: true, Vertrag: true, Bericht: true, Sonstiges: true } },
