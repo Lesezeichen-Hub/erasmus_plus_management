@@ -1,6 +1,6 @@
 {
   "name": "Erasmus+ Management",
-  "version": "1.27.0",
+  "version": "1.27.1",
   "description": "Lokale Web-App zur Verwaltung von Erasmus+ Schueler*innenaustausch-Projekten, Foerderbudgets, administrierbaren Foerderpauschalen, Partnereinrichtungen, Teilnehmenden, Aufwaenden, Aufgaben, Dokumenten und Managementbenutzern.",
   "entry": "index.html",
   "storage": "IndexedDB",
