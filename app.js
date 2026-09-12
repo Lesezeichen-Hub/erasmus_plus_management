@@ -91,8 +91,10 @@ let db;
 
 const money = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" });
 const dateFmt = new Intl.DateTimeFormat("de-DE");
+const THEME_KEY = "erasmusPlusTheme";
 
 document.addEventListener("DOMContentLoaded", async () => {
+  applyTheme(loadTheme());
   db = await openDatabase();
   await loadState();
   await restoreFromSQLiteIfLocalEmpty();
@@ -101,6 +103,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   bindFilters();
   bindBackup();
   bindAuth();
+  bindTheme();
   bindBackToTop();
   ensureAuth();
   render();
@@ -262,6 +265,30 @@ function bindAuth() {
   document.querySelector("#setup-form").addEventListener("submit", onSetupSubmit);
   document.querySelector("#login-form").addEventListener("submit", onLoginSubmit);
   document.querySelector("#logout").addEventListener("click", logout);
+}
+
+function bindTheme() {
+  document.querySelector("#theme-toggle").addEventListener("click", () => {
+    const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    localStorage.setItem(THEME_KEY, nextTheme);
+    applyTheme(nextTheme);
+  });
+}
+
+function loadTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === "dark" || saved === "light") return saved;
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  const button = document.querySelector("#theme-toggle");
+  if (button) {
+    button.textContent = theme === "dark" ? "Hell" : "Dunkel";
+    button.title = theme === "dark" ? "Helles Design aktivieren" : "Dunkles Design aktivieren";
+    button.setAttribute("aria-label", button.title);
+  }
 }
 
 function bindBackToTop() {
