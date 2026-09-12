@@ -1,0 +1,1512 @@
+{
+  "exportedAt": "2026-09-12T06:01:56.864Z",
+  "version": 6,
+  "note": "Importfertige Testdaten fuer Erasmus+ Management. Login: admin@test.local / Test1234!",
+  "data": {
+    "projects": [
+      {
+        "id": "project-0010",
+        "name": "Brücken nach Valencia",
+        "action": "KA1",
+        "institutionIds": [
+          "inst-0004"
+        ],
+        "partners": "Klasse 10b und spanische Gastgeberfamilien",
+        "startDate": "2026-10-05",
+        "endDate": "2026-10-16",
+        "destinationCountry": "Spanien",
+        "participantCount": 14,
+        "durationDays": 10,
+        "travelDays": 2,
+        "distanceBand": "500-1999",
+        "greenTravel": false,
+        "dailySupportRate": 74,
+        "travelGrantRate": 309,
+        "calculatedGrant": 16758,
+        "budget": 18500,
+        "status": "Aktiv",
+        "grantSource": "Testdaten / Erasmus+ Vorlage"
+      },
+      {
+        "id": "project-0011",
+        "name": "Green Schools Network",
+        "action": "KA2",
+        "institutionIds": [
+          "inst-0005",
+          "inst-0006"
+        ],
+        "partners": "Arbeitsgruppen Nachhaltigkeit, Schulgarten, Energieaudit",
+        "startDate": "2027-02-08",
+        "endDate": "2027-09-30",
+        "destinationCountry": "Finnland",
+        "participantCount": 18,
+        "durationDays": 12,
+        "travelDays": 2,
+        "distanceBand": "500-1999",
+        "greenTravel": false,
+        "dailySupportRate": 85,
+        "travelGrantRate": 309,
+        "calculatedGrant": 26982,
+        "budget": 31000,
+        "status": "Geplant",
+        "grantSource": "Testdaten / Erasmus+ Vorlage"
+      },
+      {
+        "id": "project-0012",
+        "name": "Atelier Europe Porto",
+        "action": "KA1",
+        "institutionIds": [
+          "inst-0008"
+        ],
+        "partners": "Kunstkurs 9a, digitales Portfolio",
+        "startDate": "2027-05-03",
+        "endDate": "2027-05-12",
+        "destinationCountry": "Portugal",
+        "participantCount": 16,
+        "durationDays": 8,
+        "travelDays": 2,
+        "distanceBand": "500-1999",
+        "greenTravel": true,
+        "dailySupportRate": 74,
+        "travelGrantRate": 417,
+        "calculatedGrant": 18512,
+        "budget": 22000,
+        "status": "Geplant",
+        "grantSource": "Testdaten / Erasmus+ Vorlage"
+      },
+      {
+        "id": "project-0013",
+        "name": "Parler Ensemble Lyon",
+        "action": "KA1",
+        "institutionIds": [
+          "inst-0007"
+        ],
+        "partners": "Französischprofil 8c",
+        "startDate": "2026-12-01",
+        "endDate": "2026-12-08",
+        "destinationCountry": "Frankreich",
+        "participantCount": 12,
+        "durationDays": 6,
+        "travelDays": 2,
+        "distanceBand": "500-1999",
+        "greenTravel": true,
+        "dailySupportRate": 85,
+        "travelGrantRate": 417,
+        "calculatedGrant": 13164,
+        "budget": 15000,
+        "status": "Abrechnung",
+        "grantSource": "Testdaten / Erasmus+ Vorlage"
+      },
+      {
+        "id": "project-0014",
+        "name": "Digital Storytelling Krakau",
+        "action": "KA2",
+        "institutionIds": [
+          "inst-0009"
+        ],
+        "partners": "Archiviertes Partnerschaftsprojekt mit ausgeblendeter Schule",
+        "startDate": "2026-03-02",
+        "endDate": "2026-03-13",
+        "destinationCountry": "Polen",
+        "participantCount": 10,
+        "durationDays": 10,
+        "travelDays": 2,
+        "distanceBand": "500-1999",
+        "greenTravel": false,
+        "dailySupportRate": 64,
+        "travelGrantRate": 309,
+        "calculatedGrant": 10770,
+        "budget": 12500,
+        "status": "Abgeschlossen",
+        "grantSource": "Testdaten / Erasmus+ Vorlage"
+      }
+    ],
+    "students": [
+      {
+        "id": "student-0015",
+        "name": "Mila Schneider",
+        "className": "10b",
+        "birthDate": "2010-04-12",
+        "projectIds": [
+          "project-0010"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0016",
+        "name": "Jonas Weber",
+        "className": "10b",
+        "birthDate": "2010-08-25",
+        "projectIds": [
+          "project-0010",
+          "project-0011"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": false,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0017",
+        "name": "Aylin Demir",
+        "className": "10b",
+        "birthDate": "2010-01-30",
+        "projectIds": [
+          "project-0010"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": false,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0018",
+        "name": "Paul Krüger",
+        "className": "10b",
+        "birthDate": "2009-11-09",
+        "projectIds": [
+          "project-0010"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0019",
+        "name": "Emma Hoffmann",
+        "className": "10b",
+        "birthDate": "2010-06-18",
+        "projectIds": [
+          "project-0010"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": false,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": false
+        }
+      },
+      {
+        "id": "student-0020",
+        "name": "Noah Becker",
+        "className": "10b",
+        "birthDate": "2010-02-21",
+        "projectIds": [
+          "project-0010"
+        ],
+        "role": "Nachrücker",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": false,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0021",
+        "name": "Lina Fischer",
+        "className": "10c",
+        "birthDate": "2010-03-14",
+        "projectIds": [
+          "project-0010"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0022",
+        "name": "Ben Wagner",
+        "className": "10c",
+        "birthDate": "2009-12-03",
+        "projectIds": [
+          "project-0010"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0023",
+        "name": "Sofia Neumann",
+        "className": "10c",
+        "birthDate": "2010-07-07",
+        "projectIds": [
+          "project-0010"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": false,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0024",
+        "name": "Tim Scholz",
+        "className": "10c",
+        "birthDate": "2010-05-01",
+        "projectIds": [
+          "project-0010"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0025",
+        "name": "Lea Klein",
+        "className": "9a",
+        "birthDate": "2011-02-05",
+        "projectIds": [
+          "project-0012"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0026",
+        "name": "Felix Richter",
+        "className": "9a",
+        "birthDate": "2011-09-19",
+        "projectIds": [
+          "project-0012"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": false,
+          "Versicherung": false,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0027",
+        "name": "Hannah Wolf",
+        "className": "9a",
+        "birthDate": "2011-01-22",
+        "projectIds": [
+          "project-0012"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0028",
+        "name": "Max Braun",
+        "className": "9a",
+        "birthDate": "2010-12-15",
+        "projectIds": [
+          "project-0012"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": false
+        }
+      },
+      {
+        "id": "student-0029",
+        "name": "Nora Hartmann",
+        "className": "9b",
+        "birthDate": "2011-04-27",
+        "projectIds": [
+          "project-0012"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0030",
+        "name": "Elias Koch",
+        "className": "9b",
+        "birthDate": "2011-06-04",
+        "projectIds": [
+          "project-0012"
+        ],
+        "role": "Nachrücker",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": false,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0031",
+        "name": "Greta Zimmer",
+        "className": "9b",
+        "birthDate": "2011-03-31",
+        "projectIds": [
+          "project-0012"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0032",
+        "name": "Oskar Lange",
+        "className": "9b",
+        "birthDate": "2010-10-10",
+        "projectIds": [
+          "project-0012"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": false,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0033",
+        "name": "Marie Schäfer",
+        "className": "8c",
+        "birthDate": "2012-01-08",
+        "projectIds": [
+          "project-0013"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0034",
+        "name": "Anton Vogel",
+        "className": "8c",
+        "birthDate": "2012-05-26",
+        "projectIds": [
+          "project-0013"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": false,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0035",
+        "name": "Clara Busch",
+        "className": "8c",
+        "birthDate": "2011-11-17",
+        "projectIds": [
+          "project-0013"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0036",
+        "name": "David Roth",
+        "className": "8c",
+        "birthDate": "2012-07-02",
+        "projectIds": [
+          "project-0013"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": false,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0037",
+        "name": "Jule Peters",
+        "className": "8d",
+        "birthDate": "2012-03-11",
+        "projectIds": [
+          "project-0013"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0038",
+        "name": "Leon Meyer",
+        "className": "8d",
+        "birthDate": "2011-12-29",
+        "projectIds": [
+          "project-0013"
+        ],
+        "role": "Nachrücker",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": false,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": false
+        }
+      },
+      {
+        "id": "student-0039",
+        "name": "Lara König",
+        "className": "11a",
+        "birthDate": "2009-02-13",
+        "projectIds": [
+          "project-0011"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0040",
+        "name": "Moritz Frank",
+        "className": "11a",
+        "birthDate": "2008-09-06",
+        "projectIds": [
+          "project-0011"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0041",
+        "name": "Amelie Schmitt",
+        "className": "11a",
+        "birthDate": "2009-05-24",
+        "projectIds": [
+          "project-0011"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": false,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0042",
+        "name": "Samuel Werner",
+        "className": "11a",
+        "birthDate": "2008-12-01",
+        "projectIds": [
+          "project-0011"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0043",
+        "name": "Nele Kaiser",
+        "className": "11b",
+        "birthDate": "2009-06-30",
+        "projectIds": [
+          "project-0011"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": false,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": false
+        }
+      },
+      {
+        "id": "student-0044",
+        "name": "Jan Seidel",
+        "className": "11b",
+        "birthDate": "2008-10-21",
+        "projectIds": [
+          "project-0011"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0045",
+        "name": "Klara Brandt",
+        "className": "11b",
+        "birthDate": "2009-03-03",
+        "projectIds": [
+          "project-0011"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0046",
+        "name": "Luis Sommer",
+        "className": "11b",
+        "birthDate": "2008-11-14",
+        "projectIds": [
+          "project-0011"
+        ],
+        "role": "Nachrücker",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": false,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0047",
+        "name": "Tessa Bauer",
+        "className": "10a",
+        "birthDate": "2010-02-18",
+        "projectIds": [
+          "project-0014"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0048",
+        "name": "Robin Graf",
+        "className": "10a",
+        "birthDate": "2009-09-25",
+        "projectIds": [
+          "project-0014"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0049",
+        "name": "Nina Lorenz",
+        "className": "10a",
+        "birthDate": "2010-06-12",
+        "projectIds": [
+          "project-0014"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Unvollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": false,
+          "Gesundheitsbogen": true
+        }
+      },
+      {
+        "id": "student-0050",
+        "name": "Matteo Dietrich",
+        "className": "10a",
+        "birthDate": "2009-12-20",
+        "projectIds": [
+          "project-0014"
+        ],
+        "role": "Teilnehmer",
+        "documentStatus": "Vollständig",
+        "documents": {
+          "Einverständniserklärung": true,
+          "Notfallkontakt": true,
+          "Versicherung": true,
+          "Beleg": true,
+          "Vertrag": true,
+          "Bericht": true,
+          "Gesundheitsbogen": true
+        }
+      }
+    ],
+    "expenses": [
+      {
+        "id": "expense-0076",
+        "projectId": "project-0010",
+        "studentId": "student-0015",
+        "category": "Reisekosten",
+        "amount": 312.8,
+        "date": "2026-10-07",
+        "receiptStatus": "Vorhanden",
+        "note": "Flugbuchung Gruppe A"
+      },
+      {
+        "id": "expense-0077",
+        "projectId": "project-0010",
+        "studentId": "student-0016",
+        "category": "Taschengeld",
+        "amount": 140,
+        "date": "2026-10-08",
+        "receiptStatus": "Fehlend",
+        "note": "Barbeleg fehlt noch"
+      },
+      {
+        "id": "expense-0078",
+        "projectId": "project-0010",
+        "studentId": "",
+        "category": "Unterkunft",
+        "amount": 4200,
+        "date": "2026-10-06",
+        "receiptStatus": "Vorhanden",
+        "note": "Hostel Valencia Sammelrechnung"
+      },
+      {
+        "id": "expense-0079",
+        "projectId": "project-0011",
+        "studentId": "student-0039",
+        "category": "Material",
+        "amount": 285.5,
+        "date": "2027-02-14",
+        "receiptStatus": "Vorhanden",
+        "note": "Sensorik-Set Energieaudit"
+      },
+      {
+        "id": "expense-0080",
+        "projectId": "project-0011",
+        "studentId": "",
+        "category": "Reisekosten",
+        "amount": 6280,
+        "date": "2027-02-20",
+        "receiptStatus": "Fehlend",
+        "note": "Gruppenreise Finnland/Italien, Beleg angefragt"
+      },
+      {
+        "id": "expense-0081",
+        "projectId": "project-0012",
+        "studentId": "student-0025",
+        "category": "Eintrittsgelder",
+        "amount": 96,
+        "date": "2027-05-08",
+        "receiptStatus": "Vorhanden",
+        "note": "Museumspässe"
+      },
+      {
+        "id": "expense-0082",
+        "projectId": "project-0012",
+        "studentId": "",
+        "category": "Unterkunft",
+        "amount": 3850,
+        "date": "2027-05-07",
+        "receiptStatus": "Vorhanden",
+        "note": "Porto Jugendherberge"
+      },
+      {
+        "id": "expense-0083",
+        "projectId": "project-0013",
+        "studentId": "student-0033",
+        "category": "Reisekosten",
+        "amount": 188,
+        "date": "2026-12-02",
+        "receiptStatus": "Vorhanden",
+        "note": "Bahnfahrt"
+      },
+      {
+        "id": "expense-0084",
+        "projectId": "project-0013",
+        "studentId": "",
+        "category": "Verpflegung",
+        "amount": 1320,
+        "date": "2026-12-03",
+        "receiptStatus": "Fehlend",
+        "note": "Restaurant-Sammelbeleg offen"
+      },
+      {
+        "id": "expense-0085",
+        "projectId": "project-0014",
+        "studentId": "student-0047",
+        "category": "Reisekosten",
+        "amount": 240,
+        "date": "2026-03-05",
+        "receiptStatus": "Vorhanden",
+        "note": "Bahn Gruppenanteil"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "task-0051",
+        "projectId": "project-0010",
+        "title": "Infoabend durchführen",
+        "dueDate": "2026-08-21",
+        "status": "Erledigt",
+        "priority": "Normal"
+      },
+      {
+        "id": "task-0052",
+        "projectId": "project-0010",
+        "title": "Teilnehmerliste finalisieren",
+        "dueDate": "2026-09-07",
+        "status": "Erledigt",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0053",
+        "projectId": "project-0010",
+        "title": "Reisedokumente prüfen",
+        "dueDate": "2026-09-14",
+        "status": "In Arbeit",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0054",
+        "projectId": "project-0010",
+        "title": "Unterkunft bestätigen",
+        "dueDate": "2026-09-17",
+        "status": "Offen",
+        "priority": "Normal"
+      },
+      {
+        "id": "task-0055",
+        "projectId": "project-0010",
+        "title": "Mobilitätsbericht einreichen",
+        "dueDate": "2026-10-19",
+        "status": "Offen",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0056",
+        "projectId": "project-0011",
+        "title": "Infoabend durchführen",
+        "dueDate": "2026-12-25",
+        "status": "Erledigt",
+        "priority": "Normal"
+      },
+      {
+        "id": "task-0057",
+        "projectId": "project-0011",
+        "title": "Teilnehmerliste finalisieren",
+        "dueDate": "2027-01-11",
+        "status": "Erledigt",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0058",
+        "projectId": "project-0011",
+        "title": "Reisedokumente prüfen",
+        "dueDate": "2027-01-18",
+        "status": "In Arbeit",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0059",
+        "projectId": "project-0011",
+        "title": "Unterkunft bestätigen",
+        "dueDate": "2027-01-21",
+        "status": "Offen",
+        "priority": "Normal"
+      },
+      {
+        "id": "task-0060",
+        "projectId": "project-0011",
+        "title": "Mobilitätsbericht einreichen",
+        "dueDate": "2027-02-22",
+        "status": "Offen",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0061",
+        "projectId": "project-0012",
+        "title": "Infoabend durchführen",
+        "dueDate": "2027-03-19",
+        "status": "Erledigt",
+        "priority": "Normal"
+      },
+      {
+        "id": "task-0062",
+        "projectId": "project-0012",
+        "title": "Teilnehmerliste finalisieren",
+        "dueDate": "2027-04-05",
+        "status": "Erledigt",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0063",
+        "projectId": "project-0012",
+        "title": "Reisedokumente prüfen",
+        "dueDate": "2027-04-12",
+        "status": "In Arbeit",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0064",
+        "projectId": "project-0012",
+        "title": "Unterkunft bestätigen",
+        "dueDate": "2027-04-15",
+        "status": "Offen",
+        "priority": "Normal"
+      },
+      {
+        "id": "task-0065",
+        "projectId": "project-0012",
+        "title": "Mobilitätsbericht einreichen",
+        "dueDate": "2027-05-17",
+        "status": "Offen",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0066",
+        "projectId": "project-0013",
+        "title": "Infoabend durchführen",
+        "dueDate": "2026-10-16",
+        "status": "Erledigt",
+        "priority": "Normal"
+      },
+      {
+        "id": "task-0067",
+        "projectId": "project-0013",
+        "title": "Teilnehmerliste finalisieren",
+        "dueDate": "2026-11-03",
+        "status": "Erledigt",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0068",
+        "projectId": "project-0013",
+        "title": "Reisedokumente prüfen",
+        "dueDate": "2026-11-10",
+        "status": "In Arbeit",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0069",
+        "projectId": "project-0013",
+        "title": "Unterkunft bestätigen",
+        "dueDate": "2026-11-13",
+        "status": "Offen",
+        "priority": "Normal"
+      },
+      {
+        "id": "task-0070",
+        "projectId": "project-0013",
+        "title": "Mobilitätsbericht einreichen",
+        "dueDate": "2026-12-15",
+        "status": "Offen",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0071",
+        "projectId": "project-0014",
+        "title": "Infoabend durchführen",
+        "dueDate": "2026-01-16",
+        "status": "Erledigt",
+        "priority": "Normal"
+      },
+      {
+        "id": "task-0072",
+        "projectId": "project-0014",
+        "title": "Teilnehmerliste finalisieren",
+        "dueDate": "2026-02-02",
+        "status": "Erledigt",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0073",
+        "projectId": "project-0014",
+        "title": "Reisedokumente prüfen",
+        "dueDate": "2026-02-09",
+        "status": "Erledigt",
+        "priority": "Hoch"
+      },
+      {
+        "id": "task-0074",
+        "projectId": "project-0014",
+        "title": "Unterkunft bestätigen",
+        "dueDate": "2026-02-12",
+        "status": "Erledigt",
+        "priority": "Normal"
+      },
+      {
+        "id": "task-0075",
+        "projectId": "project-0014",
+        "title": "Mobilitätsbericht einreichen",
+        "dueDate": "2026-03-16",
+        "status": "Offen",
+        "priority": "Hoch"
+      }
+    ],
+    "documents": [
+      {
+        "id": "doc-0086",
+        "title": "Einverständnis Mila Schneider",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0010",
+        "studentId": "student-0015",
+        "date": "2026-09-15",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Mila-Schneider.pdf"
+      },
+      {
+        "id": "doc-0087",
+        "title": "Einverständnis Aylin Demir",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0010",
+        "studentId": "student-0017",
+        "date": "2026-09-15",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Aylin-Demir.pdf"
+      },
+      {
+        "id": "doc-0088",
+        "title": "Einverständnis Emma Hoffmann",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0010",
+        "studentId": "student-0019",
+        "date": "2026-09-15",
+        "status": "Fehlt",
+        "storageHint": ""
+      },
+      {
+        "id": "doc-0089",
+        "title": "Einverständnis Lina Fischer",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0010",
+        "studentId": "student-0021",
+        "date": "2026-09-15",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Lina-Fischer.pdf"
+      },
+      {
+        "id": "doc-0090",
+        "title": "Einverständnis Sofia Neumann",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0010",
+        "studentId": "student-0023",
+        "date": "2026-09-15",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Sofia-Neumann.pdf"
+      },
+      {
+        "id": "doc-0091",
+        "title": "Einverständnis Lea Klein",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0012",
+        "studentId": "student-0025",
+        "date": "2027-04-13",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Lea-Klein.pdf"
+      },
+      {
+        "id": "doc-0092",
+        "title": "Einverständnis Hannah Wolf",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0012",
+        "studentId": "student-0027",
+        "date": "2027-04-13",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Hannah-Wolf.pdf"
+      },
+      {
+        "id": "doc-0093",
+        "title": "Einverständnis Nora Hartmann",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0012",
+        "studentId": "student-0029",
+        "date": "2027-04-13",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Nora-Hartmann.pdf"
+      },
+      {
+        "id": "doc-0094",
+        "title": "Einverständnis Greta Zimmer",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0012",
+        "studentId": "student-0031",
+        "date": "2027-04-13",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Greta-Zimmer.pdf"
+      },
+      {
+        "id": "doc-0095",
+        "title": "Einverständnis Marie Schäfer",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0013",
+        "studentId": "student-0033",
+        "date": "2026-11-11",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Marie-Schäfer.pdf"
+      },
+      {
+        "id": "doc-0096",
+        "title": "Einverständnis Clara Busch",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0013",
+        "studentId": "student-0035",
+        "date": "2026-11-11",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Clara-Busch.pdf"
+      },
+      {
+        "id": "doc-0097",
+        "title": "Einverständnis Jule Peters",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0013",
+        "studentId": "student-0037",
+        "date": "2026-11-11",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Jule-Peters.pdf"
+      },
+      {
+        "id": "doc-0098",
+        "title": "Einverständnis Lara König",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0011",
+        "studentId": "student-0039",
+        "date": "2027-01-19",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Lara-König.pdf"
+      },
+      {
+        "id": "doc-0099",
+        "title": "Einverständnis Amelie Schmitt",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0011",
+        "studentId": "student-0041",
+        "date": "2027-01-19",
+        "status": "Fehlt",
+        "storageHint": ""
+      },
+      {
+        "id": "doc-0100",
+        "title": "Einverständnis Nele Kaiser",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0011",
+        "studentId": "student-0043",
+        "date": "2027-01-19",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Nele-Kaiser.pdf"
+      },
+      {
+        "id": "doc-0101",
+        "title": "Einverständnis Klara Brandt",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0011",
+        "studentId": "student-0045",
+        "date": "2027-01-19",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Klara-Brandt.pdf"
+      },
+      {
+        "id": "doc-0102",
+        "title": "Einverständnis Tessa Bauer",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0014",
+        "studentId": "student-0047",
+        "date": "2026-02-10",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Tessa-Bauer.pdf"
+      },
+      {
+        "id": "doc-0103",
+        "title": "Einverständnis Nina Lorenz",
+        "type": "Einverständniserklärung",
+        "projectId": "project-0014",
+        "studentId": "student-0049",
+        "date": "2026-02-10",
+        "status": "Abgelegt",
+        "storageHint": "Testordner/Nina-Lorenz.pdf"
+      },
+      {
+        "id": "doc-0104",
+        "title": "Versicherung Jonas Weber",
+        "type": "Versicherung",
+        "projectId": "project-0010",
+        "studentId": "student-0016",
+        "date": "2026-09-20",
+        "status": "Fehlt",
+        "storageHint": ""
+      },
+      {
+        "id": "doc-0105",
+        "title": "Restaurantbeleg Lyon",
+        "type": "Beleg",
+        "projectId": "project-0013",
+        "studentId": "",
+        "date": "2026-12-05",
+        "status": "Fehlt",
+        "storageHint": ""
+      }
+    ],
+    "users": [
+      {
+        "id": "user-0106",
+        "name": "Test Admin",
+        "email": "admin@test.local",
+        "role": "Admin",
+        "status": "Aktiv",
+        "createdAt": "2026-09-12T06:01:56.816Z",
+        "passwordSalt": "XhTW342mDEvohclj8xMqSg==",
+        "passwordHash": "xhn8JInx23IZ7jVCFD4RdY/T5nvbaVyI3pNMncaaMV8=",
+        "passwordUpdatedAt": "2026-09-12T06:01:56.833Z"
+      },
+      {
+        "id": "user-0107",
+        "name": "Lehrkraft Test",
+        "email": "lehrkraft@test.local",
+        "role": "Benutzer",
+        "status": "Aktiv",
+        "createdAt": "2026-09-12T06:01:56.833Z",
+        "passwordSalt": "3WsSK7BbirtRstwd7oYViA==",
+        "passwordHash": "zLYff5G3uXDvT1QySI17lQBPu1Y1Sx1yWgtsSsXvJfM=",
+        "passwordUpdatedAt": "2026-09-12T06:01:56.848Z"
+      },
+      {
+        "id": "user-0108",
+        "name": "Gesperrter Testnutzer",
+        "email": "gesperrt@test.local",
+        "role": "Benutzer",
+        "status": "Gesperrt",
+        "createdAt": "2026-09-12T06:01:56.848Z",
+        "passwordSalt": "b0YDXFIEabMgXl0hEwYkUQ==",
+        "passwordHash": "nV3piptRg00pLQ9GJlRHtQgSCxubA/6pZdDFubh5B60=",
+        "passwordUpdatedAt": "2026-09-12T06:01:56.864Z"
+      }
+    ],
+    "settings": [
+      {
+        "id": "leadActions",
+        "values": [
+          "KA1",
+          "KA2",
+          "KA3",
+          "Akkreditierung"
+        ]
+      },
+      {
+        "id": "expenseCategories",
+        "values": [
+          "Reisekosten",
+          "Unterkunft",
+          "Verpflegung",
+          "Taschengeld",
+          "Eintrittsgelder",
+          "Material",
+          "Sonstiges"
+        ]
+      },
+      {
+        "id": "documentTypes",
+        "values": [
+          "Einverständniserklärung",
+          "Notfallkontakt",
+          "Versicherung",
+          "Beleg",
+          "Vertrag",
+          "Bericht",
+          "Gesundheitsbogen"
+        ]
+      }
+    ],
+    "institutions": [
+      {
+        "id": "inst-0004",
+        "name": "IES Valencia",
+        "country": "Spanien",
+        "city": "Valencia",
+        "type": "Schule",
+        "note": "Koordination: Marta López",
+        "visible": true
+      },
+      {
+        "id": "inst-0005",
+        "name": "Helsinki Upper School",
+        "country": "Finnland",
+        "city": "Helsinki",
+        "type": "Schule",
+        "note": "MINT-Schwerpunkt",
+        "visible": true
+      },
+      {
+        "id": "inst-0006",
+        "name": "Liceo Scientifico Verona",
+        "country": "Italien",
+        "city": "Verona",
+        "type": "Schule",
+        "note": "Nachhaltigkeitsprofil",
+        "visible": true
+      },
+      {
+        "id": "inst-0007",
+        "name": "Collège Jean Monnet",
+        "country": "Frankreich",
+        "city": "Lyon",
+        "type": "Schule",
+        "note": "Sprachprojekt",
+        "visible": true
+      },
+      {
+        "id": "inst-0008",
+        "name": "Escola Secundária do Porto",
+        "country": "Portugal",
+        "city": "Porto",
+        "type": "Schule",
+        "note": "Kunst und Kultur",
+        "visible": true
+      },
+      {
+        "id": "inst-0009",
+        "name": "Old Partner School",
+        "country": "Polen",
+        "city": "Krakau",
+        "type": "Schule",
+        "note": "Ausgeblendeter Altpartner für Zuordnungstest",
+        "visible": false
+      }
+    ],
+    "fundingBudgets": [
+      {
+        "id": "funding-0001",
+        "name": "Erasmus+ Förderbudget 2026/27",
+        "startDate": "2026-09-01",
+        "endDate": "2027-11-30",
+        "durationMonths": 15,
+        "amount": 72000,
+        "status": "Aktiv",
+        "note": "Testdaten: laufender Mobilitätszeitraum"
+      },
+      {
+        "id": "funding-0002",
+        "name": "Erasmus+ Förderbudget 2027/29",
+        "startDate": "2027-01-01",
+        "endDate": "2028-12-31",
+        "durationMonths": 24,
+        "amount": 128000,
+        "status": "Aktiv",
+        "note": "Testdaten: mehrjährige Projektlinie"
+      },
+      {
+        "id": "funding-0003",
+        "name": "Abrechnungstopf 2025/26",
+        "startDate": "2025-09-01",
+        "endDate": "2026-11-30",
+        "durationMonths": 15,
+        "amount": 54000,
+        "status": "Inaktiv",
+        "note": "Archivierter Testtopf"
+      }
+    ]
+  }
+}

@@ -594,12 +594,64 @@ function renderDashboard() {
   const projects = filterText(state.projects).filter((project) => !statusFilter || project.status === statusFilter);
   renderList("#project-status-list", projects.map(projectStatusCard));
 
-  const risks = [
-    ...state.expenses.filter((expense) => expense.receiptStatus === "Fehlend").map((expense) => `Fehlender Beleg: ${projectName(expense.projectId)} - ${expense.category}`),
-    ...state.students.filter((student) => missingDocs(student).length).map((student) => `Dokumente offen: ${student.name} (${missingDocs(student).join(", ")})`),
-    ...state.tasks.filter((task) => task.status !== "Erledigt" && isOverdue(task.dueDate)).map((task) => `Überfällig: ${task.title}`),
-  ];
-  renderList("#risk-list", risks.map((risk) => `<div class="item"><span class="badge danger">Offen</span><p>${escapeHtml(risk)}</p></div>`));
+  renderRiskCenter();
+}
+
+function renderRiskCenter() {
+  const overdueTasks = state.tasks
+    .filter((task) => task.status !== "Erledigt" && isOverdue(task.dueDate))
+    .sort((a, b) => (a.dueDate || "").localeCompare(b.dueDate || ""))
+    .map((task) => riskItem({
+      tone: "danger",
+      label: "Überfällig",
+      title: task.title,
+      context: projectName(task.projectId),
+      detail: `Fällig am ${formatDate(task.dueDate)} · Status ${task.status}`,
+    }));
+
+  const missingReceipts = state.expenses
+    .filter((expense) => expense.receiptStatus === "Fehlend")
+    .sort((a, b) => (a.date || "").localeCompare(b.date || ""))
+    .map((expense) => riskItem({
+      tone: "warn",
+      label: "Beleg fehlt",
+      title: `${expense.category} · ${money.format(expense.amount)}`,
+      context: projectName(expense.projectId),
+      detail: `${studentName(expense.studentId)} · ${formatDate(expense.date)}`,
+    }));
+
+  const missingDocumentItems = state.students
+    .map((student) => ({ student, missing: missingDocs(student) }))
+    .filter((entry) => entry.missing.length)
+    .sort((a, b) => b.missing.length - a.missing.length || a.student.name.localeCompare(b.student.name, "de"))
+    .map(({ student, missing }) => riskItem({
+      tone: "warn",
+      label: `${missing.length} Dokument${missing.length === 1 ? "" : "e"}`,
+      title: student.name,
+      context: (student.projectIds || []).map(projectName).join(", "),
+      detail: `Fehlt: ${missing.join(", ")}`,
+    }));
+
+  const items = [...overdueTasks, ...missingReceipts, ...missingDocumentItems];
+  document.querySelector("#risk-list").innerHTML = items.length
+    ? `<div class="risk-stack">${items.join("")}</div>`
+    : `<div class="empty success">Alles im grünen Bereich.</div>`;
+}
+
+function riskItem({ tone, label, title, context, detail }) {
+  return `
+    <article class="risk-item ${tone}">
+      <span class="risk-marker"></span>
+      <div>
+        <div class="risk-head">
+          ${badge(label, tone)}
+          <strong>${escapeHtml(title)}</strong>
+        </div>
+        <p>${escapeHtml(context || "Nicht zugeordnet")}</p>
+        <small>${escapeHtml(detail || "")}</small>
+      </div>
+    </article>
+  `;
 }
 
 function renderProjects() {

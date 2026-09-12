@@ -618,6 +618,63 @@ th {
   font-size: 1rem;
 }
 
+.risk-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.risk-item {
+  display: grid;
+  grid-template-columns: 6px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.risk-marker {
+  width: 6px;
+  border-radius: 999px;
+  background: var(--warn);
+}
+
+.risk-item.danger {
+  border-color: rgba(194, 65, 12, 0.3);
+  background: #fff7f3;
+}
+
+.risk-item.danger .risk-marker {
+  background: var(--danger);
+}
+
+.risk-item.warn {
+  border-color: rgba(217, 119, 6, 0.28);
+  background: #fffaf0;
+}
+
+.risk-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.risk-head strong {
+  font-size: 0.94rem;
+}
+
+.risk-item p {
+  margin: 5px 0 2px;
+  color: #344054;
+  font-size: 0.86rem;
+}
+
+.risk-item small {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .meta {
   color: var(--muted);
   font-size: 0.88rem;
