@@ -421,6 +421,95 @@ textarea { resize: vertical; }
   align-items: center;
 }
 
+.dashboard-budget-breakdown {
+  margin-bottom: 18px;
+}
+
+.funding-budget-breakdown {
+  min-width: 0;
+}
+
+.budget-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.budget-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: var(--surface-raised);
+  display: grid;
+  gap: 12px;
+}
+
+.budget-card.warn {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--line));
+}
+
+.budget-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.budget-card-head strong,
+.budget-card-head span {
+  display: block;
+}
+
+.budget-card-head span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.budget-meter {
+  display: flex;
+  height: 11px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--progress-bg);
+}
+
+.budget-meter span {
+  min-width: 0;
+}
+
+.budget-meter .spent { background: var(--danger); }
+.budget-meter .planned { background: var(--accent); }
+.budget-meter .free { background: var(--ok); }
+
+.budget-values {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.budget-values span {
+  min-width: 0;
+}
+
+.budget-values small,
+.budget-values strong {
+  display: block;
+}
+
+.budget-values small {
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+
+.budget-values strong {
+  margin-top: 3px;
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
 .donut {
   width: 168px;
   aspect-ratio: 1;
@@ -1085,9 +1174,14 @@ th {
   .grant-template-grid,
   .status-summary,
   .funding-chart-wrap,
+  .budget-breakdown-grid,
   .report-meta,
   .report-summary {
     grid-template-columns: 1fr;
+  }
+
+  .budget-values {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

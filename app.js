@@ -653,6 +653,7 @@ function renderDashboard() {
   const projects = filterText(state.projects).filter((project) => !statusFilter || project.status === statusFilter);
   renderProjectStatusSummary();
   renderFundingChart();
+  renderFundingBudgetBreakdown();
   renderList("#project-status-list", projects.map(projectStatusCard));
 
   renderRiskCenter();
@@ -734,6 +735,99 @@ function fundingOverview() {
     overplanned: Math.max(plannedBudget - totalFunding, 0),
     unassignedPlannedBudget,
   };
+}
+
+function renderFundingBudgetBreakdown() {
+  const rows = state.fundingBudgets
+    .filter((budget) => budget.status !== "Inaktiv")
+    .map(fundingBudgetSummary);
+  const orphanSummary = fundingOrphanSummary();
+  const container = document.querySelector("#funding-budget-breakdown");
+
+  container.innerHTML = `
+    <div class="budget-breakdown-grid">
+      ${rows.map(budgetBreakdownCard).join("") || emptyState()}
+      ${orphanSummary.planned || orphanSummary.spent ? budgetBreakdownCard(orphanSummary, true) : ""}
+    </div>
+  `;
+}
+
+function fundingBudgetSummary(budget) {
+  const projects = state.projects.filter((project) => effectiveProjectFundingBudgetId(project) === budget.id && projectOverlapsFundingBudget(project, budget));
+  const projectIds = new Set(projects.map((project) => project.id));
+  const planned = projects.reduce((sum, project) => sum + Number(project.budget || 0), 0);
+  const spent = state.expenses
+    .filter((expense) => projectIds.has(expense.projectId))
+    .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const total = Number(budget.amount || 0);
+  return {
+    id: budget.id,
+    name: budget.name,
+    period: `${formatDate(budget.startDate)} - ${formatDate(budget.endDate)}`,
+    total,
+    planned,
+    spent,
+    plannedOpen: Math.max(planned - spent, 0),
+    unplanned: total - planned,
+    overplanned: Math.max(planned - total, 0),
+    projectCount: projects.length,
+  };
+}
+
+function fundingOrphanSummary() {
+  const activeBudgetIds = new Set(state.fundingBudgets.filter((budget) => budget.status !== "Inaktiv").map((budget) => budget.id));
+  const projects = state.projects.filter((project) => {
+    const budgetId = effectiveProjectFundingBudgetId(project);
+    const budget = state.fundingBudgets.find((entry) => entry.id === budgetId);
+    return !activeBudgetIds.has(budgetId) || !budget || !projectOverlapsFundingBudget(project, budget);
+  });
+  const projectIds = new Set(projects.map((project) => project.id));
+  const planned = projects.reduce((sum, project) => sum + Number(project.budget || 0), 0);
+  const spent = state.expenses
+    .filter((expense) => projectIds.has(expense.projectId))
+    .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  return {
+    id: "orphan",
+    name: "Ohne gültigen Fördertopf",
+    period: "Bitte im Projekt bearbeiten",
+    total: 0,
+    planned,
+    spent,
+    plannedOpen: Math.max(planned - spent, 0),
+    unplanned: 0,
+    overplanned: planned,
+    projectCount: projects.length,
+  };
+}
+
+function budgetBreakdownCard(summary, isOrphan = false) {
+  const base = Math.max(summary.total, summary.planned, summary.spent, 1);
+  const spentPercent = Math.min(100, Math.round((summary.spent / base) * 100));
+  const plannedPercent = Math.min(100, Math.round((summary.plannedOpen / base) * 100));
+  const freePercent = Math.min(100, Math.round((Math.max(summary.unplanned, 0) / base) * 100));
+  return `
+    <article class="budget-card ${isOrphan || summary.overplanned ? "warn" : ""}">
+      <div class="budget-card-head">
+        <div>
+          <strong>${escapeHtml(summary.name)}</strong>
+          <span>${escapeHtml(summary.period)} · ${summary.projectCount} Projekt${summary.projectCount === 1 ? "" : "e"}</span>
+        </div>
+        ${summary.overplanned ? badge(isOrphan ? "Zuordnen" : "Überplant", "danger") : badge("OK", "ok")}
+      </div>
+      <div class="budget-meter" title="${escapeHtml(`Gesamt: ${money.format(summary.total)} | Verplant: ${money.format(summary.planned)} | Ausgegeben: ${money.format(summary.spent)} | Nicht verplant: ${money.format(summary.unplanned)}`)}">
+        <span class="spent" style="width:${spentPercent}%"></span>
+        <span class="planned" style="width:${plannedPercent}%"></span>
+        <span class="free" style="width:${freePercent}%"></span>
+      </div>
+      <div class="budget-values">
+        <span><small>Gesamt</small><strong>${money.format(summary.total)}</strong></span>
+        <span><small>Verplant</small><strong>${money.format(summary.planned)}</strong></span>
+        <span><small>Ausgegeben</small><strong>${money.format(summary.spent)}</strong></span>
+        <span><small>In Projekten offen</small><strong>${money.format(summary.plannedOpen)}</strong></span>
+        <span><small>Nicht verplant</small><strong>${money.format(summary.unplanned)}</strong></span>
+      </div>
+    </article>
+  `;
 }
 
 function legendItem(label, value, tone, detail = "") {
