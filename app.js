@@ -1752,27 +1752,41 @@ async function importData() {
   }
   if (!confirm("Import ersetzt alle lokalen Daten. Fortfahren?")) return;
 
-  const payload = JSON.parse(await file.text());
-  const hasUserBackup = Array.isArray(payload.data?.users);
-  const importedUsers = hasUserBackup ? payload.data.users : [];
-  if (hasUserBackup && !importedUsers.some((user) => user.role === "Admin" && user.status === "Aktiv")) {
-    toast("Import braucht mindestens einen aktiven Admin");
-    return;
-  }
-  for (const store of STORES) {
-    if (store === "users" && !hasUserBackup) continue;
-    await clearStore(store);
-    for (const item of payload.data?.[store] || []) {
-      await put(store, item);
+  try {
+    const payload = JSON.parse(await file.text());
+    if (!payload.data || !STORES.some((store) => Array.isArray(payload.data?.[store]))) {
+      toast("Datei ist kein vollständiges Erasmus+ Backup");
+      return;
     }
+    const hasUserBackup = Array.isArray(payload.data?.users);
+    const importedUsers = hasUserBackup ? payload.data.users : [];
+    if (hasUserBackup && !importedUsers.some((user) => user.role === "Admin" && user.status === "Aktiv")) {
+      toast("Import braucht mindestens einen aktiven Admin");
+      return;
+    }
+    for (const store of STORES) {
+      if (store === "users" && !hasUserBackup) continue;
+      await clearStore(store);
+      for (const item of payload.data?.[store] || []) {
+        await put(store, item);
+      }
+    }
+    await loadState();
+    ensureAuth();
+    render();
+    document.querySelector("#import-file").value = "";
+    toast(`Import abgeschlossen: ${importCount(payload.data)} Einträge`);
+  } catch (error) {
+    toast("Backup konnte nicht importiert werden");
   }
-  await loadState();
-  ensureAuth();
-  render();
-  toast("Import abgeschlossen");
+}
+
+function importCount(data) {
+  return STORES.reduce((sum, store) => sum + (Array.isArray(data?.[store]) ? data[store].length : 0), 0);
 }
 
 async function seedData() {
+  if (!confirm("Beispieldaten ersetzen alle lokalen Daten. Fortfahren?")) return;
   const ids = {
     p1: createId(),
     p2: createId(),
@@ -1819,7 +1833,9 @@ async function seedData() {
   };
 
   for (const store of STORES) {
-    for (const item of seed[store]) {
+    if (store === "users" && !Array.isArray(seed.users)) continue;
+    await clearStore(store);
+    for (const item of seed[store] || []) {
       await put(store, item);
     }
   }
