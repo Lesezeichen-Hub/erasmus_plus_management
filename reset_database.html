@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Erasmus+ Management Datenbank zurücksetzen</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --surface: #ffffff;
+        --text: #17202a;
+        --muted: #667085;
+        --line: #d9e1ea;
+        --danger: #c2410c;
+        --primary: #176b87;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 18px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      main {
+        width: min(560px, 100%);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 24px;
+        box-shadow: 0 20px 40px rgba(21, 39, 63, 0.08);
+      }
+
+      h1 { margin: 0 0 10px; }
+      p { color: var(--muted); line-height: 1.5; }
+      code { color: var(--primary); font-weight: 800; }
+
+      button {
+        border: 0;
+        border-radius: 7px;
+        min-height: 42px;
+        padding: 0 16px;
+        background: var(--danger);
+        color: white;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .status {
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Lokale Datenbank zurücksetzen</h1>
+      <p>
+        Diese Seite löscht die lokale IndexedDB <code>erasmus_plus_management</code>.
+        Schließe vorher alle anderen Tabs/Fenster der Erasmus+ Management-App.
+      </p>
+      <p>
+        Danach kannst du <code>index.html</code> neu öffnen, einen Admin anlegen und dein Backup erneut importieren.
+      </p>
+      <button id="reset-db" type="button">Datenbank endgültig löschen</button>
+      <div id="status" class="status">Bereit.</div>
+    </main>
+
+    <script>
+      const statusEl = document.querySelector("#status");
+
+      document.querySelector("#reset-db").addEventListener("click", () => {
+        if (!confirm("Lokale Erasmus+ Datenbank wirklich löschen?")) return;
+        sessionStorage.removeItem("erasmus_plus_management_user");
+        statusEl.textContent = "Löschen läuft...";
+
+        const request = indexedDB.deleteDatabase("erasmus_plus_management");
+        request.onblocked = () => {
+          statusEl.textContent = "Löschen wartet noch: Bitte alle anderen Erasmus+ App-Tabs schließen und diese Seite danach neu versuchen.";
+        };
+        request.onerror = () => {
+          statusEl.textContent = "Datenbank konnte nicht gelöscht werden. Browser komplett schließen und erneut versuchen.";
+        };
+        request.onsuccess = () => {
+          statusEl.textContent = "Datenbank gelöscht. Jetzt index.html öffnen und neuen Admin anlegen.";
+        };
+      });
+    </script>
+  </body>
+</html>

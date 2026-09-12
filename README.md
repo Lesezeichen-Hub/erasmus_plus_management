@@ -48,6 +48,22 @@ Im Admin-Panel koennen ausserdem Stammdaten gepflegt werden:
 
 Die Anwendung nutzt IndexedDB im Browser. Dadurch bleiben Projekte, Foerderbudgets, Partnereinrichtungen, Schueler, Aufwaende, Aufgaben, Dokumente, Stammdaten und Managementbenutzer lokal erhalten, bis Browserdaten geloescht werden.
 
+## Lokaler Webserver fuer Windows
+
+Mit `ErasmusPlusManagementServer.exe` kann die App lokal ueber `http://127.0.0.1:8765/` ausgeliefert werden. Der Server nutzt nur den lokalen Rechner, oeffnet automatisch den Browser und waehlt bei belegtem Port automatisch den naechsten freien Port.
+
+Start per Doppelklick:
+
+```text
+start-local-server.cmd
+```
+
+Manueller Start:
+
+```powershell
+.\ErasmusPlusManagementServer.exe
+```
+
 Partnereinrichtungen werden nicht geloescht. Im Admin-Panel koennen sie ausgeblendet werden; ihre ID und bestehende Projektzuordnungen bleiben erhalten.
 
 Foerderbudgets werden dauerhaft per ID gespeichert. Alle Projekte, deren Laufzeit mit dem Zeitraum eines aktiven Foerderbudgets ueberlappt, reduzieren dessen verfuegbare Mittel automatisch. Bei 15 oder 24 Monaten wird das Enddatum automatisch aus dem Startdatum berechnet. Mit "Keine feste Laufzeit" wird ein manuelles Enddatum verwendet.

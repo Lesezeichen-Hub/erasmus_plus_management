@@ -1729,9 +1729,18 @@ function exportData() {
   const payload = {
     exportedAt: new Date().toISOString(),
     version: DB_VERSION,
-    data: Object.fromEntries(STORES.map((store) => [store, state[store]])),
+    data: exportStores(),
   };
   downloadJson(payload, `erasmus-plus-backup-${new Date().toISOString().slice(0, 10)}.json`);
+}
+
+function exportStores() {
+  return Object.fromEntries(STORES.map((store) => {
+    if (store === "settings") {
+      return [store, Object.entries(state.settings).map(([id, values]) => ({ id, values }))];
+    }
+    return [store, state[store]];
+  }));
 }
 
 function downloadJson(payload, filename) {
@@ -1754,12 +1763,13 @@ async function importData() {
 
   try {
     const payload = JSON.parse(await file.text());
-    if (!payload.data || !STORES.some((store) => Array.isArray(payload.data?.[store]))) {
+    const normalizedData = normalizeImportData(payload);
+    if (!normalizedData) {
       toast("Datei ist kein vollständiges Erasmus+ Backup");
       return;
     }
     const hasUserBackup = Array.isArray(payload.data?.users);
-    const importedUsers = hasUserBackup ? payload.data.users : [];
+    const importedUsers = hasUserBackup ? normalizedData.users : [];
     if (hasUserBackup && !importedUsers.some((user) => user.role === "Admin" && user.status === "Aktiv")) {
       toast("Import braucht mindestens einen aktiven Admin");
       return;
@@ -1767,7 +1777,7 @@ async function importData() {
     for (const store of STORES) {
       if (store === "users" && !hasUserBackup) continue;
       await clearStore(store);
-      for (const item of payload.data?.[store] || []) {
+      for (const item of normalizedData[store]) {
         await put(store, item);
       }
     }
@@ -1775,10 +1785,32 @@ async function importData() {
     ensureAuth();
     render();
     document.querySelector("#import-file").value = "";
-    toast(`Import abgeschlossen: ${importCount(payload.data)} Einträge`);
+    toast(`Import abgeschlossen: ${importCount(normalizedData)} Einträge`);
   } catch (error) {
-    toast("Backup konnte nicht importiert werden");
+    toast(`Backup konnte nicht importiert werden: ${error.message || "Unbekannter Fehler"}`);
   }
+}
+
+function normalizeImportData(payload) {
+  if (!payload?.data || typeof payload.data !== "object") return null;
+  const data = {};
+  for (const store of STORES) {
+    const value = payload.data[store];
+    if (store === "settings") {
+      data.settings = normalizeImportedSettings(value);
+    } else {
+      data[store] = Array.isArray(value) ? value : [];
+    }
+  }
+  return STORES.some((store) => data[store].length) ? data : null;
+}
+
+function normalizeImportedSettings(value) {
+  if (Array.isArray(value)) return value.filter((item) => item && item.id);
+  if (value && typeof value === "object") {
+    return Object.entries(value).map(([id, values]) => ({ id, values }));
+  }
+  return [];
 }
 
 function importCount(data) {
