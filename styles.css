@@ -426,6 +426,10 @@ th {
   padding: 10px 12px;
 }
 
+.grant-import-row {
+  margin-bottom: 16px;
+}
+
 .chip-list {
   display: flex;
   flex-wrap: wrap;

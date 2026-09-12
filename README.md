@@ -52,7 +52,9 @@ Partnereinrichtungen werden nicht geloescht. Im Admin-Panel koennen sie ausgeble
 
 Foerderbudgets werden dauerhaft per ID gespeichert. Alle Projekte, deren Laufzeit mit dem Zeitraum eines aktiven Foerderbudgets ueberlappt, reduzieren dessen verfuegbare Mittel automatisch. Bei 15 oder 24 Monaten wird das Enddatum automatisch aus dem Startdatum berechnet. Mit "Keine feste Laufzeit" wird ein manuelles Enddatum verwendet.
 
-Foerderpauschalen fuer Zielland, individuelle Unterstuetzung pro Tag, Distanzband, Green Travel und Reisekosten werden beim Anlegen eines Projekts automatisch vorgeschlagen. Die Tabellen sind lokal aus dem Erasmus+ Programme Guide 2026 und dem PAD-Dokumentencenter hinterlegt, damit die App auch ohne Server funktioniert. Im Admin-Bereich koennen die Geldwerte gespeichert oder ueber "Vorlage aktualisieren" wieder auf die eingebaute Vorlage gesetzt werden. Alle vorgeschlagenen Betraege bleiben im Projektformular bearbeitbar.
+Foerderpauschalen fuer Zielland, individuelle Unterstuetzung pro Tag, Distanzband, Green Travel und Reisekosten werden beim Anlegen eines Projekts automatisch vorgeschlagen. Die Tabellen sind lokal aus dem Erasmus+ Programme Guide 2026 und dem PAD-Dokumentencenter hinterlegt, damit die App auch ohne Server funktioniert. Im Admin-Bereich koennen die Geldwerte gespeichert, exportiert, aus einer JSON-Vorlage importiert oder ueber "Vorlage aktualisieren" wieder auf die eingebaute Vorlage gesetzt werden. Alle vorgeschlagenen Betraege bleiben im Projektformular bearbeitbar.
+
+Mit `node fetch_grant_templates.js` kann ausserhalb der Schulumgebung eine frische Importdatei aus der offiziellen Erasmus+ Online-Vorlage erzeugt werden. Die erzeugte Datei `erasmus-plus-foerderpauschalen-YYYY-MM-DD.json` laesst sich danach im Admin-Bereich importieren.
 
 Wichtige Stellen in `app.js`:
 
@@ -67,7 +69,7 @@ Wichtige Stellen in `app.js`:
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
 - Teilnehmerlisten pro Projekt mit Geburtsdatum, Rolle, Dokumentstatus, fehlenden Dokumenten und Druck-/PDF-Ausgabe
 - Automatische, bearbeitbare Foerderpauschalen pro Zielland und Distanzband beim Projektanlegen
-- Admin-Tabelle zum Aktualisieren und Speichern der Foerderpauschalen-Vorlage
+- Admin-Tabelle zum Aktualisieren, Speichern, Exportieren und Importieren der Foerderpauschalen-Vorlage
 - Schueler mit Projektzuordnung, Rolle und Dokumentenstatus
 - Aufwaende mit Kategorie, Betrag, Belegstatus, Projekt- und Schuelerbezug
 - Aufgaben je Projekt mit Fortschrittsbalken

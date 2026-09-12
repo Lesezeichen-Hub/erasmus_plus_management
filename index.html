@@ -535,10 +535,15 @@
               <h2>Förderpauschalen</h2>
               <div class="row-actions">
                 <button type="button" class="secondary small" id="refresh-grant-templates">Vorlage aktualisieren</button>
+                <button type="button" class="secondary small" id="export-grant-templates">Vorlage exportieren</button>
                 <button type="button" class="small" id="save-grant-templates">Geldwerte speichern</button>
               </div>
             </div>
             <p class="hint">Die Vorlage wird beim Anlegen neuer Projekte verwendet. Bereits gespeicherte Projektwerte bleiben bearbeitbar und werden nicht überschrieben.</p>
+            <div class="inline-form grant-import-row">
+              <input id="grant-template-file" type="file" accept="application/json,.json" />
+              <button type="button" class="secondary" id="import-grant-templates">Vorlage importieren</button>
+            </div>
             <div class="grant-template-grid">
               <div>
                 <h3>Länder: Unterstützung pro Tag</h3>

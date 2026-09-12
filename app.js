@@ -266,6 +266,8 @@ function bindBackup() {
   document.querySelector("#seed-data").addEventListener("click", seedData);
   document.querySelector("#close-participant-list").addEventListener("click", closeParticipantList);
   document.querySelector("#print-participant-list").addEventListener("click", printParticipantList);
+  document.querySelector("#export-grant-templates").addEventListener("click", exportGrantTemplates);
+  document.querySelector("#import-grant-templates").addEventListener("click", importGrantTemplates);
   window.addEventListener("afterprint", () => document.body.classList.remove("printing-participant-list"));
 }
 
@@ -1069,10 +1071,7 @@ async function refreshGrantTemplates() {
     toast("Nur Admins dürfen Förderpauschalen aktualisieren");
     return;
   }
-  await put("settings", { id: "countryGrantRates", values: defaultCountryGrantRates() });
-  await put("settings", { id: "travelGrantBands", values: defaultTravelGrantBands() });
-  await loadState();
-  render();
+  await persistGrantTemplates(defaultCountryGrantRates(), defaultTravelGrantBands());
   toast("Förderpauschalen-Vorlage aktualisiert");
 }
 
@@ -1094,11 +1093,83 @@ async function saveGrantTemplates() {
     toast("Alle Förderpauschalen müssen größer als 0 sein");
     return;
   }
+  await persistGrantTemplates(countryRates, travelBands);
+  toast("Förderpauschalen gespeichert");
+}
+
+async function persistGrantTemplates(countryRates, travelBands) {
   await put("settings", { id: "countryGrantRates", values: countryRates });
   await put("settings", { id: "travelGrantBands", values: travelBands });
   await loadState();
   render();
-  toast("Förderpauschalen gespeichert");
+}
+
+function exportGrantTemplates() {
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Förderpauschalen exportieren");
+    return;
+  }
+  const payload = {
+    schema: "erasmus-plus-grant-template",
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    source: state.settings.grantTemplateSource || GRANT_SOURCE,
+    countryGrantRates: getCountryGrantRates(),
+    travelGrantBands: getTravelGrantBands(),
+  };
+  downloadJson(payload, `erasmus-plus-foerderpauschalen-${new Date().toISOString().slice(0, 10)}.json`);
+}
+
+async function importGrantTemplates() {
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Förderpauschalen importieren");
+    return;
+  }
+  const file = document.querySelector("#grant-template-file").files[0];
+  if (!file) {
+    toast("Bitte Vorlagendatei auswählen");
+    return;
+  }
+  try {
+    const payload = JSON.parse(await file.text());
+    const countryRates = normalizeCountryGrantRates(payload.countryGrantRates);
+    const travelBands = normalizeTravelGrantBands(payload.travelGrantBands);
+    if (!countryRates.length || !travelBands.length) {
+      toast("Vorlagendatei enthält keine gültigen Förderpauschalen");
+      return;
+    }
+    await persistGrantTemplates(countryRates, travelBands);
+    await put("settings", { id: "grantTemplateSource", values: payload.source || file.name });
+    await loadState();
+    render();
+    toast("Förderpauschalen importiert");
+  } catch (error) {
+    toast("Vorlagendatei konnte nicht gelesen werden");
+  }
+}
+
+function normalizeCountryGrantRates(items = []) {
+  return items
+    .map((item) => ({
+      country: String(item.country || "").trim(),
+      group: Number(item.group || 0),
+      dailyMin: Number(item.dailyMin || item.dailyRate || 0),
+      dailyMax: Number(item.dailyMax || item.dailyRate || 0),
+      dailyRate: Number(item.dailyRate || item.dailyMax || 0),
+    }))
+    .filter((item) => item.country && item.group && item.dailyRate > 0)
+    .sort((a, b) => a.country.localeCompare(b.country, "de"));
+}
+
+function normalizeTravelGrantBands(items = []) {
+  return items
+    .map((item) => ({
+      id: String(item.id || "").trim(),
+      label: String(item.label || item.id || "").trim(),
+      standard: Number(item.standard || 0),
+      green: Number(item.green || 0),
+    }))
+    .filter((item) => item.id && item.label && item.standard > 0 && item.green > 0);
 }
 
 async function deleteSettingValue(key, value) {
@@ -1662,11 +1733,15 @@ function exportData() {
     version: DB_VERSION,
     data: Object.fromEntries(STORES.map((store) => [store, state[store]])),
   };
+  downloadJson(payload, `erasmus-plus-backup-${new Date().toISOString().slice(0, 10)}.json`);
+}
+
+function downloadJson(payload, filename) {
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `erasmus-plus-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = filename;
   link.click();
   URL.revokeObjectURL(url);
 }
