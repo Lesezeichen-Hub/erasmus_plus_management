@@ -701,7 +701,6 @@ function renderParticipantList(projectId, shouldScroll = false) {
         <td>${index + 1}</td>
         <td><strong>${escapeHtml(student.name)}</strong><div class="meta">${escapeHtml(student.className)}</div></td>
         <td>${formatDate(student.birthDate)}</td>
-        <td>${escapeHtml(student.role)}</td>
         ${documentTypes.map((type) => `<td class="status-cell">${hasDocument(student, type) ? '<span class="print-status ok" title="Vorhanden">✓</span>' : '<span class="print-status missing" title="Fehlt">x</span>'}</td>`).join("")}
         <td class="missing-list">${missing.length ? `<strong>${escapeHtml(missing.join(", "))}</strong>` : '<span class="print-status ok" title="Vollständig">✓</span>'}</td>
       </tr>
@@ -731,13 +730,12 @@ function renderParticipantList(projectId, shouldScroll = false) {
             <th>#</th>
             <th>Schüler</th>
             <th>Geburtsdatum</th>
-            <th>Rolle</th>
             ${documentHeaders}
             <th>Fehlt</th>
           </tr>
         </thead>
         <tbody>
-          ${rows || `<tr><td colspan="${5 + documentTypes.length}">${emptyState()}</td></tr>`}
+          ${rows || `<tr><td colspan="${4 + documentTypes.length}">${emptyState()}</td></tr>`}
         </tbody>
       </table>
     </div>
