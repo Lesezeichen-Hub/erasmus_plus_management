@@ -50,6 +50,26 @@ const TRAVEL_GRANT_BANDS = [
   { id: "4000-7999", label: "4000-7999 km", green: 1180, standard: 1180 },
   { id: "8000+", label: "8000 km oder mehr", green: 1735, standard: 1735 },
 ];
+const FORM_BY_STORE = {
+  projects: "project-form",
+  students: "student-form",
+  expenses: "expense-form",
+  tasks: "task-form",
+  documents: "document-form",
+  users: "user-form",
+  institutions: "institution-form",
+  fundingBudgets: "fundingBudget-form",
+};
+const VIEW_BY_STORE = {
+  projects: "projects",
+  students: "students",
+  expenses: "expenses",
+  tasks: "tasks",
+  documents: "documents",
+  users: "admin",
+  institutions: "admin",
+  fundingBudgets: "admin",
+};
 
 const state = {
   projects: [],
@@ -533,7 +553,8 @@ function render() {
     item.hidden = item.hasAttribute("data-admin-only") && !isAdmin();
     item.classList.toggle("active", item.dataset.view === state.view);
   });
-  document.querySelector("#page-title").textContent = document.querySelector(`[data-view="${state.view}"]`).textContent;
+  const activeNav = document.querySelector(`[data-view="${state.view}"]`);
+  document.querySelector("#page-title").textContent = activeNav?.textContent || "Dashboard";
   document.querySelector("#current-user").textContent = `${state.currentUser.name} · ${state.currentUser.role}`;
   fillSelects();
   renderDashboard();
@@ -1209,14 +1230,15 @@ function editItem(store, id) {
   const item = state[store].find((entry) => entry.id === id);
   if (!item) return;
 
-  state.view = store;
+  state.view = VIEW_BY_STORE[store] || "dashboard";
   render();
 
-  const form = document.querySelector(`#${store.slice(0, -1)}-form`);
+  const form = document.querySelector(`#${FORM_BY_STORE[store]}`);
   if (!form) return;
 
   if (store === "projects") {
     fillInstitutionSelect(item.institutionIds || []);
+    form.elements.budget.dataset.autoGrant = "false";
   }
 
   Object.entries(item).forEach(([key, value]) => {
