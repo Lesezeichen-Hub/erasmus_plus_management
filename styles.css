@@ -980,6 +980,109 @@ th {
   line-height: 1.45;
 }
 
+.template-document-panel {
+  scroll-margin-top: 18px;
+}
+
+.template-document {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.eu-template {
+  max-width: 900px;
+  margin: 0 auto;
+  color: var(--text);
+}
+
+.eu-template header {
+  border: 2px solid var(--primary);
+  border-left: 12px solid var(--primary);
+  border-radius: 8px;
+  padding: 18px;
+  margin-bottom: 14px;
+  background: var(--surface-raised);
+}
+
+.eu-template header p,
+.eu-template header span {
+  display: block;
+  margin: 0;
+  color: var(--muted);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+}
+
+.eu-template header h1 {
+  margin: 4px 0;
+  font-size: 1.75rem;
+}
+
+.eu-template section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+  background: var(--surface);
+}
+
+.eu-template section h2 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.eu-template table {
+  width: 100%;
+}
+
+.eu-template th {
+  width: 32%;
+  color: var(--muted-strong);
+  text-transform: none;
+  font-size: 0.86rem;
+}
+
+.eu-template p {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.template-notice {
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--muted);
+  background: var(--surface-raised);
+  font-size: 0.86rem;
+}
+
+.signature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.signature-grid span {
+  display: block;
+  height: 54px;
+  border-bottom: 1px solid var(--text);
+  margin-bottom: 8px;
+}
+
+.signature-grid strong,
+.signature-grid small {
+  display: block;
+}
+
+.signature-grid small {
+  color: var(--muted);
+  margin-top: 3px;
+}
+
 .participant-report {
   display: grid;
   gap: 18px;
@@ -1324,7 +1427,8 @@ th {
   }
 
   .project-file-grid,
-  .project-file-sections {
+  .project-file-sections,
+  .signature-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -1335,7 +1439,8 @@ th {
     margin: 12mm;
   }
 
-  body.printing-participant-list {
+  body.printing-participant-list,
+  body.printing-template-document {
     background: #ffffff;
   }
 
@@ -1343,35 +1448,66 @@ th {
   body.printing-participant-list .topbar,
   body.printing-participant-list .no-print,
   body.printing-participant-list .view:not(#projects),
-  body.printing-participant-list #projects > .section-layout > :not(#participant-list-panel) {
+  body.printing-participant-list #projects > .section-layout > :not(#participant-list-panel),
+  body.printing-template-document .sidebar,
+  body.printing-template-document .topbar,
+  body.printing-template-document .no-print,
+  body.printing-template-document .view:not(#projects),
+  body.printing-template-document #projects > .section-layout > :not(#template-document-panel) {
     display: none !important;
   }
 
-  body.printing-participant-list .shell {
+  body.printing-participant-list .shell,
+  body.printing-template-document .shell {
     margin: 0;
     padding: 0;
   }
 
   body.printing-participant-list #projects,
-  body.printing-participant-list #participant-list-panel {
+  body.printing-participant-list #participant-list-panel,
+  body.printing-template-document #projects,
+  body.printing-template-document #template-document-panel {
     display: block !important;
   }
 
-  body.printing-participant-list #participant-list-panel {
+  body.printing-participant-list #participant-list-panel,
+  body.printing-template-document #template-document-panel {
     border: 0;
     box-shadow: none;
     padding: 0;
   }
 
-  body.printing-participant-list .table-wrap {
+  body.printing-participant-list .table-wrap,
+  body.printing-template-document .table-wrap {
     overflow: visible;
   }
 
   body.printing-participant-list th,
-  body.printing-participant-list td {
+  body.printing-participant-list td,
+  body.printing-template-document th,
+  body.printing-template-document td {
     border-color: #cfd8e3;
     padding: 4px 5px;
     font-size: 9.5pt;
+  }
+
+  body.printing-template-document .template-document,
+  body.printing-template-document .eu-template,
+  body.printing-template-document .eu-template section,
+  body.printing-template-document .eu-template header,
+  body.printing-template-document .template-notice {
+    border-color: #cfd8e3;
+    background: #ffffff !important;
+    color: #17202a !important;
+    box-shadow: none;
+  }
+
+  body.printing-template-document .eu-template {
+    max-width: none;
+  }
+
+  body.printing-template-document .eu-template header h1 {
+    font-size: 18pt;
   }
 
   body.printing-participant-list .report-title h2 {

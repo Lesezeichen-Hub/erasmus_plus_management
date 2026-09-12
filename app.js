@@ -333,9 +333,12 @@ function bindBackup() {
   document.querySelector("#close-participant-list").addEventListener("click", closeParticipantList);
   document.querySelector("#print-participant-list").addEventListener("click", printParticipantList);
   document.querySelector("#close-project-file").addEventListener("click", closeProjectFile);
+  document.querySelector("#close-template-document").addEventListener("click", closeTemplateDocument);
+  document.querySelector("#print-template-document").addEventListener("click", printTemplateDocument);
   document.querySelector("#export-grant-templates").addEventListener("click", exportGrantTemplates);
   document.querySelector("#import-grant-templates").addEventListener("click", importGrantTemplates);
   window.addEventListener("afterprint", () => document.body.classList.remove("printing-participant-list"));
+  window.addEventListener("afterprint", () => document.body.classList.remove("printing-template-document"));
 }
 
 async function onProjectSubmit(event) {
@@ -881,6 +884,140 @@ function projectFileTable(title, headers, rows) {
   `;
 }
 
+function templateActions(projectId, studentId) {
+  return `
+    <div class="row-actions">
+      <button class="small secondary" data-template-doc="learningAgreement" data-project-id="${projectId}" data-student-id="${studentId}">Lernvereinbarung</button>
+      <button class="small secondary" data-template-doc="europass" data-project-id="${projectId}" data-student-id="${studentId}">Europass</button>
+    </div>
+  `;
+}
+
+function showTemplateDocument(type, projectId, studentId) {
+  const project = state.projects.find((entry) => entry.id === projectId);
+  const student = state.students.find((entry) => entry.id === studentId);
+  if (!project || !student) {
+    toast("Vorlage konnte nicht erstellt werden");
+    return;
+  }
+  const title = type === "europass" ? "Europass Mobilität" : "Europass Lernvereinbarung";
+  document.querySelector("#template-document-title").textContent = title;
+  document.querySelector("#template-document").innerHTML = type === "europass"
+    ? europassTemplate(project, student)
+    : learningAgreementTemplate(project, student);
+  document.querySelector("#template-document-panel").hidden = false;
+  document.querySelector("#template-document-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function closeTemplateDocument() {
+  document.querySelector("#template-document-panel").hidden = true;
+  document.querySelector("#template-document").innerHTML = "";
+}
+
+function printTemplateDocument() {
+  document.body.classList.add("printing-template-document");
+  window.print();
+  setTimeout(() => document.body.classList.remove("printing-template-document"), 1000);
+}
+
+function learningAgreementTemplate(project, student) {
+  const institutions = projectInstitutionNames(project);
+  const outcomes = projectLearningOutcomes(project);
+  return `
+    <article class="eu-template">
+      <header>
+        <p>Erasmus+ Schulbildung</p>
+        <h1>Europass Lernvereinbarung</h1>
+        <span>Individuelle Schüler*innenmobilität</span>
+      </header>
+      ${templateNotice("Vorlage ist vorausgefüllt und editierbar. Inhalt orientiert sich an den Mindestanforderungen der Europass-Lernvereinbarung.")}
+      ${templateSection("1. Teilnehmende Person", [
+        ["Name", student.name],
+        ["Klasse", student.className],
+        ["Geburtsdatum", formatDate(student.birthDate)],
+        ["Rolle", roleLabel(student.role)],
+      ])}
+      ${templateSection("2. Mobilität", [
+        ["Projekt", project.name],
+        ["Leitaktion", project.action],
+        ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
+        ["Zielland", project.destinationCountry || "-"],
+        ["Aufnehmende Einrichtung", stripHtml(institutions)],
+        ["Entsendende Einrichtung", "Bitte Schulname ergänzen"],
+      ])}
+      ${templateTextSection("3. Lernziele und erwartete Lernergebnisse", outcomes)}
+      ${templateTextSection("4. Geplante Aktivitäten", projectTaskList(project.id, "Offen, In Arbeit oder geplant"))}
+      ${templateTextSection("5. Aufgaben und Zuständigkeiten", "Teilnehmende Person: aktive Teilnahme, Dokumentation der Lernergebnisse, Einhaltung der Vereinbarungen. Entsendende Einrichtung: Vorbereitung, Betreuung, Anerkennung. Aufnehmende Einrichtung: Lerngelegenheiten, Begleitung, Rückmeldung.")}
+      ${templateTextSection("6. Begleitung, Monitoring und Anerkennung", "Die verantwortlichen Lehrkräfte begleiten den Lernfortschritt. Nach Abschluss werden erreichte Lernergebnisse geprüft und durch Europass Mobilität oder ein gleichwertiges Dokument bestätigt.")}
+      ${signatureGrid(["Teilnehmende*r", "Erziehungsberechtigte", "Entsendende Schule", "Aufnehmende Schule"])}
+    </article>
+  `;
+}
+
+function europassTemplate(project, student) {
+  return `
+    <article class="eu-template">
+      <header>
+        <p>Europass</p>
+        <h1>Europass Mobilität</h1>
+        <span>Nachweis einer Lernmobilität im Ausland</span>
+      </header>
+      ${templateNotice("Dieses Dokument wird nach der Mobilität aus der Lernvereinbarung abgeleitet und um erreichte Lernergebnisse ergänzt.")}
+      ${templateSection("1. Inhaber*in des Dokuments", [
+        ["Name", student.name],
+        ["Geburtsdatum", formatDate(student.birthDate)],
+        ["Klasse", student.className],
+      ])}
+      ${templateSection("2. Beteiligte Einrichtungen", [
+        ["Entsendende Einrichtung", "Bitte Schulname ergänzen"],
+        ["Aufnehmende Einrichtung", stripHtml(projectInstitutionNames(project))],
+        ["Projekt", project.name],
+        ["Land", project.destinationCountry || "-"],
+        ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
+      ])}
+      ${templateTextSection("3. Beschreibung der Mobilität", `Teilnahme an ${project.name} im Rahmen von Erasmus+ ${project.action}.`)}
+      ${templateTextSection("4. Durchgeführte Aktivitäten", projectTaskList(project.id, "Aus Projektaufgaben übernehmen und nach der Mobilität anpassen"))}
+      ${templateTextSection("5. Erworbene Kenntnisse, Fähigkeiten und Kompetenzen", projectLearningOutcomes(project))}
+      ${templateTextSection("6. Bewertung / Anerkennung", "Die erreichten Lernergebnisse wurden durch die beteiligten Einrichtungen bestätigt. Details bitte nach Abschluss der Mobilität ergänzen.")}
+      ${signatureGrid(["Entsendende Einrichtung", "Aufnehmende Einrichtung"])}
+    </article>
+  `;
+}
+
+function templateSection(title, rows) {
+  return `
+    <section>
+      <h2>${escapeHtml(title)}</h2>
+      <table>
+        <tbody>${rows.map(([label, value]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`).join("")}</tbody>
+      </table>
+    </section>
+  `;
+}
+
+function templateTextSection(title, text) {
+  return `<section><h2>${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p></section>`;
+}
+
+function templateNotice(text) {
+  return `<div class="template-notice">${escapeHtml(text)}</div>`;
+}
+
+function signatureGrid(labels) {
+  return `<section><h2>Unterschriften</h2><div class="signature-grid">${labels.map((label) => `<div><span></span><strong>${escapeHtml(label)}</strong><small>Ort, Datum, Unterschrift</small></div>`).join("")}</div></section>`;
+}
+
+function projectLearningOutcomes(project) {
+  const taskTitles = state.tasks.filter((task) => task.projectId === project.id).map((task) => task.title);
+  if (taskTitles.length) return `Erwartete bzw. erreichte Lernergebnisse aus dem Projekt: ${taskTitles.join("; ")}.`;
+  return "Fachliche, sprachliche, interkulturelle und persönliche Kompetenzen aus der Mobilität bitte konkret ergänzen.";
+}
+
+function projectTaskList(projectId, fallback) {
+  const tasks = state.tasks.filter((task) => task.projectId === projectId);
+  return tasks.length ? tasks.map((task) => `${task.title} (${task.status})`).join("; ") : fallback;
+}
+
 function legendItem(label, value, tone, detail = "") {
   const title = `${label}: ${value}${detail ? ` · ${detail}` : ""}`;
   return `<div class="legend-item" tabindex="0" title="${escapeHtml(title)}"><span class="legend-dot ${tone}"></span><div><strong>${escapeHtml(value)}</strong><small>${escapeHtml(label)}${detail ? ` · ${escapeHtml(detail)}` : ""}</small></div></div>`;
@@ -1071,13 +1208,14 @@ function renderProjectFile(projectId, shouldScroll = false) {
       </section>
     </div>
     <div class="project-file-sections">
-      ${projectFileTable("Teilnehmende & Dokumente", ["Name", "Klasse", "Geburtsdatum", "Dokumente"], students.map((student) => {
+      ${projectFileTable("Teilnehmende & Dokumente", ["Name", "Klasse", "Geburtsdatum", "Dokumente", "Vorlagen"], students.map((student) => {
         const missing = missingDocs(student, project.id);
         return [
           escapeHtml(student.name),
           escapeHtml(student.className),
           formatDate(student.birthDate),
           missing.length ? badge(`${missing.length} fehlt`, "danger") + `<div class="meta">${escapeHtml(missing.join(", "))}</div>` : badge("Vollständig", "ok"),
+          templateActions(project.id, student.id),
         ];
       }))}
       ${projectFileTable("Aufwände", ["Datum", "Kategorie", "Teilnehmende*r", "Betrag", "Beleg"], expenses.map((expense) => [
@@ -1110,6 +1248,9 @@ function renderProjectFile(projectId, shouldScroll = false) {
     </div>
     ${missingDocumentRows.length ? `<div class="project-file-warning">${badge("Dokumente fehlen", "danger")} ${escapeHtml(missingDocumentRows.map(({ student, missing }) => `${student.name}: ${missing.join(", ")}`).join(" · "))}</div>` : ""}
   `;
+  container.querySelectorAll("[data-template-doc]").forEach((button) => {
+    button.addEventListener("click", () => showTemplateDocument(button.dataset.templateDoc, button.dataset.projectId, button.dataset.studentId));
+  });
   panel.hidden = false;
   if (shouldScroll) panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -1994,6 +2135,9 @@ function renderTable(selector, headers, rows) {
   table.querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => deleteItem(button.dataset.store, button.dataset.id)));
   table.querySelectorAll("[data-participant-list]").forEach((button) => button.addEventListener("click", () => showParticipantList(button.dataset.participantList)));
   table.querySelectorAll("[data-project-file]").forEach((button) => button.addEventListener("click", () => showProjectFile(button.dataset.projectFile)));
+  table.querySelectorAll("[data-template-doc]").forEach((button) => {
+    button.addEventListener("click", () => showTemplateDocument(button.dataset.templateDoc, button.dataset.projectId, button.dataset.studentId));
+  });
   table.querySelectorAll("[data-institution-toggle]").forEach((button) => button.addEventListener("click", () => toggleInstitution(button.dataset.institutionToggle)));
   table.querySelectorAll("[data-user-toggle]").forEach((button) => button.addEventListener("click", () => toggleUserStatus(button.dataset.userToggle)));
   table.querySelectorAll("[data-funding-budget-toggle]").forEach((button) => button.addEventListener("click", () => toggleFundingBudget(button.dataset.fundingBudgetToggle)));
