@@ -258,6 +258,45 @@ label textarea,
   color: var(--text);
 }
 
+.clearable-field {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.clearable-field input,
+.clearable-field textarea {
+  padding-right: 42px;
+}
+
+.clear-field {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--secondary-bg);
+  color: var(--muted-strong);
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.clear-field:hover {
+  background: var(--secondary-hover);
+}
+
+.clear-field[hidden] {
+  display: none;
+}
+
+textarea + .clear-field {
+  top: 8px;
+}
+
 .input-addon {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

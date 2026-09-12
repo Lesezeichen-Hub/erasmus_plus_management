@@ -652,6 +652,7 @@ function render() {
   renderFundingBudgets();
   renderInstitutions();
   renderSettings();
+  enhanceClearableFields();
 }
 
 function renderDashboard() {
@@ -1933,6 +1934,50 @@ function fillStudentSelect(selector) {
     option.selected = current === student.id;
     select.add(option);
   });
+}
+
+function enhanceClearableFields() {
+  document.querySelectorAll("input, textarea").forEach((field) => {
+    if (!isClearableField(field)) return;
+    if (!field.parentElement?.classList.contains("clearable-field")) {
+      wrapClearableField(field);
+    }
+    updateClearButton(field);
+  });
+}
+
+function isClearableField(field) {
+  if (field.readOnly || field.disabled) return false;
+  if (field.tagName === "TEXTAREA") return true;
+  const type = (field.getAttribute("type") || "text").toLowerCase();
+  return ["text", "search", "email", "url", "tel"].includes(type);
+}
+
+function wrapClearableField(field) {
+  const wrapper = document.createElement("span");
+  wrapper.className = "clearable-field";
+  field.parentNode.insertBefore(wrapper, field);
+  wrapper.appendChild(field);
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "clear-field";
+  button.textContent = "x";
+  button.setAttribute("aria-label", "Feld leeren");
+  button.title = "Feld leeren";
+  button.addEventListener("click", () => {
+    field.value = "";
+    field.focus();
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    field.dispatchEvent(new Event("change", { bubbles: true }));
+    updateClearButton(field);
+  });
+  field.addEventListener("input", () => updateClearButton(field));
+  wrapper.appendChild(button);
+}
+
+function updateClearButton(field) {
+  const button = field.parentElement?.querySelector(".clear-field");
+  if (button) button.hidden = !field.value;
 }
 
 function renderTable(selector, headers, rows) {
