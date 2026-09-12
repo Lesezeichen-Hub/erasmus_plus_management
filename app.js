@@ -617,6 +617,7 @@ function renderDashboard() {
     kpi("Aktive Projekte", activeProjects.length),
     kpi("In Projekten offen", money.format(overview.plannedOpen)),
     kpi("nicht verplantes Budget", money.format(overview.unplanned), unplannedDetail),
+    kpi("Projektbudget ohne Fördertopf", money.format(overview.unassignedPlannedBudget), "wird nicht vom Fördertopf abgezogen"),
     kpi("Offene Aufgaben", openTasks.length),
     kpi("Reisende Teilnehmende", travellingStudents),
   ].join("");
@@ -654,7 +655,7 @@ function renderProjectStatusSummary() {
 }
 
 function renderFundingChart() {
-  const { totalFunding, plannedBudget, spent, unplanned, plannedOpen, overplanned } = fundingOverview();
+  const { totalFunding, plannedBudget, spent, unplanned, plannedOpen, overplanned, unassignedPlannedBudget } = fundingOverview();
   const remaining = Math.max(unplanned, 0);
   const base = Math.max(totalFunding, plannedBudget, 1);
   const spentPercent = Math.round((spent / base) * 100);
@@ -675,6 +676,7 @@ function renderFundingChart() {
       ${legendItem("Verplant offen", money.format(plannedOpen), "planned", `${plannedPercent}% vom Fördertopf`)}
       ${legendItem("Nicht verplant", money.format(remaining), "remaining", `${remainingPercent}% vom Fördertopf`)}
       ${overplanned ? legendItem("Überplant", money.format(overplanned), "danger", "Projektbudgets überschreiten den Fördertopf") : ""}
+      ${unassignedPlannedBudget ? legendItem("Ohne Fördertopf", money.format(unassignedPlannedBudget), "danger", "nicht in dieser Verteilung enthalten") : ""}
     </div>
   `;
 }
@@ -682,10 +684,16 @@ function renderFundingChart() {
 function fundingOverview() {
   const activeBudgets = state.fundingBudgets.filter((budget) => budget.status !== "Inaktiv");
   const activeBudgetIds = new Set(activeBudgets.map((budget) => budget.id));
-  const fundedProjects = state.projects.filter((project) => activeBudgetIds.has(effectiveProjectFundingBudgetId(project)));
+  const fundedProjects = state.projects.filter((project) => {
+    const budgetId = effectiveProjectFundingBudgetId(project);
+    const budget = state.fundingBudgets.find((entry) => entry.id === budgetId);
+    return activeBudgetIds.has(budgetId) && projectOverlapsFundingBudget(project, budget);
+  });
   const fundedProjectIds = new Set(fundedProjects.map((project) => project.id));
+  const unassignedProjects = state.projects.filter((project) => !fundedProjectIds.has(project.id));
   const totalFunding = activeBudgets.reduce((sum, budget) => sum + Number(budget.amount || 0), 0);
   const plannedBudget = fundedProjects.reduce((sum, project) => sum + Number(project.budget || 0), 0);
+  const unassignedPlannedBudget = unassignedProjects.reduce((sum, project) => sum + Number(project.budget || 0), 0);
   const spent = state.expenses
     .filter((expense) => fundedProjectIds.has(expense.projectId))
     .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
@@ -697,6 +705,7 @@ function fundingOverview() {
     plannedOpen: Math.max(plannedBudget - spent, 0),
     unplanned: totalFunding - plannedBudget,
     overplanned: Math.max(plannedBudget - totalFunding, 0),
+    unassignedPlannedBudget,
   };
 }
 
