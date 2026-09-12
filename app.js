@@ -607,9 +607,64 @@ function renderDashboard() {
 
   const statusFilter = document.querySelector("#dashboard-status-filter").value;
   const projects = filterText(state.projects).filter((project) => !statusFilter || project.status === statusFilter);
+  renderProjectStatusSummary();
+  renderFundingChart();
   renderList("#project-status-list", projects.map(projectStatusCard));
 
   renderRiskCenter();
+}
+
+function renderProjectStatusSummary() {
+  const statuses = ["Geplant", "Aktiv", "Abrechnung", "Abgeschlossen"];
+  const total = state.projects.length;
+  document.querySelector("#project-status-summary").innerHTML = `
+    <div class="status-total"><strong>${total}</strong><span>Projekte gesamt</span></div>
+    <div class="status-bars">
+      ${statuses.map((status) => {
+        const count = state.projects.filter((project) => project.status === status).length;
+        const percent = total ? Math.round((count / total) * 100) : 0;
+        return `
+          <div class="status-row">
+            <div class="status-row-head">
+              ${badge(status, statusTone(status))}
+              <strong>${count}</strong>
+            </div>
+            <div class="mini-progress" aria-label="${status}: ${percent}%"><span style="width:${percent}%"></span></div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+function renderFundingChart() {
+  const totalFunding = state.fundingBudgets
+    .filter((budget) => budget.status !== "Inaktiv")
+    .reduce((sum, budget) => sum + Number(budget.amount || 0), 0);
+  const plannedBudget = state.projects.reduce((sum, project) => sum + Number(project.budget || 0), 0);
+  const spent = state.expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const remaining = Math.max(totalFunding - plannedBudget, 0);
+  const plannedOpen = Math.max(plannedBudget - spent, 0);
+  const overplanned = Math.max(plannedBudget - totalFunding, 0);
+  const base = Math.max(totalFunding, plannedBudget, 1);
+  const spentDeg = Math.min(360, (spent / base) * 360);
+  const plannedDeg = Math.min(360, ((spent + plannedOpen) / base) * 360);
+  const remainingDeg = Math.min(360, ((spent + plannedOpen + remaining) / base) * 360);
+  const chartStyle = `--spent:${spentDeg}deg; --planned:${plannedDeg}deg; --remaining:${remainingDeg}deg;`;
+
+  document.querySelector("#funding-chart").innerHTML = `
+    <div class="donut" style="${chartStyle}" aria-label="Fördergeldverteilung"><span>${Math.round((spent / base) * 100)}%</span></div>
+    <div class="chart-legend">
+      ${legendItem("Verbraucht", money.format(spent), "spent")}
+      ${legendItem("Verplant offen", money.format(plannedOpen), "planned")}
+      ${legendItem("Nicht verplant", money.format(remaining), "remaining")}
+      ${overplanned ? legendItem("Überplant", money.format(overplanned), "danger") : ""}
+    </div>
+  `;
+}
+
+function legendItem(label, value, tone) {
+  return `<div class="legend-item"><span class="legend-dot ${tone}"></span><div><strong>${escapeHtml(value)}</strong><small>${escapeHtml(label)}</small></div></div>`;
 }
 
 function renderRiskCenter() {
