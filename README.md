@@ -54,7 +54,7 @@ Foerderbudgets werden dauerhaft per ID gespeichert. Alle Projekte, deren Laufzei
 
 Foerderpauschalen fuer Zielland, individuelle Unterstuetzung pro Tag, Distanzband, Green Travel und Reisekosten werden beim Anlegen eines Projekts automatisch vorgeschlagen. Die Tabellen sind lokal aus dem Erasmus+ Programme Guide 2026 und dem PAD-Dokumentencenter hinterlegt, damit die App auch ohne Server funktioniert. Im Admin-Bereich koennen die Geldwerte gespeichert, exportiert, aus einer JSON-Vorlage importiert oder ueber "Vorlage aktualisieren" wieder auf die eingebaute Vorlage gesetzt werden. Alle vorgeschlagenen Betraege bleiben im Projektformular bearbeitbar.
 
-Mit `node fetch_grant_templates.js` kann ausserhalb der Schulumgebung eine frische Importdatei aus der offiziellen Erasmus+ Online-Vorlage erzeugt werden. Die erzeugte Datei `erasmus-plus-foerderpauschalen-YYYY-MM-DD.json` laesst sich danach im Admin-Bereich importieren.
+Das Zusatztool liegt als eigenes Hub-Modul im Ordner `C:\Users\winzi\Documents\Erasmus_plus_Satzimport_export`. Dort kann ausserhalb der Schulumgebung mit `node fetch_grant_templates.js` eine frische Importdatei aus der offiziellen Erasmus+ Online-Vorlage erzeugt werden. Die erzeugte Datei `erasmus-plus-foerderpauschalen-YYYY-MM-DD.json` laesst sich danach im Admin-Bereich importieren.
 
 Wichtige Stellen in `app.js`:
 
