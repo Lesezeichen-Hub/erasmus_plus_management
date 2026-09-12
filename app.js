@@ -7,6 +7,49 @@ const DEFAULT_SETTINGS = {
   expenseCategories: ["Reisekosten", "Unterkunft", "Verpflegung", "Taschengeld", "Sonstiges"],
   documentTypes: ["Einverständniserklärung", "Notfallkontakt", "Versicherung", "Beleg", "Vertrag", "Bericht", "Sonstiges"],
 };
+const GRANT_SOURCE = "Erasmus+ Programme Guide 2026 / PAD Dokumentencenter Anhang 3";
+const COUNTRY_GRANT_GROUPS = {
+  "Österreich": { group: 1, dailyMin: 48, dailyMax: 85 },
+  Belgien: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Dänemark: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Finnland: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Frankreich: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Deutschland: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Island: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Italien: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Liechtenstein: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Luxemburg: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Niederlande: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Norwegen: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Schweden: { group: 1, dailyMin: 48, dailyMax: 85 },
+  Zypern: { group: 2, dailyMin: 41, dailyMax: 74 },
+  Tschechien: { group: 2, dailyMin: 41, dailyMax: 74 },
+  Estland: { group: 2, dailyMin: 41, dailyMax: 74 },
+  Griechenland: { group: 2, dailyMin: 41, dailyMax: 74 },
+  Lettland: { group: 2, dailyMin: 41, dailyMax: 74 },
+  Malta: { group: 2, dailyMin: 41, dailyMax: 74 },
+  Portugal: { group: 2, dailyMin: 41, dailyMax: 74 },
+  Slowakei: { group: 2, dailyMin: 41, dailyMax: 74 },
+  Slowenien: { group: 2, dailyMin: 41, dailyMax: 74 },
+  Spanien: { group: 2, dailyMin: 41, dailyMax: 74 },
+  Bulgarien: { group: 3, dailyMin: 36, dailyMax: 64 },
+  Kroatien: { group: 3, dailyMin: 36, dailyMax: 64 },
+  Ungarn: { group: 3, dailyMin: 36, dailyMax: 64 },
+  Polen: { group: 3, dailyMin: 36, dailyMax: 64 },
+  Rumänien: { group: 3, dailyMin: 36, dailyMax: 64 },
+  Serbien: { group: 3, dailyMin: 36, dailyMax: 64 },
+  Nordmazedonien: { group: 3, dailyMin: 36, dailyMax: 64 },
+  Türkei: { group: 3, dailyMin: 36, dailyMax: 64 },
+};
+const TRAVEL_GRANT_BANDS = [
+  { id: "10-99", label: "10-99 km", green: 56, standard: 28 },
+  { id: "100-499", label: "100-499 km", green: 285, standard: 211 },
+  { id: "500-1999", label: "500-1999 km", green: 417, standard: 309 },
+  { id: "2000-2999", label: "2000-2999 km", green: 535, standard: 395 },
+  { id: "3000-3999", label: "3000-3999 km", green: 785, standard: 580 },
+  { id: "4000-7999", label: "4000-7999 km", green: 1180, standard: 1180 },
+  { id: "8000+", label: "8000 km oder mehr", green: 1735, standard: 1735 },
+];
 
 const state = {
   projects: [],
@@ -147,6 +190,15 @@ function bindForms() {
   document.querySelector("#fundingBudget-form").addEventListener("submit", onFundingBudgetSubmit);
   document.querySelector("#fundingBudget-form [name=startDate]").addEventListener("change", updateFundingBudgetEndDate);
   document.querySelector("#fundingBudget-form [name=durationMonths]").addEventListener("change", updateFundingBudgetEndDate);
+  ["destinationCountry", "participantCount", "durationDays", "travelDays", "distanceBand", "greenTravel", "dailySupportRate", "travelGrantRate"].forEach((name) => {
+    document.querySelector(`#project-form [name=${name}]`).addEventListener("input", updateGrantSuggestion);
+    document.querySelector(`#project-form [name=${name}]`).addEventListener("change", updateGrantSuggestion);
+  });
+  document.querySelector("#project-form [name=budget]").addEventListener("input", (event) => {
+    event.currentTarget.dataset.autoGrant = "false";
+  });
+  document.querySelector("#refresh-grant-templates").addEventListener("click", refreshGrantTemplates);
+  document.querySelector("#save-grant-templates").addEventListener("click", saveGrantTemplates);
   document.querySelectorAll("[data-setting-form]").forEach((form) => form.addEventListener("submit", onSettingSubmit));
   document.querySelectorAll("[data-reset-form]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -168,6 +220,10 @@ function resetForm(formId) {
   }
   if (formId === "fundingBudget-form") {
     updateFundingBudgetEndDate();
+  }
+  if (formId === "project-form") {
+    form.elements.budget.dataset.autoGrant = "true";
+    updateGrantSuggestion();
   }
 }
 
@@ -198,14 +254,6 @@ async function onProjectSubmit(event) {
     return;
   }
   for (const fundingBudget of matchingFundingBudgets({ startDate: data.startDate, endDate: data.endDate })) {
-    if (false && !fundingBudget) {
-      toast("Förderbudget wurde nicht gefunden");
-      return;
-    }
-    if (false && (new Date(data.startDate) < new Date(fundingBudget.startDate) || new Date(data.endDate) > new Date(fundingBudget.endDate))) {
-      toast("Projektzeitraum muss im Zeitraum des Förderbudgets liegen");
-      return;
-    }
     const assigned = fundingBudgetAssigned(fundingBudget.id, data.id || null) + Number(data.budget || 0);
     if (assigned > Number(fundingBudget.amount || 0)) {
       toast("Projektbudget überschreitet das verfügbare Förderbudget");
@@ -221,6 +269,16 @@ async function onProjectSubmit(event) {
     partners: data.partners.trim(),
     startDate: data.startDate,
     endDate: data.endDate,
+    destinationCountry: data.destinationCountry,
+    participantCount: Number(data.participantCount || 0),
+    durationDays: Number(data.durationDays || 0),
+    travelDays: Number(data.travelDays || 0),
+    distanceBand: data.distanceBand,
+    greenTravel: new FormData(form).has("greenTravel"),
+    dailySupportRate: Number(data.dailySupportRate || 0),
+    travelGrantRate: Number(data.travelGrantRate || 0),
+    calculatedGrant: Number(data.calculatedGrant || 0),
+    grantSource: GRANT_SOURCE,
     budget: Number(data.budget),
     status: data.status,
   });
@@ -386,10 +444,6 @@ async function onFundingBudgetSubmit(event) {
   }
   const budgetDraft = { id: data.id || "new", startDate: data.startDate, endDate: computedEndDate };
   const linkedProjects = state.projects.filter((project) => projectOverlapsFundingBudget(project, budgetDraft));
-  if (false && linkedProjects.some((project) => new Date(project.startDate) < new Date(data.startDate) || new Date(project.endDate) > new Date(computedEndDate))) {
-    toast("Bestehende Projekte liegen außerhalb dieses Förderzeitraums");
-    return;
-  }
   const assigned = linkedProjects.reduce((sum, project) => sum + Number(project.budget || 0), 0);
   if (assigned > Number(data.amount || 0)) {
     toast("Gesamtbudget ist kleiner als bereits zugewiesene Projektbudgets");
@@ -506,7 +560,7 @@ function renderDashboard() {
   document.querySelector("#kpi-grid").innerHTML = [
     kpi("Aktive Projekte", activeProjects.length),
     kpi("Projekt-Restbudgets", money.format(remainingBudget)),
-    kpi("Fördermittel Rest", money.format(fundingRemaining)),
+    kpi("nicht verplantes Budget", money.format(fundingRemaining)),
     kpi("Offene Aufgaben", openTasks.length),
     kpi("Reisende Schüler", travellingStudents),
   ].join("");
@@ -527,7 +581,7 @@ function renderProjects() {
   const status = document.querySelector("#project-filter").value;
   const rows = filterText(state.projects).filter((project) => !status || project.status === status);
   renderTable("#projects-table", ["Projekt", "Zeitraum", "Budget", "Fördertopf", "Status", "Fortschritt", ""], rows.map((project) => [
-    `<strong>${escapeHtml(project.name)}</strong><div class="meta">${escapeHtml(project.action)} · ${projectInstitutionNames(project)}${project.partners ? `<br>${escapeHtml(project.partners)}` : ""}</div>`,
+    `<strong>${escapeHtml(project.name)}</strong><div class="meta">${escapeHtml(project.action)} · ${projectInstitutionNames(project)}${project.partners ? `<br>${escapeHtml(project.partners)}` : ""}${project.destinationCountry ? `<br>${escapeHtml(project.destinationCountry)} · ${Number(project.participantCount || 0)} Pers. · Vorschlag ${money.format(Number(project.calculatedGrant || 0))}` : ""}</div>`,
     `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`,
     `${money.format(project.budget)}<div class="meta">Rest ${money.format(budgetRemaining(project.id))}</div>`,
     projectFundingBudgetNames(project),
@@ -694,6 +748,20 @@ function renderSettings() {
   renderSettingList("expenseCategories", "#expense-categories-list", (value) => state.expenses.some((expense) => expense.category === value));
   renderSettingList("documentTypes", "#document-types-list", (value) => state.documents.some((doc) => doc.type === value));
   renderSettingList("leadActions", "#lead-actions-list", (value) => state.projects.some((project) => project.action === value));
+  renderGrantSettings();
+}
+
+function renderGrantSettings() {
+  renderTable("#country-grant-table", ["Land", "Gruppe", "Tageswert"], getCountryGrantRates().map((rate) => [
+    escapeHtml(rate.country),
+    `Gruppe ${Number(rate.group || 0)}`,
+    `<span class="input-addon table-money"><input data-country-rate="${escapeHtml(rate.country)}" type="number" min="0" step="0.01" value="${Number(rate.dailyRate || rate.dailyMax || 0)}" /><span>€</span></span>`,
+  ]));
+  renderTable("#travel-grant-table", ["Distanz", "Standard", "Green Travel"], getTravelGrantBands().map((band) => [
+    escapeHtml(band.label),
+    `<span class="input-addon table-money"><input data-travel-standard="${escapeHtml(band.id)}" type="number" min="0" step="0.01" value="${Number(band.standard || 0)}" /><span>€</span></span>`,
+    `<span class="input-addon table-money"><input data-travel-green="${escapeHtml(band.id)}" type="number" min="0" step="0.01" value="${Number(band.green || 0)}" /><span>€</span></span>`,
+  ]));
 }
 
 function renderSettingList(key, selector, isUsed) {
@@ -797,6 +865,71 @@ async function saveSetting(key, values) {
   toast("Stammdaten gespeichert");
 }
 
+function defaultCountryGrantRates() {
+  return Object.entries(COUNTRY_GRANT_GROUPS)
+    .map(([country, rate]) => ({
+      country,
+      group: rate.group,
+      dailyMin: rate.dailyMin,
+      dailyMax: rate.dailyMax,
+      dailyRate: rate.dailyMax,
+    }))
+    .sort((a, b) => a.country.localeCompare(b.country, "de"));
+}
+
+function defaultTravelGrantBands() {
+  return TRAVEL_GRANT_BANDS.map((band) => ({ ...band }));
+}
+
+function getCountryGrantRates() {
+  return Array.isArray(state.settings.countryGrantRates) && state.settings.countryGrantRates.length
+    ? state.settings.countryGrantRates
+    : defaultCountryGrantRates();
+}
+
+function getTravelGrantBands() {
+  return Array.isArray(state.settings.travelGrantBands) && state.settings.travelGrantBands.length
+    ? state.settings.travelGrantBands
+    : defaultTravelGrantBands();
+}
+
+async function refreshGrantTemplates() {
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Förderpauschalen aktualisieren");
+    return;
+  }
+  await put("settings", { id: "countryGrantRates", values: defaultCountryGrantRates() });
+  await put("settings", { id: "travelGrantBands", values: defaultTravelGrantBands() });
+  await loadState();
+  render();
+  toast("Förderpauschalen-Vorlage aktualisiert");
+}
+
+async function saveGrantTemplates() {
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Förderpauschalen speichern");
+    return;
+  }
+  const countryRates = getCountryGrantRates().map((rate) => {
+    const input = document.querySelector(`[data-country-rate="${cssEscape(rate.country)}"]`);
+    return { ...rate, dailyRate: Number(input?.value || 0) };
+  });
+  const travelBands = getTravelGrantBands().map((band) => {
+    const standard = document.querySelector(`[data-travel-standard="${cssEscape(band.id)}"]`);
+    const green = document.querySelector(`[data-travel-green="${cssEscape(band.id)}"]`);
+    return { ...band, standard: Number(standard?.value || 0), green: Number(green?.value || 0) };
+  });
+  if (countryRates.some((rate) => rate.dailyRate <= 0) || travelBands.some((band) => band.standard <= 0 || band.green <= 0)) {
+    toast("Alle Förderpauschalen müssen größer als 0 sein");
+    return;
+  }
+  await put("settings", { id: "countryGrantRates", values: countryRates });
+  await put("settings", { id: "travelGrantBands", values: travelBands });
+  await loadState();
+  render();
+  toast("Förderpauschalen gespeichert");
+}
+
 async function deleteSettingValue(key, value) {
   if (!isAdmin()) {
     toast("Nur Admins dürfen Stammdaten ändern");
@@ -879,6 +1012,41 @@ function fundingBudgetRemaining(id) {
   return Number(budget?.amount || 0) - fundingBudgetAssigned(id);
 }
 
+function calculateIndividualSupport(days, dailyRate) {
+  const fullRateDays = Math.min(days, 14);
+  const reducedRateDays = Math.max(days - 14, 0);
+  return (fullRateDays * dailyRate) + (reducedRateDays * dailyRate * 0.7);
+}
+
+function updateGrantSuggestion() {
+  const form = document.querySelector("#project-form");
+  const country = form.elements.destinationCountry.value;
+  const countryRate = getCountryGrantRates().find((entry) => entry.country === country);
+  const band = getTravelGrantBands().find((entry) => entry.id === form.elements.distanceBand.value);
+
+  if (countryRate && !form.elements.dailySupportRate.matches(":focus")) {
+    form.elements.dailySupportRate.value = countryRate.dailyRate || countryRate.dailyMax;
+  }
+  if (band && !form.elements.travelGrantRate.matches(":focus")) {
+    form.elements.travelGrantRate.value = form.elements.greenTravel.checked ? band.green : band.standard;
+  }
+
+  const participants = Number(form.elements.participantCount.value || 0);
+  const durationDays = Number(form.elements.durationDays.value || 0);
+  const travelDays = Number(form.elements.travelDays.value || 0);
+  const dailyRate = Number(form.elements.dailySupportRate.value || 0);
+  const travelRate = Number(form.elements.travelGrantRate.value || 0);
+  const supportDays = durationDays + travelDays;
+  const individualSupport = calculateIndividualSupport(supportDays, dailyRate);
+  const grant = participants * (individualSupport + travelRate);
+
+  form.elements.calculatedGrant.value = grant ? grant.toFixed(2) : "";
+  if (form.elements.budget.dataset.autoGrant !== "false" && grant) {
+    form.elements.budget.value = grant.toFixed(2);
+    form.elements.budget.dataset.autoGrant = "true";
+  }
+}
+
 function matchingFundingBudgets(project) {
   return state.fundingBudgets.filter((budget) => budget.status !== "Inaktiv" && projectOverlapsFundingBudget(project, budget));
 }
@@ -890,6 +1058,8 @@ function projectOverlapsFundingBudget(project, budget) {
 
 function fillSelects() {
   fillOptionSelect("#project-form [name=action]", getSettingValues("leadActions"), "Bitte wählen");
+  fillCountrySelect();
+  fillTravelBandSelect();
   fillOptionSelect("#expense-form [name=category]", getSettingValues("expenseCategories"));
   fillOptionSelect("#document-form [name=type]", getSettingValues("documentTypes"));
   renderRequiredDocumentFields();
@@ -901,6 +1071,28 @@ function fillSelects() {
   fillProjectSelect("#task-filter", false, "Alle Projekte");
   fillStudentSelect("#expense-form [name=studentId]");
   fillStudentSelect("#document-form [name=studentId]");
+}
+
+function fillCountrySelect() {
+  const select = document.querySelector("#project-form [name=destinationCountry]");
+  const current = select.value;
+  select.innerHTML = `<option value="">Zielland wählen</option>`;
+  getCountryGrantRates().forEach((rate) => {
+    const option = new Option(`${rate.country} · Gruppe ${rate.group} · ${Number(rate.dailyRate || rate.dailyMax || 0)} €/Tag`, rate.country);
+    option.selected = current === rate.country;
+    select.add(option);
+  });
+}
+
+function fillTravelBandSelect() {
+  const select = document.querySelector("#project-form [name=distanceBand]");
+  const current = select.value;
+  select.innerHTML = `<option value="">Reisedistanz wählen</option>`;
+  getTravelGrantBands().forEach((band) => {
+    const option = new Option(`${band.label} · ${band.standard}/${band.green} €`, band.id);
+    option.selected = current === band.id;
+    select.add(option);
+  });
 }
 
 function fillFundingBudgetSelect(selectedId = null) {
@@ -1256,6 +1448,11 @@ function escapeHtml(value) {
   })[char]);
 }
 
+function cssEscape(value) {
+  if (window.CSS?.escape) return CSS.escape(String(value));
+  return String(value).replace(/["\\]/g, "\\$&");
+}
+
 function toast(message) {
   const toastEl = document.querySelector("#toast");
   toastEl.textContent = message;
@@ -1330,8 +1527,8 @@ async function seedData() {
       { id: ids.i3, name: "Liceo Verona", country: "Italien", city: "Verona", type: "Schule", note: "", visible: true },
     ],
     projects: [
-      { id: ids.p1, name: "Brücken nach Valencia", action: "KA1", institutionIds: [ids.i1], partners: "Austauschgruppe Klasse 10", startDate: "2026-10-01", endDate: "2027-03-31", budget: 18500, status: "Aktiv" },
-      { id: ids.p2, name: "Green Schools Network", action: "KA2", institutionIds: [ids.i2, ids.i3], partners: "Nachhaltigkeitsprojekt mit zwei Partnerschulen", startDate: "2027-02-10", endDate: "2027-09-30", budget: 42000, status: "Geplant" },
+      { id: ids.p1, name: "Brücken nach Valencia", action: "KA1", institutionIds: [ids.i1], partners: "Austauschgruppe Klasse 10", startDate: "2026-10-01", endDate: "2027-03-31", budget: 11700, status: "Aktiv", destinationCountry: "Spanien", participantCount: 12, durationDays: 7, travelDays: 2, distanceBand: "500-1999", greenTravel: false, dailySupportRate: 74, travelGrantRate: 309, calculatedGrant: 11700, grantSource: GRANT_SOURCE },
+      { id: ids.p2, name: "Green Schools Network", action: "KA2", institutionIds: [ids.i2, ids.i3], partners: "Nachhaltigkeitsprojekt mit zwei Partnerschulen", startDate: "2027-02-10", endDate: "2027-09-30", budget: 26982, status: "Geplant", destinationCountry: "Finnland", participantCount: 18, durationDays: 12, travelDays: 2, distanceBand: "500-1999", greenTravel: false, dailySupportRate: 85, travelGrantRate: 309, calculatedGrant: 26982, grantSource: GRANT_SOURCE },
     ],
     students: [
       { id: ids.s1, name: "Mila Schneider", className: "10b", birthDate: "2010-04-12", projectIds: [ids.p1], role: "Teilnehmer", documentStatus: "Vollständig", documents: { "Einverständniserklärung": true, Notfallkontakt: true, Versicherung: true, Beleg: true, Vertrag: true, Bericht: true, Sonstiges: true } },

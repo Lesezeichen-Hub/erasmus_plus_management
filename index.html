@@ -118,6 +118,33 @@
               <label>Startdatum <input name="startDate" type="date" required /></label>
               <label>Enddatum <input name="endDate" type="date" required /></label>
             </div>
+            <fieldset>
+              <legend>Förderpauschalen</legend>
+              <div class="form-row">
+                <label>Zielland <select name="destinationCountry"></select></label>
+                <label>Teilnehmende <input name="participantCount" type="number" min="1" step="1" value="1" /></label>
+              </div>
+              <div class="form-row">
+                <label>Aufenthaltstage <input name="durationDays" type="number" min="1" step="1" /></label>
+                <label>Reisetage <input name="travelDays" type="number" min="0" max="6" step="1" value="2" /></label>
+              </div>
+              <div class="form-row">
+                <label>Reisedistanz <select name="distanceBand"></select></label>
+                <label class="check"><input type="checkbox" name="greenTravel" /> Green Travel</label>
+              </div>
+              <div class="form-row">
+                <label>Unterstützung pro Tag
+                  <span class="input-addon"><input name="dailySupportRate" type="number" min="0" step="0.01" /><span>€</span></span>
+                </label>
+                <label>Reisepauschale pro Person
+                  <span class="input-addon"><input name="travelGrantRate" type="number" min="0" step="0.01" /><span>€</span></span>
+                </label>
+              </div>
+              <label>Automatischer Budgetvorschlag
+                <span class="input-addon"><input name="calculatedGrant" type="number" min="0" step="0.01" readonly /><span>€</span></span>
+              </label>
+              <p class="hint">Vorlage aus Programmleitfaden 2026 und PAD-Dokumentencenter. Werte bleiben bearbeitbar.</p>
+            </fieldset>
             <label>Budget gesamt
               <span class="input-addon"><input name="budget" type="number" min="0" step="0.01" required /><span>€</span></span>
             </label>
@@ -491,6 +518,26 @@
                 </div>
                 <div id="lead-actions-list" class="chip-list"></div>
               </form>
+            </div>
+          </section>
+          <section class="panel wide">
+            <div class="panel-head">
+              <h2>Förderpauschalen</h2>
+              <div class="row-actions">
+                <button type="button" class="secondary small" id="refresh-grant-templates">Vorlage aktualisieren</button>
+                <button type="button" class="small" id="save-grant-templates">Geldwerte speichern</button>
+              </div>
+            </div>
+            <p class="hint">Die Vorlage wird beim Anlegen neuer Projekte verwendet. Bereits gespeicherte Projektwerte bleiben bearbeitbar und werden nicht überschrieben.</p>
+            <div class="grant-template-grid">
+              <div>
+                <h3>Länder: Unterstützung pro Tag</h3>
+                <div class="table-wrap"><table id="country-grant-table"></table></div>
+              </div>
+              <div>
+                <h3>Reise: Distanzbänder</h3>
+                <div class="table-wrap"><table id="travel-grant-table"></table></div>
+              </div>
             </div>
           </section>
         </div>

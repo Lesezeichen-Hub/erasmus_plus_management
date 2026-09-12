@@ -52,6 +52,8 @@ Partnereinrichtungen werden nicht geloescht. Im Admin-Panel koennen sie ausgeble
 
 Foerderbudgets werden dauerhaft per ID gespeichert. Alle Projekte, deren Laufzeit mit dem Zeitraum eines aktiven Foerderbudgets ueberlappt, reduzieren dessen verfuegbare Mittel automatisch. Bei 15 oder 24 Monaten wird das Enddatum automatisch aus dem Startdatum berechnet. Mit "Keine feste Laufzeit" wird ein manuelles Enddatum verwendet.
 
+Foerderpauschalen fuer Zielland, individuelle Unterstuetzung pro Tag, Distanzband, Green Travel und Reisekosten werden beim Anlegen eines Projekts automatisch vorgeschlagen. Die Tabellen sind lokal aus dem Erasmus+ Programme Guide 2026 und dem PAD-Dokumentencenter hinterlegt, damit die App auch ohne Server funktioniert. Im Admin-Bereich koennen die Geldwerte gespeichert oder ueber "Vorlage aktualisieren" wieder auf die eingebaute Vorlage gesetzt werden. Alle vorgeschlagenen Betraege bleiben im Projektformular bearbeitbar.
+
 Wichtige Stellen in `app.js`:
 
 - `openDatabase()`: Erstellt die IndexedDB-Datenbank und die Object Stores.
@@ -63,6 +65,8 @@ Wichtige Stellen in `app.js`:
 
 - Dashboard mit KPIs, Projektstatus, Restbudget und Risikoueberblick
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
+- Automatische, bearbeitbare Foerderpauschalen pro Zielland und Distanzband beim Projektanlegen
+- Admin-Tabelle zum Aktualisieren und Speichern der Foerderpauschalen-Vorlage
 - Schueler mit Projektzuordnung, Rolle und Dokumentenstatus
 - Aufwaende mit Kategorie, Betrag, Belegstatus, Projekt- und Schuelerbezug
 - Aufgaben je Projekt mit Fortschrittsbalken

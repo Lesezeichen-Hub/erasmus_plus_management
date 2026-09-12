@@ -432,6 +432,25 @@ th {
   gap: 8px;
 }
 
+.grant-template-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 18px;
+}
+
+.grant-template-grid h3 {
+  margin: 0 0 10px;
+}
+
+.table-money {
+  max-width: 140px;
+}
+
+.table-money input {
+  min-height: 36px;
+  padding: 8px 10px;
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
@@ -581,7 +600,8 @@ th {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .settings-grid {
+  .settings-grid,
+  .grant-template-grid {
     grid-template-columns: 1fr;
   }
 }
