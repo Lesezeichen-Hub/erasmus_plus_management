@@ -647,24 +647,31 @@ function renderFundingChart() {
   const plannedOpen = Math.max(plannedBudget - spent, 0);
   const overplanned = Math.max(plannedBudget - totalFunding, 0);
   const base = Math.max(totalFunding, plannedBudget, 1);
+  const spentPercent = Math.round((spent / base) * 100);
+  const plannedPercent = Math.round((plannedOpen / base) * 100);
+  const remainingPercent = Math.round((remaining / base) * 100);
   const spentDeg = Math.min(360, (spent / base) * 360);
   const plannedDeg = Math.min(360, ((spent + plannedOpen) / base) * 360);
   const remainingDeg = Math.min(360, ((spent + plannedOpen + remaining) / base) * 360);
   const chartStyle = `--spent:${spentDeg}deg; --planned:${plannedDeg}deg; --remaining:${remainingDeg}deg;`;
+  const chartTitle = `Gesamttopf: ${money.format(totalFunding)} | Verbraucht: ${money.format(spent)} (${spentPercent}%) | Verplant offen: ${money.format(plannedOpen)} (${plannedPercent}%) | Nicht verplant: ${money.format(remaining)} (${remainingPercent}%)`;
 
   document.querySelector("#funding-chart").innerHTML = `
-    <div class="donut" style="${chartStyle}" aria-label="Fördergeldverteilung"><span>${Math.round((spent / base) * 100)}%</span></div>
+    <div class="donut" style="${chartStyle}" aria-label="Fördergeldverteilung" title="${escapeHtml(chartTitle)}">
+      <span><strong>${money.format(spent)}</strong><small>${spentPercent}% verbraucht</small></span>
+    </div>
     <div class="chart-legend">
-      ${legendItem("Verbraucht", money.format(spent), "spent")}
-      ${legendItem("Verplant offen", money.format(plannedOpen), "planned")}
-      ${legendItem("Nicht verplant", money.format(remaining), "remaining")}
-      ${overplanned ? legendItem("Überplant", money.format(overplanned), "danger") : ""}
+      ${legendItem("Verbraucht", money.format(spent), "spent", `${spentPercent}% vom Fördertopf`)}
+      ${legendItem("Verplant offen", money.format(plannedOpen), "planned", `${plannedPercent}% vom Fördertopf`)}
+      ${legendItem("Nicht verplant", money.format(remaining), "remaining", `${remainingPercent}% vom Fördertopf`)}
+      ${overplanned ? legendItem("Überplant", money.format(overplanned), "danger", "Projektbudgets überschreiten den Fördertopf") : ""}
     </div>
   `;
 }
 
-function legendItem(label, value, tone) {
-  return `<div class="legend-item"><span class="legend-dot ${tone}"></span><div><strong>${escapeHtml(value)}</strong><small>${escapeHtml(label)}</small></div></div>`;
+function legendItem(label, value, tone, detail = "") {
+  const title = `${label}: ${value}${detail ? ` · ${detail}` : ""}`;
+  return `<div class="legend-item" tabindex="0" title="${escapeHtml(title)}"><span class="legend-dot ${tone}"></span><div><strong>${escapeHtml(value)}</strong><small>${escapeHtml(label)}${detail ? ` · ${escapeHtml(detail)}` : ""}</small></div></div>`;
 }
 
 function renderRiskCenter() {

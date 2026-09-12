@@ -362,6 +362,8 @@ textarea { resize: vertical; }
   border-radius: 50%;
   display: grid;
   place-items: center;
+  cursor: help;
+  transition: transform 0.18s ease, filter 0.18s ease;
   background:
     radial-gradient(circle, var(--surface) 0 53%, transparent 54%),
     conic-gradient(
@@ -372,9 +374,29 @@ textarea { resize: vertical; }
     );
 }
 
+.donut:hover {
+  transform: translateY(-2px) scale(1.02);
+  filter: drop-shadow(0 12px 18px rgba(21, 39, 63, 0.12));
+}
+
 .donut span {
-  font-size: 1.35rem;
-  font-weight: 900;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  max-width: 86px;
+  text-align: center;
+}
+
+.donut strong {
+  font-size: 0.98rem;
+  line-height: 1.1;
+}
+
+.donut small {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.15;
 }
 
 .chart-legend {
@@ -387,6 +409,18 @@ textarea { resize: vertical; }
   grid-template-columns: 12px minmax(0, 1fr);
   gap: 9px;
   align-items: center;
+  border-radius: 8px;
+  padding: 7px 8px;
+  margin: -7px -8px;
+  cursor: help;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.legend-item:hover,
+.legend-item:focus-visible {
+  background: #f8fafc;
+  outline: 2px solid rgba(23, 107, 135, 0.18);
+  transform: translateX(2px);
 }
 
 .legend-dot {
