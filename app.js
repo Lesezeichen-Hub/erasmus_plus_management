@@ -95,11 +95,13 @@ const dateFmt = new Intl.DateTimeFormat("de-DE");
 document.addEventListener("DOMContentLoaded", async () => {
   db = await openDatabase();
   await loadState();
+  await restoreFromSQLiteIfLocalEmpty();
   bindNavigation();
   bindForms();
   bindFilters();
   bindBackup();
   bindAuth();
+  bindBackToTop();
   ensureAuth();
   render();
 });
@@ -182,6 +184,7 @@ async function loadState() {
 async function persist(storeName, value) {
   await put(storeName, value);
   await loadState();
+  syncSQLiteSnapshot();
   render();
   toast("Gespeichert");
 }
@@ -252,6 +255,14 @@ function bindAuth() {
   document.querySelector("#setup-form").addEventListener("submit", onSetupSubmit);
   document.querySelector("#login-form").addEventListener("submit", onLoginSubmit);
   document.querySelector("#logout").addEventListener("click", logout);
+}
+
+function bindBackToTop() {
+  const button = document.querySelector("#back-to-top");
+  button.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+  window.addEventListener("scroll", () => {
+    button.classList.toggle("show", window.scrollY > 420);
+  }, { passive: true });
 }
 
 function bindFilters() {
@@ -509,6 +520,7 @@ async function onSetupSubmit(event) {
   };
   await put("users", user);
   await loadState();
+  syncSQLiteSnapshot();
   loginAs(user);
   form.reset();
   render();
@@ -527,6 +539,7 @@ async function onLoginSubmit(event) {
   user.lastLoginAt = new Date().toISOString();
   await put("users", user);
   await loadState();
+  syncSQLiteSnapshot();
   loginAs(user);
   form.reset();
   render();
@@ -622,15 +635,15 @@ function renderRiskCenter() {
       detail: `${studentName(expense.studentId)} · ${formatDate(expense.date)}`,
     }));
 
-  const missingDocumentItems = state.students
-    .map((student) => ({ student, missing: missingDocs(student) }))
+  const missingDocumentItems = studentProjectRows()
+    .map(({ student, projectId }) => ({ student, projectId, missing: missingDocs(student, projectId) }))
     .filter((entry) => entry.missing.length)
     .sort((a, b) => b.missing.length - a.missing.length || a.student.name.localeCompare(b.student.name, "de"))
-    .map(({ student, missing }) => riskItem({
+    .map(({ student, projectId, missing }) => riskItem({
       tone: "warn",
       label: `${missing.length} Dokument${missing.length === 1 ? "" : "e"}`,
       title: student.name,
-      context: (student.projectIds || []).map(projectName).join(", "),
+      context: projectName(projectId),
       detail: `Fehlt: ${missing.join(", ")}`,
     }));
 
@@ -690,18 +703,18 @@ function renderParticipantList(projectId, shouldScroll = false) {
   const students = state.students
     .filter((student) => (student.projectIds || []).includes(projectId))
     .sort(sortByName);
-  const incomplete = students.filter((student) => missingDocs(student).length);
+  const incomplete = students.filter((student) => missingDocs(student, projectId).length);
   const completeCount = students.length - incomplete.length;
   const createdAt = new Date().toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" });
   const documentHeaders = documentTypes.map((type) => `<th>${escapeHtml(type)}</th>`).join("");
   const rows = students.map((student, index) => {
-    const missing = missingDocs(student);
+    const missing = missingDocs(student, projectId);
     return `
       <tr class="${missing.length ? "is-incomplete" : "is-complete"}">
         <td>${index + 1}</td>
         <td><strong>${escapeHtml(student.name)}</strong><div class="meta">${escapeHtml(student.className)}</div></td>
         <td>${formatDate(student.birthDate)}</td>
-        ${documentTypes.map((type) => `<td class="status-cell">${hasDocument(student, type) ? '<span class="print-status ok" title="Vorhanden">✓</span>' : '<span class="print-status missing" title="Fehlt">x</span>'}</td>`).join("")}
+        ${documentTypes.map((type) => `<td class="status-cell">${hasProjectDocument(student, type, projectId) ? '<span class="print-status ok" title="Vorhanden">✓</span>' : '<span class="print-status missing" title="Fehlt">x</span>'}</td>`).join("")}
         <td class="missing-list">${missing.length ? `<strong>${escapeHtml(missing.join(", "))}</strong>` : '<span class="print-status ok" title="Vollständig">✓</span>'}</td>
       </tr>
     `;
@@ -817,12 +830,12 @@ function renderDocuments() {
     actions("documents", doc.id),
   ]));
 
-  const studentRows = filterText(state.students).filter((student) => !onlyMissing || missingDocs(student).length);
+  const studentRows = filterText(studentProjectRows()).filter((row) => !onlyMissing || missingDocs(row.student, row.projectId).length);
   const documentTypes = getSettingValues("documentTypes");
-  renderTable("#documents-table", ["Schüler", ...documentTypes, "Status"], studentRows.map((student) => [
-    `<strong>${escapeHtml(student.name)}</strong><div class="meta">${student.projectIds.map(projectName).map(escapeHtml).join(", ")}</div>`,
-    ...documentTypes.map((type) => yesNo(hasDocument(student, type))),
-    badge(missingDocs(student).length ? "Unvollständig" : "Vollständig", missingDocs(student).length ? "danger" : "ok"),
+  renderTable("#documents-table", ["Schüler / Projekt", ...documentTypes, "Status"], studentRows.map(({ student, projectId }) => [
+    `<strong>${escapeHtml(student.name)}</strong><div class="meta">${escapeHtml(student.className)} · ${escapeHtml(projectName(projectId))}</div>`,
+    ...documentTypes.map((type) => yesNo(hasProjectDocument(student, type, projectId))),
+    badge(missingDocs(student, projectId).length ? "Unvollständig" : "Vollständig", missingDocs(student, projectId).length ? "danger" : "ok"),
   ]));
 }
 
@@ -1032,6 +1045,7 @@ function getSettingValues(key) {
 async function saveSetting(key, values) {
   await put("settings", { id: key, values });
   await loadState();
+  syncSQLiteSnapshot();
   render();
   toast("Stammdaten gespeichert");
 }
@@ -1099,6 +1113,7 @@ async function persistGrantTemplates(countryRates, travelBands) {
   await put("settings", { id: "countryGrantRates", values: countryRates });
   await put("settings", { id: "travelGrantBands", values: travelBands });
   await loadState();
+  syncSQLiteSnapshot();
   render();
 }
 
@@ -1139,6 +1154,7 @@ async function importGrantTemplates() {
     await persistGrantTemplates(countryRates, travelBands);
     await put("settings", { id: "grantTemplateSource", values: payload.source || file.name });
     await loadState();
+    syncSQLiteSnapshot();
     render();
     toast("Förderpauschalen importiert");
   } catch (error) {
@@ -1551,6 +1567,7 @@ async function deleteItem(store, id) {
   }
   await remove(store, id);
   await loadState();
+  syncSQLiteSnapshot();
   render();
   toast("Gelöscht");
 }
@@ -1608,12 +1625,30 @@ function studentName(id) {
   return state.students.find((student) => student.id === id)?.name || "Nicht zugeordnet";
 }
 
-function missingDocs(student) {
-  return getSettingValues("documentTypes").filter((type) => !hasDocument(student, type));
+function studentProjectRows() {
+  return state.students.flatMap((student) => {
+    const projectIds = student.projectIds?.length ? student.projectIds : [""];
+    return projectIds.map((projectId) => ({ student, projectId }));
+  });
+}
+
+function missingDocs(student, projectId = null) {
+  return getSettingValues("documentTypes").filter((type) => !(projectId ? hasProjectDocument(student, type, projectId) : hasDocument(student, type)));
 }
 
 function documentBadges(student) {
   return getSettingValues("documentTypes").map((type) => badge(type, hasDocument(student, type) ? "ok" : "danger")).join(" ");
+}
+
+function hasProjectDocument(student, type, projectId) {
+  const projectDocs = student.documentsByProject?.[projectId];
+  if (projectDocs && Object.prototype.hasOwnProperty.call(projectDocs, type)) {
+    return Boolean(projectDocs[type]);
+  }
+  const matchingDocs = state.documents.filter((doc) => doc.projectId === projectId && doc.studentId === student.id && doc.type === type);
+  if (matchingDocs.some((doc) => doc.status === "Abgelegt")) return true;
+  if (matchingDocs.length) return false;
+  return hasDocument(student, type);
 }
 
 function hasDocument(student, type) {
@@ -1726,12 +1761,7 @@ function toast(message) {
 
 // Export/Import der IndexedDB-Inhalte als Backup-Datei.
 function exportData() {
-  const payload = {
-    exportedAt: new Date().toISOString(),
-    version: DB_VERSION,
-    data: exportStores(),
-  };
-  downloadJson(payload, `erasmus-plus-backup-${new Date().toISOString().slice(0, 10)}.json`);
+  downloadJson(buildBackupPayload(), `erasmus-plus-backup-${new Date().toISOString().slice(0, 10)}.json`);
 }
 
 function exportStores() {
@@ -1741,6 +1771,48 @@ function exportStores() {
     }
     return [store, state[store]];
   }));
+}
+
+function buildBackupPayload() {
+  return {
+    exportedAt: new Date().toISOString(),
+    version: DB_VERSION,
+    data: exportStores(),
+  };
+}
+
+function hasLocalData() {
+  return STORES.some((store) => Array.isArray(state[store]) && state[store].length > 0);
+}
+
+async function restoreFromSQLiteIfLocalEmpty() {
+  if (hasLocalData() || location.protocol !== "http:") return;
+  try {
+    const response = await fetch("/api/sqlite/latest", { cache: "no-store" });
+    if (response.status === 204 || !response.ok) return;
+    const payload = await response.json();
+    const normalizedData = normalizeImportData(payload);
+    if (!normalizedData) return;
+    for (const store of STORES) {
+      await clearStore(store);
+      for (const item of normalizedData[store]) {
+        await put(store, item);
+      }
+    }
+    await loadState();
+  } catch (error) {
+    console.warn("SQLite-Restore nicht verfügbar", error);
+  }
+}
+
+function syncSQLiteSnapshot() {
+  if (location.protocol !== "http:") return;
+  fetch("/api/sqlite/snapshot", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(buildBackupPayload()),
+    keepalive: true,
+  }).catch((error) => console.warn("SQLite-Snapshot nicht gespeichert", error));
 }
 
 function downloadJson(payload, filename) {
@@ -1783,6 +1855,7 @@ async function importData() {
     }
     await loadState();
     ensureAuth();
+    syncSQLiteSnapshot();
     render();
     document.querySelector("#import-file").value = "";
     toast(`Import abgeschlossen: ${importCount(normalizedData)} Einträge`);
@@ -1872,6 +1945,7 @@ async function seedData() {
     }
   }
   await loadState();
+  syncSQLiteSnapshot();
   render();
   toast("Beispieldaten geladen");
 }

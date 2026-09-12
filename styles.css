@@ -730,6 +730,27 @@ th {
   transform: translateY(0);
 }
 
+.back-to-top {
+  position: fixed;
+  right: 22px;
+  bottom: 84px;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  box-shadow: var(--shadow);
+  z-index: 20;
+}
+
+.back-to-top.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
 @media (max-width: 960px) {
   .sidebar {
     position: static;
