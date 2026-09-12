@@ -767,7 +767,7 @@ function institutionActions(institution) {
 function renderSettings() {
   if (!isAdmin()) return;
   renderSettingList("expenseCategories", "#expense-categories-list", (value) => state.expenses.some((expense) => expense.category === value));
-  renderSettingList("documentTypes", "#document-types-list", (value) => state.documents.some((doc) => doc.type === value));
+  renderSettingList("documentTypes", "#document-types-list", (value) => settingValueInUse("documentTypes", value));
   renderSettingList("leadActions", "#lead-actions-list", (value) => state.projects.some((project) => project.action === value));
   renderGrantSettings();
 }
@@ -965,14 +965,26 @@ async function deleteSettingValue(key, value) {
     toast("Mindestens ein Eintrag muss bleiben");
     return;
   }
+  if (key === "documentTypes") {
+    await removeUnusedStudentDocumentField(value);
+  }
   await saveSetting(key, next);
 }
 
 function settingValueInUse(key, value) {
   if (key === "expenseCategories") return state.expenses.some((expense) => expense.category === value);
-  if (key === "documentTypes") return state.documents.some((doc) => doc.type === value) || state.students.some((student) => Object.prototype.hasOwnProperty.call(student.documents || {}, value));
+  if (key === "documentTypes") return state.documents.some((doc) => doc.type === value) || state.students.some((student) => student.documents?.[value] === true);
   if (key === "leadActions") return state.projects.some((project) => project.action === value);
   return false;
+}
+
+async function removeUnusedStudentDocumentField(value) {
+  for (const student of state.students) {
+    if (!Object.prototype.hasOwnProperty.call(student.documents || {}, value)) continue;
+    const documents = { ...student.documents };
+    delete documents[value];
+    await put("students", { ...student, documents });
+  }
 }
 
 async function toggleInstitution(id) {
