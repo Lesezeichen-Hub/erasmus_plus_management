@@ -244,6 +244,35 @@ h2 { font-size: 1.15rem; margin-bottom: 16px; }
   min-width: 76px;
 }
 
+.save-status {
+  align-self: center;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  min-width: 138px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.save-status[data-status="dirty"],
+.save-status[data-status="error"] {
+  color: var(--warning-text);
+}
+
+.save-status[data-status="autosaving"],
+.save-status[data-status="saving"] {
+  color: var(--primary);
+}
+
+.save-status[data-status="saved"] {
+  color: var(--success-text);
+}
+
+.save-status[data-status="batch"],
+.save-status[data-status="hidden"] {
+  min-width: 0;
+}
+
 .search-wrap input,
 label input,
 label select,

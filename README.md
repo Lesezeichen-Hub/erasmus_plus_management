@@ -47,6 +47,8 @@ Im Admin-Panel koennen ausserdem Stammdaten gepflegt werden:
 
 Der Administrationsbereich ist in aufklappbare Gruppen gegliedert: Benutzer und Rollen, Foerderbudgets, Partnereinrichtungen sowie Grunddaten und Vorlagen. Die festen Formulardaten werden automatisch in Lernvereinbarungen, Bescheinigungen und Europass-Vorlagen vorgeschlagen, bleiben dort aber pro Schueler*in bearbeitbar und speicherbar.
 
+Beim Bearbeiten einzelner Formularvorlagen werden Aenderungen nach kurzer Eingabepause automatisch gespeichert. Neben den Template-Aktionen zeigt ein dezenter Status an, ob Werte noch offen sind, gerade gespeichert werden oder zuletzt gesichert wurden.
+
 ## Datenhaltung
 
 Die Anwendung nutzt IndexedDB im Browser. Dadurch bleiben Projekte, Foerderbudgets, Partnereinrichtungen, Teilnehmende, Aufwaende, Aufgaben, Dokumente, Stammdaten und Managementbenutzer lokal erhalten, bis Browserdaten geloescht werden.

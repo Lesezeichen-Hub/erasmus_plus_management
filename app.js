@@ -113,6 +113,7 @@ const state = {
 };
 
 let db;
+let templateAutoSaveTimer;
 
 const money = new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" });
 const dateFmt = new Intl.DateTimeFormat("de-DE");
@@ -947,6 +948,8 @@ function showTemplateDocument(type, projectId, studentId) {
   const values = templateValues(type, project, student);
   document.querySelector("#template-document-title").textContent = title;
   document.querySelector("#template-document").innerHTML = renderTemplateByType(type, project, student, values);
+  bindTemplateSaveTracking();
+  setTemplateSaveStatus(templateHasSavedValues(type, projectId, studentId) ? "saved" : "new");
   enhanceClearableFields();
   document.querySelector("#template-document-panel").hidden = false;
   document.querySelector("#template-document-panel").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -966,6 +969,7 @@ function showTemplateBatch(type, projectId) {
       ${students.map((student) => renderTemplateByType(type, project, student, templateValues(type, project, student))).join("")}
     </div>
   `;
+  setTemplateSaveStatus("batch");
   enhanceClearableFields();
   document.querySelector("#template-document-panel").hidden = false;
   document.querySelector("#template-document-panel").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -985,8 +989,10 @@ function renderTemplateByType(type, project, student, values) {
 
 function closeTemplateDocument() {
   state.templateDocument = null;
+  clearTimeout(templateAutoSaveTimer);
   document.querySelector("#template-document-panel").hidden = true;
   document.querySelector("#template-document").innerHTML = "";
+  setTemplateSaveStatus("hidden");
 }
 
 function printTemplateDocument() {
@@ -995,16 +1001,18 @@ function printTemplateDocument() {
   setTimeout(() => document.body.classList.remove("printing-template-document"), 1000);
 }
 
-async function saveTemplateValues() {
+async function saveTemplateValues(options = {}) {
   if (!state.templateDocument) return;
   if (!state.templateDocument.studentId) {
     toast("Batch-Ausgaben werden aus den Einzelwerten erzeugt. Bitte Einzelvorlage speichern.");
     return;
   }
+  clearTimeout(templateAutoSaveTimer);
   const fields = {};
   document.querySelectorAll("#template-document [data-template-field]").forEach((field) => {
     fields[field.dataset.templateField] = field.value;
   });
+  setTemplateSaveStatus(options.silent ? "autosaving" : "saving");
   const record = {
     id: templateDataId(state.templateDocument.type, state.templateDocument.projectId, state.templateDocument.studentId),
     ...state.templateDocument,
@@ -1015,7 +1023,8 @@ async function saveTemplateValues() {
   await loadState();
   syncSQLiteSnapshot();
   createAutomaticBackup("vorlagenwerte-aktualisiert");
-  toast("Vorlagenwerte gespeichert");
+  setTemplateSaveStatus("saved", new Date().toISOString());
+  if (!options.silent) toast("Vorlagenwerte gespeichert");
 }
 
 async function resetTemplateValues() {
@@ -1030,6 +1039,7 @@ async function resetTemplateValues() {
   showTemplateDocument(current.type, current.projectId, current.studentId);
   syncSQLiteSnapshot();
   createAutomaticBackup("vorlagenwerte-zurueckgesetzt");
+  setTemplateSaveStatus("new");
   toast("Standardwerte wiederhergestellt");
 }
 
@@ -1037,6 +1047,44 @@ function templateValues(type, project, student) {
   const defaults = defaultTemplateValues(type, project, student);
   const saved = state.templateData.find((entry) => entry.id === templateDataId(type, project.id, student.id))?.fields || {};
   return { ...defaults, ...saved };
+}
+
+function templateHasSavedValues(type, projectId, studentId) {
+  return state.templateData.some((entry) => entry.id === templateDataId(type, projectId, studentId));
+}
+
+function bindTemplateSaveTracking() {
+  clearTimeout(templateAutoSaveTimer);
+  document.querySelectorAll("#template-document [data-template-field]").forEach((field) => {
+    field.addEventListener("input", () => {
+      setTemplateSaveStatus("dirty");
+      clearTimeout(templateAutoSaveTimer);
+      templateAutoSaveTimer = setTimeout(() => {
+        saveTemplateValues({ silent: true }).catch((error) => {
+          console.warn("Vorlagenwerte konnten nicht automatisch gespeichert werden", error);
+          setTemplateSaveStatus("error");
+        });
+      }, 900);
+    });
+  });
+}
+
+function setTemplateSaveStatus(status, savedAt = "") {
+  const element = document.querySelector("#template-save-status");
+  if (!element) return;
+  element.dataset.status = status;
+  const savedTime = savedAt ? new Date(savedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) : "";
+  const labels = {
+    hidden: "",
+    batch: "Batch-Ausgabe",
+    new: "Noch nicht gespeichert",
+    dirty: "Änderungen nicht gespeichert",
+    saving: "Speichere...",
+    autosaving: "Autospeichern...",
+    saved: savedTime ? `Gesichert um ${savedTime}` : "Gespeichert",
+    error: "Nicht gesichert",
+  };
+  element.textContent = labels[status] || "";
 }
 
 function defaultTemplateValues(type, project, student) {
