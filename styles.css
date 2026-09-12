@@ -511,21 +511,33 @@ th {
 
 .participant-table td,
 .participant-table th {
-  font-size: 0.84rem;
+  font-size: 0.8rem;
+  padding: 8px 7px;
 }
 
 .participant-table tr.is-incomplete td {
   background: #fff8ed;
 }
 
+.participant-table .status-cell {
+  text-align: center;
+  width: 52px;
+}
+
+.participant-table .missing-list {
+  min-width: 160px;
+}
+
 .print-status {
   display: inline-block;
-  min-width: 76px;
-  border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 0.78rem;
+  min-width: 24px;
+  min-height: 24px;
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 0.88rem;
   font-weight: 800;
   text-align: center;
+  line-height: 20px;
 }
 
 .print-status.ok {
@@ -731,7 +743,29 @@ th {
   body.printing-participant-list th,
   body.printing-participant-list td {
     border-color: #cfd8e3;
-    padding: 7px 6px;
+    padding: 4px 5px;
+    font-size: 9.5pt;
+  }
+
+  body.printing-participant-list .report-title h2 {
+    font-size: 16pt;
+  }
+
+  body.printing-participant-list .report-meta,
+  body.printing-participant-list .report-summary {
+    font-size: 9pt;
+  }
+
+  body.printing-participant-list .report-summary {
+    gap: 6px;
+  }
+
+  body.printing-participant-list .report-summary article {
+    padding: 6px 8px;
+  }
+
+  body.printing-participant-list .report-summary strong {
+    font-size: 13pt;
   }
 
   body.printing-participant-list .participant-table tr.is-incomplete td {
@@ -744,6 +778,10 @@ th {
     border: 1px solid #cfd8e3;
     background: #ffffff !important;
     color: #17202a !important;
+    min-width: 18px;
+    min-height: 18px;
+    padding: 0 4px;
+    line-height: 16px;
   }
 }
 

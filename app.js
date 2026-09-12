@@ -648,8 +648,8 @@ function renderParticipantList(projectId, shouldScroll = false) {
         <td><strong>${escapeHtml(student.name)}</strong><div class="meta">${escapeHtml(student.className)}</div></td>
         <td>${formatDate(student.birthDate)}</td>
         <td>${escapeHtml(student.role)}</td>
-        ${documentTypes.map((type) => `<td>${hasDocument(student, type) ? '<span class="print-status ok">vorhanden</span>' : '<span class="print-status missing">fehlt</span>'}</td>`).join("")}
-        <td>${missing.length ? `<strong>${escapeHtml(missing.join(", "))}</strong>` : "vollständig"}</td>
+        ${documentTypes.map((type) => `<td class="status-cell">${hasDocument(student, type) ? '<span class="print-status ok" title="Vorhanden">✓</span>' : '<span class="print-status missing" title="Fehlt">x</span>'}</td>`).join("")}
+        <td class="missing-list">${missing.length ? `<strong>${escapeHtml(missing.join(", "))}</strong>` : '<span class="print-status ok" title="Vollständig">✓</span>'}</td>
       </tr>
     `;
   }).join("");
