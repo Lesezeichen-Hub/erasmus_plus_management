@@ -65,6 +65,7 @@ Wichtige Stellen in `app.js`:
 
 - Dashboard mit KPIs, Projektstatus, Restbudget und Risikoueberblick
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
+- Teilnehmerlisten pro Projekt mit Geburtsdatum, Rolle, Dokumentstatus, fehlenden Dokumenten und Druck-/PDF-Ausgabe
 - Automatische, bearbeitbare Foerderpauschalen pro Zielland und Distanzband beim Projektanlegen
 - Admin-Tabelle zum Aktualisieren und Speichern der Foerderpauschalen-Vorlage
 - Schueler mit Projektzuordnung, Rolle und Dokumentenstatus

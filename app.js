@@ -84,6 +84,7 @@ const state = {
   currentUser: null,
   view: "dashboard",
   search: "",
+  participantListProjectId: null,
 };
 
 let db;
@@ -263,6 +264,9 @@ function bindBackup() {
   document.querySelector("#export-data").addEventListener("click", exportData);
   document.querySelector("#import-data").addEventListener("click", importData);
   document.querySelector("#seed-data").addEventListener("click", seedData);
+  document.querySelector("#close-participant-list").addEventListener("click", closeParticipantList);
+  document.querySelector("#print-participant-list").addEventListener("click", printParticipantList);
+  window.addEventListener("afterprint", () => document.body.classList.remove("printing-participant-list"));
 }
 
 async function onProjectSubmit(event) {
@@ -608,8 +612,102 @@ function renderProjects() {
     projectFundingBudgetNames(project),
     badge(project.status, statusTone(project.status)),
     progressHtml(taskProgress(project.id)),
-    actions("projects", project.id),
+    projectActions(project.id),
   ]));
+  if (state.participantListProjectId && state.projects.some((project) => project.id === state.participantListProjectId)) {
+    renderParticipantList(state.participantListProjectId);
+  } else {
+    closeParticipantList(false);
+  }
+}
+
+function showParticipantList(projectId) {
+  state.participantListProjectId = projectId;
+  renderParticipantList(projectId, true);
+}
+
+function renderParticipantList(projectId, shouldScroll = false) {
+  const project = state.projects.find((entry) => entry.id === projectId);
+  const panel = document.querySelector("#participant-list-panel");
+  const report = document.querySelector("#participant-list-report");
+  if (!project || !panel || !report) return;
+
+  const documentTypes = getSettingValues("documentTypes");
+  const students = state.students
+    .filter((student) => (student.projectIds || []).includes(projectId))
+    .sort(sortByName);
+  const incomplete = students.filter((student) => missingDocs(student).length);
+  const completeCount = students.length - incomplete.length;
+  const createdAt = new Date().toLocaleString("de-DE", { dateStyle: "medium", timeStyle: "short" });
+  const documentHeaders = documentTypes.map((type) => `<th>${escapeHtml(type)}</th>`).join("");
+  const rows = students.map((student, index) => {
+    const missing = missingDocs(student);
+    return `
+      <tr class="${missing.length ? "is-incomplete" : "is-complete"}">
+        <td>${index + 1}</td>
+        <td><strong>${escapeHtml(student.name)}</strong><div class="meta">${escapeHtml(student.className)}</div></td>
+        <td>${formatDate(student.birthDate)}</td>
+        <td>${escapeHtml(student.role)}</td>
+        ${documentTypes.map((type) => `<td>${hasDocument(student, type) ? '<span class="print-status ok">vorhanden</span>' : '<span class="print-status missing">fehlt</span>'}</td>`).join("")}
+        <td>${missing.length ? `<strong>${escapeHtml(missing.join(", "))}</strong>` : "vollständig"}</td>
+      </tr>
+    `;
+  }).join("");
+
+  report.innerHTML = `
+    <div class="report-title">
+      <p>Erasmus+ Schüleraustausch</p>
+      <h2>Teilnehmerliste ${escapeHtml(project.name)}</h2>
+    </div>
+    <div class="report-meta">
+      <span><strong>Leitaktion:</strong> ${escapeHtml(project.action)}</span>
+      <span><strong>Zeitraum:</strong> ${formatDate(project.startDate)} - ${formatDate(project.endDate)}</span>
+      <span><strong>Partnereinrichtungen:</strong> ${projectInstitutionNames(project)}</span>
+      <span><strong>Erstellt:</strong> ${escapeHtml(createdAt)}</span>
+    </div>
+    <div class="report-summary">
+      <article><span>Teilnehmende</span><strong>${students.length}</strong></article>
+      <article><span>Vollständig</span><strong>${completeCount}</strong></article>
+      <article class="${incomplete.length ? "warn" : "ok"}"><span>Mit fehlenden Dokumenten</span><strong>${incomplete.length}</strong></article>
+    </div>
+    <div class="table-wrap">
+      <table class="participant-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Schüler</th>
+            <th>Geburtsdatum</th>
+            <th>Rolle</th>
+            ${documentHeaders}
+            <th>Fehlt</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows || `<tr><td colspan="${5 + documentTypes.length}">${emptyState()}</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  `;
+  panel.hidden = false;
+  if (shouldScroll) panel.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function closeParticipantList(resetState = true) {
+  const panel = document.querySelector("#participant-list-panel");
+  const report = document.querySelector("#participant-list-report");
+  if (resetState) state.participantListProjectId = null;
+  if (panel) panel.hidden = true;
+  if (report) report.innerHTML = "";
+}
+
+function printParticipantList() {
+  if (!state.participantListProjectId) {
+    toast("Bitte zuerst eine Teilnehmerliste öffnen");
+    return;
+  }
+  document.body.classList.add("printing-participant-list");
+  window.print();
+  setTimeout(() => document.body.classList.remove("printing-participant-list"), 1000);
 }
 
 function renderStudents() {
@@ -1209,6 +1307,7 @@ function renderTable(selector, headers, rows) {
   `;
   table.querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => editItem(button.dataset.store, button.dataset.id)));
   table.querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => deleteItem(button.dataset.store, button.dataset.id)));
+  table.querySelectorAll("[data-participant-list]").forEach((button) => button.addEventListener("click", () => showParticipantList(button.dataset.participantList)));
   table.querySelectorAll("[data-institution-toggle]").forEach((button) => button.addEventListener("click", () => toggleInstitution(button.dataset.institutionToggle)));
   table.querySelectorAll("[data-user-toggle]").forEach((button) => button.addEventListener("click", () => toggleUserStatus(button.dataset.userToggle)));
   table.querySelectorAll("[data-funding-budget-toggle]").forEach((button) => button.addEventListener("click", () => toggleFundingBudget(button.dataset.fundingBudgetToggle)));
@@ -1236,6 +1335,16 @@ function kpi(label, value) {
 
 function actions(store, id) {
   return `<div class="row-actions"><button class="small secondary" data-edit data-store="${store}" data-id="${id}">Bearbeiten</button><button class="small danger" data-delete data-store="${store}" data-id="${id}">Löschen</button></div>`;
+}
+
+function projectActions(id) {
+  return `
+    <div class="row-actions">
+      <button class="small" data-participant-list="${id}">Teilnehmerliste</button>
+      <button class="small secondary" data-edit data-store="projects" data-id="${id}">Bearbeiten</button>
+      <button class="small danger" data-delete data-store="projects" data-id="${id}">Löschen</button>
+    </div>
+  `;
 }
 
 function editItem(store, id) {
