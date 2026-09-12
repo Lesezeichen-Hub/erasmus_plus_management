@@ -1133,7 +1133,6 @@ function learningAgreementTemplate(project, student, values) {
       <header>
         <p>Erasmus+ Schulbildung</p>
         <h1>Europass Lernvereinbarung</h1>
-        <span>Individuelle Schüler*innenmobilität</span>
       </header>
       ${templateNotice("Vorlage ist vorausgefüllt und editierbar. Sie dient als Arbeitsvorlage für die Lernvereinbarung in Erasmus+ Schulbildung.")}
       ${templateSection("1. Teilnehmende Person", [
