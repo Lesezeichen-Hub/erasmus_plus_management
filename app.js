@@ -1,6 +1,6 @@
 const DB_NAME = "erasmus_plus_management";
-const DB_VERSION = 6;
-const STORES = ["projects", "students", "expenses", "tasks", "documents", "users", "settings", "institutions", "fundingBudgets"];
+const DB_VERSION = 7;
+const STORES = ["projects", "students", "expenses", "tasks", "documents", "users", "settings", "institutions", "fundingBudgets", "auditLogs"];
 const SESSION_KEY = "erasmus_plus_management_user";
 const DEFAULT_SETTINGS = {
   leadActions: ["KA1", "KA2", "KA3"],
@@ -70,6 +70,17 @@ const VIEW_BY_STORE = {
   institutions: "admin",
   fundingBudgets: "admin",
 };
+const STORE_LABELS = {
+  projects: "Projekt",
+  students: "Teilnehmende*r",
+  expenses: "Aufwand",
+  tasks: "Aufgabe",
+  documents: "Dokument",
+  users: "Benutzer",
+  settings: "Stammdaten",
+  institutions: "Partnereinrichtung",
+  fundingBudgets: "Förderbudget",
+};
 
 const state = {
   projects: [],
@@ -81,10 +92,12 @@ const state = {
   settings: { ...DEFAULT_SETTINGS },
   institutions: [],
   fundingBudgets: [],
+  auditLogs: [],
   currentUser: null,
   view: "dashboard",
   search: "",
   participantListProjectId: null,
+  projectFileProjectId: null,
 };
 
 let db;
@@ -169,7 +182,7 @@ function clearStore(storeName) {
 }
 
 async function loadState() {
-  const [projects, students, expenses, tasks, documents, users, settings, institutions, fundingBudgets] = await Promise.all(STORES.map(getAll));
+  const [projects, students, expenses, tasks, documents, users, settings, institutions, fundingBudgets, auditLogs] = await Promise.all(STORES.map(getAll));
   state.projects = projects.sort(sortByName);
   state.students = students.sort(sortByName);
   state.expenses = expenses.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -179,13 +192,18 @@ async function loadState() {
   state.settings = settings.reduce((config, item) => ({ ...config, [item.id]: item.values || [] }), { ...DEFAULT_SETTINGS });
   state.institutions = institutions.sort(sortByName);
   state.fundingBudgets = fundingBudgets.sort((a, b) => (b.startDate || "").localeCompare(a.startDate || ""));
+  state.auditLogs = auditLogs.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   if (state.currentUser) {
     state.currentUser = state.users.find((user) => user.id === state.currentUser.id && user.status === "Aktiv") || null;
   }
 }
 
 async function persist(storeName, value) {
+  const exists = state[storeName]?.some((entry) => entry.id === value.id);
   await put(storeName, value);
+  if (storeName !== "auditLogs") {
+    await addAuditLog(exists ? "Aktualisiert" : "Angelegt", storeName, value);
+  }
   await loadState();
   syncSQLiteSnapshot();
   render();
@@ -311,6 +329,7 @@ function bindBackup() {
   document.querySelector("#seed-data").addEventListener("click", seedData);
   document.querySelector("#close-participant-list").addEventListener("click", closeParticipantList);
   document.querySelector("#print-participant-list").addEventListener("click", printParticipantList);
+  document.querySelector("#close-project-file").addEventListener("click", closeProjectFile);
   document.querySelector("#export-grant-templates").addEventListener("click", exportGrantTemplates);
   document.querySelector("#import-grant-templates").addEventListener("click", importGrantTemplates);
   window.addEventListener("afterprint", () => document.body.classList.remove("printing-participant-list"));
@@ -524,7 +543,7 @@ async function onFundingBudgetSubmit(event) {
     return;
   }
   const budgetDraft = { id: data.id || "new", startDate: data.startDate, endDate: computedEndDate };
-  const linkedProjects = state.projects.filter((project) => projectOverlapsFundingBudget(project, budgetDraft));
+  const linkedProjects = state.projects.filter((project) => effectiveProjectFundingBudgetId(project) === data.id && projectOverlapsFundingBudget(project, budgetDraft));
   const assigned = linkedProjects.reduce((sum, project) => sum + Number(project.budget || 0), 0);
   if (assigned > Number(data.amount || 0)) {
     toast("Gesamtbudget ist kleiner als bereits zugewiesene Projektbudgets");
@@ -657,6 +676,7 @@ function renderDashboard() {
   renderList("#project-status-list", projects.map(projectStatusCard));
 
   renderRiskCenter();
+  renderAuditLog();
 }
 
 function renderProjectStatusSummary() {
@@ -830,6 +850,33 @@ function budgetBreakdownCard(summary, isOrphan = false) {
   `;
 }
 
+function detailCard(title, rows) {
+  return `
+    <section class="detail-card">
+      <h3>${escapeHtml(title)}</h3>
+      <dl>
+        ${rows.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join("")}
+      </dl>
+    </section>
+  `;
+}
+
+function projectFileTable(title, headers, rows) {
+  return `
+    <section class="detail-card wide">
+      <h3>${escapeHtml(title)}</h3>
+      <div class="table-wrap project-file-table">
+        <table>
+          ${rows.length ? `
+            <thead><tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
+            <tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")}</tbody>
+          ` : `<tbody><tr><td>${emptyState()}</td></tr></tbody>`}
+        </table>
+      </div>
+    </section>
+  `;
+}
+
 function legendItem(label, value, tone, detail = "") {
   const title = `${label}: ${value}${detail ? ` · ${detail}` : ""}`;
   return `<div class="legend-item" tabindex="0" title="${escapeHtml(title)}"><span class="legend-dot ${tone}"></span><div><strong>${escapeHtml(value)}</strong><small>${escapeHtml(label)}${detail ? ` · ${escapeHtml(detail)}` : ""}</small></div></div>`;
@@ -903,6 +950,18 @@ function riskItem({ tone, label, title, context, detail }) {
   `;
 }
 
+function renderAuditLog() {
+  const rows = filterText(state.auditLogs).slice(0, 25);
+  renderTable("#audit-log-table", ["Zeitpunkt", "Aktion", "Bereich", "Eintrag", "Projekt", "Benutzer"], rows.map((entry) => [
+    formatDateTime(entry.createdAt),
+    badge(entry.action, entry.action === "Gelöscht" ? "danger" : entry.action === "Angelegt" ? "ok" : "warn"),
+    escapeHtml(entry.storeLabel || entry.store),
+    escapeHtml(entry.entityLabel || "-"),
+    escapeHtml(projectName(entry.projectId || entry.projectIds?.[0] || "")),
+    escapeHtml(entry.userName || "System"),
+  ]));
+}
+
 function renderProjects() {
   const status = document.querySelector("#project-filter").value;
   const rows = filterText(state.projects).filter((project) => !status || project.status === status);
@@ -920,11 +979,135 @@ function renderProjects() {
   } else {
     closeParticipantList(false);
   }
+  if (state.projectFileProjectId && state.projects.some((project) => project.id === state.projectFileProjectId)) {
+    renderProjectFile(state.projectFileProjectId);
+  } else {
+    closeProjectFile(false);
+  }
 }
 
 function showParticipantList(projectId) {
   state.participantListProjectId = projectId;
   renderParticipantList(projectId, true);
+}
+
+function showProjectFile(projectId) {
+  state.projectFileProjectId = projectId;
+  renderProjectFile(projectId, true);
+}
+
+function closeProjectFile(resetState = true) {
+  const panel = document.querySelector("#project-file-panel");
+  const container = document.querySelector("#project-file");
+  if (resetState) state.projectFileProjectId = null;
+  if (panel) panel.hidden = true;
+  if (container) container.innerHTML = "";
+}
+
+function renderProjectFile(projectId, shouldScroll = false) {
+  const project = state.projects.find((entry) => entry.id === projectId);
+  const panel = document.querySelector("#project-file-panel");
+  const container = document.querySelector("#project-file");
+  if (!project) {
+    closeProjectFile();
+    return;
+  }
+
+  const budget = state.fundingBudgets.find((entry) => entry.id === effectiveProjectFundingBudgetId(project));
+  const expenses = state.expenses.filter((entry) => entry.projectId === project.id);
+  const tasks = state.tasks.filter((entry) => entry.projectId === project.id);
+  const docs = state.documents.filter((entry) => entry.projectId === project.id);
+  const students = state.students.filter((entry) => (entry.projectIds || []).includes(project.id));
+  const spent = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+  const remaining = Number(project.budget || 0) - spent;
+  const progress = taskProgress(project.id);
+  const missingDocumentRows = students
+    .map((student) => ({ student, missing: missingDocs(student, project.id) }))
+    .filter((entry) => entry.missing.length);
+  const history = state.auditLogs
+    .filter((entry) => auditTouchesProject(entry, project.id))
+    .slice(0, 20);
+
+  container.innerHTML = `
+    <div class="project-file-title">
+      <div>
+        <p>${escapeHtml(project.action)} · ${escapeHtml(project.status)}</p>
+        <h2>${escapeHtml(project.name)}</h2>
+      </div>
+      ${badge(remaining < 0 ? "Budget überschritten" : "Budget OK", remaining < 0 ? "danger" : "ok")}
+    </div>
+    <div class="project-file-grid">
+      ${detailCard("Rahmen", [
+        ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
+        ["Fördertopf", budget ? fundingBudgetName(budget.id) : "Nicht eindeutig zugeordnet"],
+        ["Partnereinrichtungen", stripHtml(projectInstitutionNames(project))],
+        ["Weitere Partner", project.partners || "-"],
+        ["Zielland", project.destinationCountry || "-"],
+      ])}
+      ${detailCard("Budget", [
+        ["Projektbudget", money.format(Number(project.budget || 0))],
+        ["Ausgegeben", money.format(spent)],
+        ["Rest Projekt", money.format(remaining)],
+        ["Budgetvorschlag", money.format(Number(project.calculatedGrant || 0))],
+        ["Förderquelle", project.grantSource || "-"],
+      ])}
+      ${detailCard("Förderpauschalen", [
+        ["Teilnehmende", String(project.participantCount || 0)],
+        ["Aufenthaltstage", String(project.durationDays || 0)],
+        ["Reisetage", String(project.travelDays || 0)],
+        ["Tageswert", money.format(Number(project.dailySupportRate || 0))],
+        ["Reisepauschale", money.format(Number(project.travelGrantRate || 0))],
+        ["Distanzband", project.distanceBand || "-"],
+        ["Green Travel", project.greenTravel ? "Ja" : "Nein"],
+      ])}
+      <section class="detail-card">
+        <h3>Aufgaben</h3>
+        <div class="meta">${progress.done}/${progress.total} erledigt</div>
+        ${progressHtml(progress)}
+      </section>
+    </div>
+    <div class="project-file-sections">
+      ${projectFileTable("Teilnehmende & Dokumente", ["Name", "Klasse", "Geburtsdatum", "Dokumente"], students.map((student) => {
+        const missing = missingDocs(student, project.id);
+        return [
+          escapeHtml(student.name),
+          escapeHtml(student.className),
+          formatDate(student.birthDate),
+          missing.length ? badge(`${missing.length} fehlt`, "danger") + `<div class="meta">${escapeHtml(missing.join(", "))}</div>` : badge("Vollständig", "ok"),
+        ];
+      }))}
+      ${projectFileTable("Aufwände", ["Datum", "Kategorie", "Teilnehmende*r", "Betrag", "Beleg"], expenses.map((expense) => [
+        formatDate(expense.date),
+        escapeHtml(expense.category),
+        escapeHtml(studentName(expense.studentId)),
+        money.format(Number(expense.amount || 0)),
+        badge(expense.receiptStatus, expense.receiptStatus === "Vorhanden" ? "ok" : "danger"),
+      ]))}
+      ${projectFileTable("Aufgaben", ["Fällig", "Aufgabe", "Priorität", "Status"], tasks.map((task) => [
+        formatDate(task.dueDate),
+        escapeHtml(task.title),
+        badge(task.priority, task.priority === "Hoch" ? "danger" : "warn"),
+        badge(task.status, task.status === "Erledigt" ? "ok" : isOverdue(task.dueDate) ? "danger" : "warn"),
+      ]))}
+      ${projectFileTable("Dokumentenindex", ["Datum", "Dokument", "Teilnehmende*r", "Status", "Ablage"], docs.map((doc) => [
+        formatDate(doc.date),
+        `<strong>${escapeHtml(doc.title)}</strong><div class="meta">${escapeHtml(doc.type)}</div>`,
+        escapeHtml(studentName(doc.studentId)),
+        badge(doc.status, doc.status === "Abgelegt" ? "ok" : doc.status === "Fehlt" ? "danger" : "warn"),
+        escapeHtml(doc.storageHint || "-"),
+      ]))}
+      ${projectFileTable("Änderungshistorie", ["Zeitpunkt", "Aktion", "Bereich", "Eintrag", "Benutzer"], history.map((entry) => [
+        formatDateTime(entry.createdAt),
+        badge(entry.action, entry.action === "Gelöscht" ? "danger" : entry.action === "Angelegt" ? "ok" : "warn"),
+        escapeHtml(entry.storeLabel || entry.store),
+        escapeHtml(entry.entityLabel || "-"),
+        escapeHtml(entry.userName || "System"),
+      ]))}
+    </div>
+    ${missingDocumentRows.length ? `<div class="project-file-warning">${badge("Dokumente fehlen", "danger")} ${escapeHtml(missingDocumentRows.map(({ student, missing }) => `${student.name}: ${missing.join(", ")}`).join(" · "))}</div>` : ""}
+  `;
+  panel.hidden = false;
+  if (shouldScroll) panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderParticipantList(projectId, shouldScroll = false) {
@@ -1281,10 +1464,23 @@ function getSettingValues(key) {
 
 async function saveSetting(key, values) {
   await put("settings", { id: key, values });
+  await addAuditLog("Aktualisiert", "settings", { id: key, name: settingLabel(key) });
   await loadState();
   syncSQLiteSnapshot();
   render();
   toast("Stammdaten gespeichert");
+}
+
+function settingLabel(key) {
+  const labels = {
+    leadActions: "Leitaktionen",
+    expenseCategories: "Aufwandskategorien",
+    documentTypes: "Dokumenttypen",
+    countryGrantRates: "Förderpauschalen Länder",
+    travelGrantBands: "Reisepauschalen",
+    grantTemplateSource: "Förderpauschalen-Quelle",
+  };
+  return labels[key] || key;
 }
 
 function defaultCountryGrantRates() {
@@ -1349,6 +1545,7 @@ async function saveGrantTemplates() {
 async function persistGrantTemplates(countryRates, travelBands) {
   await put("settings", { id: "countryGrantRates", values: countryRates });
   await put("settings", { id: "travelGrantBands", values: travelBands });
+  await addAuditLog("Aktualisiert", "settings", { id: "grantTemplates", name: "Förderpauschalen-Vorlage" });
   await loadState();
   syncSQLiteSnapshot();
   render();
@@ -1390,6 +1587,7 @@ async function importGrantTemplates() {
     }
     await persistGrantTemplates(countryRates, travelBands);
     await put("settings", { id: "grantTemplateSource", values: payload.source || file.name });
+    await addAuditLog("Aktualisiert", "settings", { id: "grantTemplateSource", name: "Förderpauschalen-Quelle" });
     await loadState();
     syncSQLiteSnapshot();
     render();
@@ -1747,6 +1945,7 @@ function renderTable(selector, headers, rows) {
   table.querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => editItem(button.dataset.store, button.dataset.id)));
   table.querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => deleteItem(button.dataset.store, button.dataset.id)));
   table.querySelectorAll("[data-participant-list]").forEach((button) => button.addEventListener("click", () => showParticipantList(button.dataset.participantList)));
+  table.querySelectorAll("[data-project-file]").forEach((button) => button.addEventListener("click", () => showProjectFile(button.dataset.projectFile)));
   table.querySelectorAll("[data-institution-toggle]").forEach((button) => button.addEventListener("click", () => toggleInstitution(button.dataset.institutionToggle)));
   table.querySelectorAll("[data-user-toggle]").forEach((button) => button.addEventListener("click", () => toggleUserStatus(button.dataset.userToggle)));
   table.querySelectorAll("[data-funding-budget-toggle]").forEach((button) => button.addEventListener("click", () => toggleFundingBudget(button.dataset.fundingBudgetToggle)));
@@ -1779,6 +1978,7 @@ function actions(store, id) {
 function projectActions(id) {
   return `
     <div class="row-actions">
+      <button class="small" data-project-file="${id}">Projektakte</button>
       <button class="small" data-participant-list="${id}">Teilnehmendenliste</button>
       <button class="small secondary" data-edit data-store="projects" data-id="${id}">Bearbeiten</button>
       <button class="small danger" data-delete data-store="projects" data-id="${id}">Löschen</button>
@@ -1840,6 +2040,7 @@ function editItem(store, id) {
 
 async function deleteItem(store, id) {
   if (!confirm("Eintrag wirklich löschen?")) return;
+  const deletedItem = state[store]?.find((entry) => entry.id === id);
   if (store === "institutions") {
     await toggleInstitution(id);
     return;
@@ -1865,11 +2066,16 @@ async function deleteItem(store, id) {
   }
   if (store === "projects") {
     await cleanupProjectReferences(id);
+    if (state.participantListProjectId === id) closeParticipantList();
+    if (state.projectFileProjectId === id) closeProjectFile();
   }
   if (store === "students") {
     await cleanupStudentReferences(id);
   }
   await remove(store, id);
+  if (deletedItem) {
+    await addAuditLog("Gelöscht", store, deletedItem);
+  }
   await loadState();
   syncSQLiteSnapshot();
   render();
@@ -1914,6 +2120,45 @@ function budgetRemaining(projectId) {
   const project = state.projects.find((entry) => entry.id === projectId);
   const spent = state.expenses.filter((expense) => expense.projectId === projectId).reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   return Number(project?.budget || 0) - spent;
+}
+
+async function addAuditLog(action, store, entity) {
+  await put("auditLogs", {
+    id: createId(),
+    action,
+    store,
+    storeLabel: STORE_LABELS[store] || store,
+    entityId: entity?.id || "",
+    entityLabel: entityLabel(store, entity),
+    projectId: auditProjectId(store, entity),
+    projectIds: auditProjectIds(store, entity),
+    userId: state.currentUser?.id || "",
+    userName: state.currentUser?.name || "System",
+    createdAt: new Date().toISOString(),
+  });
+}
+
+function entityLabel(store, entity = {}) {
+  if (store === "expenses") return `${entity.category || "Aufwand"} ${money.format(Number(entity.amount || 0))}`;
+  if (store === "tasks") return entity.title || "Aufgabe";
+  if (store === "documents") return entity.title || entity.type || "Dokument";
+  if (store === "settings") return entity.id || "Stammdaten";
+  return entity.name || entity.email || entity.id || "-";
+}
+
+function auditProjectId(store, entity = {}) {
+  if (store === "projects") return entity.id || "";
+  return entity.projectId || "";
+}
+
+function auditProjectIds(store, entity = {}) {
+  if (store === "projects") return [entity.id].filter(Boolean);
+  if (store === "students") return entity.projectIds || [];
+  return [entity.projectId].filter(Boolean);
+}
+
+function auditTouchesProject(entry, projectId) {
+  return entry.projectId === projectId || (entry.projectIds || []).includes(projectId) || (entry.store === "projects" && entry.entityId === projectId);
 }
 
 function filterText(items) {
@@ -2013,6 +2258,19 @@ function isOverdue(date) {
 
 function formatDate(date) {
   return date ? dateFmt.format(new Date(date)) : "-";
+}
+
+function formatDateTime(date) {
+  return date ? new Intl.DateTimeFormat("de-DE", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(date)) : "-";
+}
+
+function stripHtml(value) {
+  const template = document.createElement("template");
+  template.innerHTML = String(value ?? "");
+  return template.content.textContent || "";
 }
 
 function sortByName(a, b) {
