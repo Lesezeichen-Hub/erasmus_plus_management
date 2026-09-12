@@ -436,7 +436,10 @@
 
       <section id="admin" class="view">
         <div class="kpi-grid admin-kpis" id="admin-user-kpis"></div>
-        <div class="section-layout">
+        <div class="admin-accordion">
+          <details class="admin-group" open>
+            <summary>Benutzer & Rollen</summary>
+            <div class="section-layout">
           <form id="user-form" class="panel form-panel">
             <h2 id="user-form-title">Benutzer anlegen</h2>
             <input type="hidden" name="id" />
@@ -481,6 +484,11 @@
             </div>
             <div class="table-wrap"><table id="users-table"></table></div>
           </section>
+            </div>
+          </details>
+          <details class="admin-group" open>
+            <summary>Förderbudgets</summary>
+            <div class="section-layout">
           <form id="fundingBudget-form" class="panel form-panel wide">
             <h2>Förderbudget verwalten</h2>
             <input type="hidden" name="id" />
@@ -519,6 +527,11 @@
             </div>
             <div class="table-wrap"><table id="funding-budgets-table"></table></div>
           </section>
+            </div>
+          </details>
+          <details class="admin-group">
+            <summary>Partnereinrichtungen</summary>
+            <div class="section-layout">
           <form id="institution-form" class="panel form-panel wide">
             <h2>Partnereinrichtung verwalten</h2>
             <input type="hidden" name="id" />
@@ -550,6 +563,27 @@
             </div>
             <div class="table-wrap"><table id="institutions-table"></table></div>
           </section>
+            </div>
+          </details>
+          <details class="admin-group">
+            <summary>Grunddaten & Vorlagen</summary>
+            <div class="section-layout">
+          <form id="templateDefaults-form" class="panel form-panel wide">
+            <h2>Feste Formulardaten</h2>
+            <div class="form-row">
+              <label>Entsendende Schule <input name="sendingInstitution" placeholder="Name der Schule" /></label>
+              <label>Schulort <input name="sendingCity" placeholder="Ort" /></label>
+            </div>
+            <div class="form-row">
+              <label>Ansprechpartner*in <input name="contactPerson" placeholder="Name" /></label>
+              <label>E-Mail <input name="contactEmail" type="email" placeholder="kontakt@schule.de" /></label>
+            </div>
+            <label>Standardtext Anerkennung <textarea name="recognitionText" rows="3" placeholder="Standardformulierung für Anerkennung / Bestätigung"></textarea></label>
+            <div class="form-actions">
+              <button type="submit">Speichern</button>
+              <button type="button" class="secondary" data-reset-template-defaults>Zurücksetzen</button>
+            </div>
+          </form>
           <section class="panel wide">
             <div class="panel-head">
               <h2>Stammdaten</h2>
@@ -606,6 +640,8 @@
               </div>
             </div>
           </section>
+            </div>
+          </details>
         </div>
       </section>
     </main>

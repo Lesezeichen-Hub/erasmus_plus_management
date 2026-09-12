@@ -43,6 +43,9 @@ Im Admin-Panel koennen ausserdem Stammdaten gepflegt werden:
 - Leitaktionen
 - Partnereinrichtungen, also teilnehmende Schulen oder Organisationen
 - Foerderbudgets mit Gesamtbudget, Zeitraum und Laufzeit 15 oder 24 Monate
+- feste Formulardaten wie entsendende Schule, Schulort, Ansprechpartner*in, Kontaktadresse und Standardtext fuer Anerkennung
+
+Der Administrationsbereich ist in aufklappbare Gruppen gegliedert: Benutzer und Rollen, Foerderbudgets, Partnereinrichtungen sowie Grunddaten und Vorlagen. Die festen Formulardaten werden automatisch in Lernvereinbarungen, Bescheinigungen und Europass-Vorlagen vorgeschlagen, bleiben dort aber pro Schueler*in bearbeitbar und speicherbar.
 
 ## Datenhaltung
 

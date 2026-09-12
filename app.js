@@ -4,6 +4,13 @@ const STORES = ["projects", "students", "expenses", "tasks", "documents", "users
 const SESSION_KEY = "erasmus_plus_management_user";
 const DEFAULT_SETTINGS = {
   leadActions: ["KA1", "KA2", "KA3"],
+  templateDefaults: {
+    sendingInstitution: "",
+    sendingCity: "",
+    contactPerson: "",
+    contactEmail: "",
+    recognitionText: "",
+  },
   expenseCategories: ["Reisekosten", "Unterkunft", "Verpflegung", "Taschengeld", "Sonstiges"],
   documentTypes: ["Einverständniserklärung", "Notfallkontakt", "Versicherung", "Beleg", "Vertrag", "Bericht", "Sonstiges"],
 };
@@ -237,6 +244,8 @@ function bindForms() {
   document.querySelector("#user-form").addEventListener("submit", onUserSubmit);
   document.querySelector("#institution-form").addEventListener("submit", onInstitutionSubmit);
   document.querySelector("#fundingBudget-form").addEventListener("submit", onFundingBudgetSubmit);
+  document.querySelector("#templateDefaults-form").addEventListener("submit", onTemplateDefaultsSubmit);
+  document.querySelector("[data-reset-template-defaults]").addEventListener("click", resetTemplateDefaultsForm);
   document.querySelector("#student-form [name=projectIds]").addEventListener("change", () => renderRequiredDocumentFields());
   document.querySelector("#fundingBudget-form [name=startDate]").addEventListener("change", updateFundingBudgetEndDate);
   document.querySelector("#fundingBudget-form [name=durationMonths]").addEventListener("change", updateFundingBudgetEndDate);
@@ -572,6 +581,26 @@ async function onFundingBudgetSubmit(event) {
     note: data.note.trim(),
   });
   form.reset();
+}
+
+async function onTemplateDefaultsSubmit(event) {
+  event.preventDefault();
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen feste Formulardaten verwalten");
+    return;
+  }
+  const form = event.currentTarget;
+  const values = Object.fromEntries(new FormData(form));
+  await put("settings", { id: "templateDefaults", values });
+  await addAuditLog("Aktualisiert", "settings", { id: "templateDefaults", name: "Feste Formulardaten" });
+  await loadState();
+  syncSQLiteSnapshot();
+  render();
+  toast("Feste Formulardaten gespeichert");
+}
+
+function resetTemplateDefaultsForm() {
+  fillTemplateDefaultsForm({});
 }
 
 async function onSetupSubmit(event) {
@@ -1003,8 +1032,14 @@ function templateValues(type, project, student) {
 }
 
 function defaultTemplateValues(type, project, student) {
+  const defaults = getTemplateDefaults();
+  const sendingInstitution = defaults.sendingInstitution || "Bitte Schulname ergänzen";
+  const recognitionText = defaults.recognitionText || "Die erreichten Lernergebnisse wurden durch die beteiligten Einrichtungen bestätigt. Details bitte nach Abschluss der Mobilität ergänzen.";
   const common = {
-    sendingInstitution: "Bitte Schulname ergänzen",
+    sendingInstitution,
+    sendingCity: defaults.sendingCity || "",
+    contactPerson: defaults.contactPerson || "",
+    contactEmail: defaults.contactEmail || "",
     receivingInstitution: stripHtml(projectInstitutionNames(project)),
     learningOutcomes: projectLearningOutcomes(project),
     activities: projectTaskList(project.id, type === "europass" ? "Aus Projektaufgaben übernehmen und nach der Mobilität anpassen" : "Offen, In Arbeit oder geplant"),
@@ -1014,7 +1049,7 @@ function defaultTemplateValues(type, project, student) {
       ...common,
       mobilityDescription: `Teilnahme an ${project.name} im Rahmen von Erasmus+ ${project.action}.`,
       acquiredCompetences: common.learningOutcomes,
-      assessmentRecognition: "Die erreichten Lernergebnisse wurden durch die beteiligten Einrichtungen bestätigt. Details bitte nach Abschluss der Mobilität ergänzen.",
+      assessmentRecognition: recognitionText,
     };
   }
   if (type === "certificate") {
@@ -1022,13 +1057,13 @@ function defaultTemplateValues(type, project, student) {
       ...common,
       certificateText: `${student.name} hat im Zeitraum ${formatDate(project.startDate)} bis ${formatDate(project.endDate)} am Erasmus+ Projekt "${project.name}" teilgenommen.`,
       certificateDetails: `Mobilität nach ${project.destinationCountry || "Bitte Land ergänzen"} mit der aufnehmenden Einrichtung ${common.receivingInstitution}.`,
-      certificateRecognition: "Die Teilnahme und die im Rahmen der Mobilität erworbenen Lernerfahrungen werden hiermit bestätigt.",
+      certificateRecognition: recognitionText,
     };
   }
   return {
     ...common,
     responsibilities: "Teilnehmende Person: aktive Teilnahme, Dokumentation der Lernergebnisse, Einhaltung der Vereinbarungen. Entsendende Einrichtung: Vorbereitung, Betreuung, Anerkennung. Aufnehmende Einrichtung: Lerngelegenheiten, Begleitung, Rückmeldung.",
-    monitoringRecognition: "Die verantwortlichen Lehrkräfte begleiten den Lernfortschritt. Nach Abschluss werden erreichte Lernergebnisse geprüft und durch Europass Mobilität oder ein gleichwertiges Dokument bestätigt.",
+    monitoringRecognition: recognitionText,
   };
 }
 
@@ -1058,6 +1093,9 @@ function learningAgreementTemplate(project, student, values) {
         ["Zielland", project.destinationCountry || "-"],
         ["Aufnehmende Einrichtung", values.receivingInstitution, "receivingInstitution"],
         ["Entsendende Einrichtung", values.sendingInstitution, "sendingInstitution"],
+        ["Schulort", values.sendingCity, "sendingCity"],
+        ["Ansprechpartner*in", values.contactPerson, "contactPerson"],
+        ["Kontakt E-Mail", values.contactEmail, "contactEmail"],
       ])}
       ${templateTextSection("3. Lernziele und erwartete Lernergebnisse", values.learningOutcomes, "learningOutcomes")}
       ${templateTextSection("4. Geplante Aktivitäten", values.activities, "activities")}
@@ -1085,6 +1123,9 @@ function europassTemplate(project, student, values) {
       ${templateSection("2. Beteiligte Einrichtungen", [
         ["Entsendende Einrichtung", values.sendingInstitution, "sendingInstitution"],
         ["Aufnehmende Einrichtung", values.receivingInstitution, "receivingInstitution"],
+        ["Schulort", values.sendingCity, "sendingCity"],
+        ["Ansprechpartner*in", values.contactPerson, "contactPerson"],
+        ["Kontakt E-Mail", values.contactEmail, "contactEmail"],
         ["Projekt", project.name],
         ["Land", project.destinationCountry || "-"],
         ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
@@ -1118,6 +1159,9 @@ function certificateTemplate(project, student, values) {
         ["Zielland", project.destinationCountry || "-"],
         ["Aufnehmende Einrichtung", values.receivingInstitution, "receivingInstitution"],
         ["Entsendende Einrichtung", values.sendingInstitution, "sendingInstitution"],
+        ["Schulort", values.sendingCity, "sendingCity"],
+        ["Ansprechpartner*in", values.contactPerson, "contactPerson"],
+        ["Kontakt E-Mail", values.contactEmail, "contactEmail"],
       ])}
       ${templateTextSection("Bescheinigung", values.certificateText, "certificateText")}
       ${templateTextSection("Angaben zur Mobilität", values.certificateDetails, "certificateDetails")}
@@ -1653,10 +1697,24 @@ function institutionActions(institution) {
 
 function renderSettings() {
   if (!isAdmin()) return;
+  fillTemplateDefaultsForm(getTemplateDefaults());
   renderSettingList("expenseCategories", "#expense-categories-list", (value) => state.expenses.some((expense) => expense.category === value));
   renderSettingList("documentTypes", "#document-types-list", (value) => settingValueInUse("documentTypes", value));
   renderSettingList("leadActions", "#lead-actions-list", (value) => state.projects.some((project) => project.action === value));
   renderGrantSettings();
+}
+
+function getTemplateDefaults() {
+  const values = state.settings.templateDefaults;
+  return values && !Array.isArray(values) && typeof values === "object" ? values : {};
+}
+
+function fillTemplateDefaultsForm(values) {
+  const form = document.querySelector("#templateDefaults-form");
+  if (!form) return;
+  ["sendingInstitution", "sendingCity", "contactPerson", "contactEmail", "recognitionText"].forEach((key) => {
+    form.elements[key].value = values[key] || "";
+  });
 }
 
 function renderGrantSettings() {
@@ -1782,6 +1840,7 @@ function settingLabel(key) {
     documentTypes: "Dokumenttypen",
     countryGrantRates: "Förderpauschalen Länder",
     travelGrantBands: "Reisepauschalen",
+    templateDefaults: "Feste Formulardaten",
     grantTemplateSource: "Förderpauschalen-Quelle",
   };
   return labels[key] || key;

@@ -791,6 +791,53 @@ legend {
   margin-bottom: 18px;
 }
 
+.admin-accordion {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-group {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.admin-group summary {
+  cursor: pointer;
+  padding: 16px 18px;
+  color: var(--text);
+  font-weight: 900;
+  list-style: none;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--line);
+}
+
+.admin-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-group summary::before {
+  content: ">";
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--primary);
+  transition: transform 0.18s ease;
+}
+
+.admin-group[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.admin-group > .section-layout {
+  padding: 18px;
+}
+
+.admin-group .panel {
+  box-shadow: none;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
