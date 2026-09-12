@@ -534,6 +534,49 @@ legend {
   display: grid;
 }
 
+.project-doc-summary {
+  display: grid;
+  gap: 8px;
+  min-width: 280px;
+}
+
+.project-doc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #ffffff;
+}
+
+.project-doc-row.ok {
+  border-left-color: var(--success);
+}
+
+.project-doc-row.missing {
+  border-left-color: var(--danger);
+  background: #fff8f5;
+}
+
+.project-doc-row strong,
+.project-doc-row span {
+  display: block;
+}
+
+.project-doc-row strong {
+  font-size: 0.9rem;
+}
+
+.project-doc-row span {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
 .form-actions {
   display: flex;
   gap: 10px;

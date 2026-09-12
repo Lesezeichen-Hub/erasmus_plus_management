@@ -848,13 +848,16 @@ function printParticipantList() {
 function renderStudents() {
   const role = document.querySelector("#student-filter").value;
   const rows = filterText(state.students).filter((student) => !role || student.role === role);
-  renderTable("#students-table", ["Name", "Projekte", "Rolle", "Dokumente", ""], rows.map((student) => [
+  renderTable("#students-table", ["Name", "Rolle", "Dokumente je Projekt", "Gesamt", ""], rows.map((student) => {
+    const missing = missingDocsByProject(student);
+    return [
     `<strong>${escapeHtml(student.name)}</strong><div class="meta">${escapeHtml(student.className)} · ${formatDate(student.birthDate)}</div>`,
-    student.projectIds.map(projectName).map(escapeHtml).join("<br>"),
     badge(roleLabel(student.role), student.role === "Teilnehmer" ? "ok" : "warn"),
-    documentBadges(student),
+    documentProjectSummary(student),
+    badge(missing.total ? `${missing.total} fehlt` : "Vollständig", missing.total ? "danger" : "ok"),
     actions("students", student.id),
-  ]));
+  ];
+  }));
 }
 
 function renderExpenses() {
@@ -1760,8 +1763,29 @@ function missingDocs(student, projectId = null) {
   return getSettingValues("documentTypes").filter((type) => !(projectId ? hasProjectDocument(student, type, projectId) : hasDocument(student, type)));
 }
 
-function documentBadges(student) {
-  return getSettingValues("documentTypes").map((type) => badge(type, hasDocument(student, type) ? "ok" : "danger")).join(" ");
+function missingDocsByProject(student) {
+  const projectIds = student.projectIds?.length ? student.projectIds : [""];
+  const rows = projectIds.map((projectId) => ({ projectId, missing: missingDocs(student, projectId) }));
+  return {
+    rows,
+    total: rows.reduce((sum, row) => sum + row.missing.length, 0),
+  };
+}
+
+function documentProjectSummary(student) {
+  const { rows } = missingDocsByProject(student);
+  return `<div class="project-doc-summary">${rows.map(({ projectId, missing }) => {
+    const complete = missing.length === 0;
+    return `
+      <div class="project-doc-row ${complete ? "ok" : "missing"}">
+        <div>
+          <strong>${escapeHtml(projectName(projectId))}</strong>
+          <span>${complete ? "Alle Dokumente vorhanden" : `Fehlt: ${escapeHtml(missing.join(", "))}`}</span>
+        </div>
+        ${badge(complete ? "OK" : `${missing.length} offen`, complete ? "ok" : "danger")}
+      </div>
+    `;
+  }).join("")}</div>`;
 }
 
 function hasProjectDocument(student, type, projectId) {
