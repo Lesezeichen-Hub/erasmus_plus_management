@@ -2,6 +2,8 @@ const DB_NAME = "erasmus_plus_management";
 const DB_VERSION = 8;
 const STORES = ["projects", "students", "expenses", "tasks", "documents", "users", "settings", "institutions", "fundingBudgets", "auditLogs", "templateData"];
 const SESSION_KEY = "erasmus_plus_management_user";
+const AUTO_BACKUP_KEY = "erasmus_plus_management_auto_backups";
+const AUTO_BACKUP_LIMIT = 8;
 const DEFAULT_SETTINGS = {
   leadActions: ["KA1", "KA2", "KA3"],
   templateDefaults: {
@@ -217,6 +219,7 @@ async function persist(storeName, value) {
   }
   await loadState();
   syncSQLiteSnapshot();
+  createAutomaticBackup(`${STORE_LABELS[storeName] || storeName}-${exists ? "aktualisiert" : "angelegt"}`);
   render();
   toast("Gespeichert");
 }
@@ -341,6 +344,7 @@ function bindBackup() {
   document.querySelector("#safety-backup").addEventListener("click", () => {
     toast(createSafetyBackup("manuell") ? "Sicherheitsbackup erstellt" : "Keine lokalen Daten für ein Sicherheitsbackup vorhanden");
   });
+  document.querySelector("#download-auto-backup").addEventListener("click", downloadLatestAutomaticBackup);
   document.querySelector("#import-data").addEventListener("click", importData);
   document.querySelector("#seed-data").addEventListener("click", seedData);
   document.querySelector("#close-participant-list").addEventListener("click", closeParticipantList);
@@ -595,6 +599,7 @@ async function onTemplateDefaultsSubmit(event) {
   await addAuditLog("Aktualisiert", "settings", { id: "templateDefaults", name: "Feste Formulardaten" });
   await loadState();
   syncSQLiteSnapshot();
+  createAutomaticBackup("feste-formulardaten-aktualisiert");
   render();
   toast("Feste Formulardaten gespeichert");
 }
@@ -690,6 +695,7 @@ function render() {
   renderFundingBudgets();
   renderInstitutions();
   renderSettings();
+  renderAutomaticBackupStatus();
   enhanceClearableFields();
 }
 
@@ -1008,6 +1014,7 @@ async function saveTemplateValues() {
   await addAuditLog("Aktualisiert", "templateData", record);
   await loadState();
   syncSQLiteSnapshot();
+  createAutomaticBackup("vorlagenwerte-aktualisiert");
   toast("Vorlagenwerte gespeichert");
 }
 
@@ -1022,6 +1029,7 @@ async function resetTemplateValues() {
   const current = state.templateDocument;
   showTemplateDocument(current.type, current.projectId, current.studentId);
   syncSQLiteSnapshot();
+  createAutomaticBackup("vorlagenwerte-zurueckgesetzt");
   toast("Standardwerte wiederhergestellt");
 }
 
@@ -1829,6 +1837,7 @@ async function saveSetting(key, values) {
   await addAuditLog("Aktualisiert", "settings", { id: key, name: settingLabel(key) });
   await loadState();
   syncSQLiteSnapshot();
+  createAutomaticBackup(`${settingLabel(key)}-aktualisiert`);
   render();
   toast("Stammdaten gespeichert");
 }
@@ -1911,6 +1920,7 @@ async function persistGrantTemplates(countryRates, travelBands) {
   await addAuditLog("Aktualisiert", "settings", { id: "grantTemplates", name: "Förderpauschalen-Vorlage" });
   await loadState();
   syncSQLiteSnapshot();
+  createAutomaticBackup("foerderpauschalen-aktualisiert");
   render();
 }
 
@@ -1953,6 +1963,7 @@ async function importGrantTemplates() {
     await addAuditLog("Aktualisiert", "settings", { id: "grantTemplateSource", name: "Förderpauschalen-Quelle" });
     await loadState();
     syncSQLiteSnapshot();
+    createAutomaticBackup("foerderpauschalen-importiert");
     render();
     toast("Förderpauschalen importiert");
   } catch (error) {
@@ -2489,6 +2500,7 @@ async function deleteItem(store, id) {
   }
   await loadState();
   syncSQLiteSnapshot();
+  createAutomaticBackup(`${STORE_LABELS[store] || store}-geloescht`);
   render();
   toast("Gelöscht");
 }
@@ -2796,6 +2808,72 @@ function createSafetyBackup(reason) {
     reason,
   }, `erasmus-plus-sicherheitsbackup-${reason}-${timestamp}.json`);
   return true;
+}
+
+function createAutomaticBackup(reason) {
+  if (!hasLocalData()) return false;
+  const createdAt = new Date().toISOString();
+  const entry = {
+    id: createId(),
+    reason,
+    createdAt,
+    payload: {
+      ...buildBackupPayload(),
+      automaticBackup: true,
+      reason,
+    },
+  };
+  const backups = [entry, ...getAutomaticBackups()].slice(0, AUTO_BACKUP_LIMIT);
+  try {
+    localStorage.setItem(AUTO_BACKUP_KEY, JSON.stringify(backups));
+    renderAutomaticBackupStatus();
+    return true;
+  } catch (error) {
+    try {
+      localStorage.setItem(AUTO_BACKUP_KEY, JSON.stringify([entry]));
+      renderAutomaticBackupStatus();
+      return true;
+    } catch (secondError) {
+      console.warn("Automatische Sicherung konnte nicht gespeichert werden", secondError);
+      return false;
+    }
+  }
+}
+
+function getAutomaticBackups() {
+  try {
+    const backups = JSON.parse(localStorage.getItem(AUTO_BACKUP_KEY) || "[]");
+    return Array.isArray(backups) ? backups.filter((entry) => entry?.payload?.data) : [];
+  } catch (error) {
+    console.warn("Automatische Sicherungen konnten nicht gelesen werden", error);
+    return [];
+  }
+}
+
+function latestAutomaticBackup() {
+  return getAutomaticBackups()[0] || null;
+}
+
+function renderAutomaticBackupStatus() {
+  const status = document.querySelector("#auto-backup-status");
+  const button = document.querySelector("#download-auto-backup");
+  if (!status || !button) return;
+  const backups = getAutomaticBackups();
+  const latest = backups[0];
+  button.disabled = !latest;
+  status.textContent = latest
+    ? `Letzte Auto-Sicherung: ${formatDateTime(latest.createdAt)} (${latest.reason}); ${backups.length} Sicherung${backups.length === 1 ? "" : "en"} gespeichert.`
+    : "Noch keine automatische Sicherung vorhanden.";
+}
+
+function downloadLatestAutomaticBackup() {
+  const latest = latestAutomaticBackup();
+  if (!latest) {
+    toast("Noch keine automatische Sicherung vorhanden");
+    return;
+  }
+  const timestamp = latest.createdAt.replace(/[:.]/g, "-");
+  downloadJson(latest.payload, `erasmus-plus-auto-sicherung-${timestamp}.json`);
 }
 
 function hasLocalData() {

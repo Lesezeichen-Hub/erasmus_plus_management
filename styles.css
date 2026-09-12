@@ -258,6 +258,11 @@ label textarea,
   color: var(--text);
 }
 
+.backup-status {
+  margin: 14px 0 0;
+  font-size: 0.9rem;
+}
+
 .clearable-field {
   position: relative;
   display: block;

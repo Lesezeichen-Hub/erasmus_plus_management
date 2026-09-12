@@ -51,6 +51,8 @@ Der Administrationsbereich ist in aufklappbare Gruppen gegliedert: Benutzer und 
 
 Die Anwendung nutzt IndexedDB im Browser. Dadurch bleiben Projekte, Foerderbudgets, Partnereinrichtungen, Teilnehmende, Aufwaende, Aufgaben, Dokumente, Stammdaten und Managementbenutzer lokal erhalten, bis Browserdaten geloescht werden.
 
+Nach erfolgreichen Aenderungen legt die App zusaetzlich automatisch rotierende Sicherungen im Browser-`localStorage` ab. Im Backup-Bereich kann die letzte Auto-Sicherung als JSON-Datei heruntergeladen und wie ein normales Backup wieder importiert werden. Beim optionalen lokalen Windows-Server wird weiterhin parallel ein SQLite-Snapshot geschrieben.
+
 ## Lokaler Webserver fuer Windows
 
 Mit `ErasmusPlusManagementServer.exe` kann die App lokal ueber `http://127.0.0.1:8765/` ausgeliefert werden. Der Server nutzt nur den lokalen Rechner, oeffnet automatisch den Browser und waehlt bei belegtem Port automatisch den naechsten freien Port.
