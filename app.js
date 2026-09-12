@@ -215,6 +215,9 @@ function bindForms() {
   document.querySelector("#student-form [name=projectIds]").addEventListener("change", () => renderRequiredDocumentFields());
   document.querySelector("#fundingBudget-form [name=startDate]").addEventListener("change", updateFundingBudgetEndDate);
   document.querySelector("#fundingBudget-form [name=durationMonths]").addEventListener("change", updateFundingBudgetEndDate);
+  ["startDate", "endDate"].forEach((name) => {
+    document.querySelector(`#project-form [name=${name}]`).addEventListener("change", () => fillFundingBudgetSelect());
+  });
   ["destinationCountry", "participantCount", "durationDays", "travelDays", "distanceBand", "greenTravel", "dailySupportRate", "travelGrantRate"].forEach((name) => {
     document.querySelector(`#project-form [name=${name}]`).addEventListener("input", updateGrantSuggestion);
     document.querySelector(`#project-form [name=${name}]`).addEventListener("change", updateGrantSuggestion);
@@ -294,9 +297,14 @@ async function onProjectSubmit(event) {
     toast("Enddatum darf nicht vor dem Startdatum liegen");
     return;
   }
-  for (const fundingBudget of matchingFundingBudgets({ startDate: data.startDate, endDate: data.endDate })) {
-    const assigned = fundingBudgetAssigned(fundingBudget.id, data.id || null) + Number(data.budget || 0);
-    if (assigned > Number(fundingBudget.amount || 0)) {
+  if (data.fundingBudgetId) {
+    const fundingBudget = state.fundingBudgets.find((budget) => budget.id === data.fundingBudgetId);
+    if (!fundingBudget || fundingBudget.status === "Inaktiv" || !projectOverlapsFundingBudget(data, fundingBudget)) {
+      toast("Das ausgewählte Förderbudget passt nicht zum Projektzeitraum");
+      return;
+    }
+    const assigned = fundingBudgetAssigned(data.fundingBudgetId, data.id || null) + Number(data.budget || 0);
+    if (assigned > Number(fundingBudget?.amount || 0)) {
       toast("Projektbudget überschreitet das verfügbare Förderbudget");
       return;
     }
@@ -310,6 +318,7 @@ async function onProjectSubmit(event) {
     partners: data.partners.trim(),
     startDate: data.startDate,
     endDate: data.endDate,
+    fundingBudgetId: data.fundingBudgetId || "",
     destinationCountry: data.destinationCountry,
     participantCount: Number(data.participantCount || 0),
     durationDays: Number(data.durationDays || 0),
@@ -600,15 +609,12 @@ function renderDashboard() {
   const activeProjects = state.projects.filter((project) => project.status === "Aktiv");
   const openTasks = state.tasks.filter((task) => task.status !== "Erledigt");
   const travellingStudents = state.students.filter((student) => student.role === "Teilnehmer").length;
-  const remainingBudget = state.projects.reduce((sum, project) => sum + budgetRemaining(project.id), 0);
-  const fundingRemaining = state.fundingBudgets
-    .filter((budget) => budget.status !== "Inaktiv")
-    .reduce((sum, budget) => sum + fundingBudgetRemaining(budget.id), 0);
+  const overview = fundingOverview();
 
   document.querySelector("#kpi-grid").innerHTML = [
     kpi("Aktive Projekte", activeProjects.length),
-    kpi("Projekt-Restbudgets", money.format(remainingBudget)),
-    kpi("nicht verplantes Budget", money.format(fundingRemaining)),
+    kpi("In Projekten offen", money.format(overview.plannedOpen)),
+    kpi("nicht verplantes Budget", money.format(overview.unplanned)),
     kpi("Offene Aufgaben", openTasks.length),
     kpi("Reisende Teilnehmende", travellingStudents),
   ].join("");
@@ -646,14 +652,8 @@ function renderProjectStatusSummary() {
 }
 
 function renderFundingChart() {
-  const totalFunding = state.fundingBudgets
-    .filter((budget) => budget.status !== "Inaktiv")
-    .reduce((sum, budget) => sum + Number(budget.amount || 0), 0);
-  const plannedBudget = state.projects.reduce((sum, project) => sum + Number(project.budget || 0), 0);
-  const spent = state.expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
-  const remaining = Math.max(totalFunding - plannedBudget, 0);
-  const plannedOpen = Math.max(plannedBudget - spent, 0);
-  const overplanned = Math.max(plannedBudget - totalFunding, 0);
+  const { totalFunding, plannedBudget, spent, unplanned, plannedOpen, overplanned } = fundingOverview();
+  const remaining = Math.max(unplanned, 0);
   const base = Math.max(totalFunding, plannedBudget, 1);
   const spentPercent = Math.round((spent / base) * 100);
   const plannedPercent = Math.round((plannedOpen / base) * 100);
@@ -675,6 +675,27 @@ function renderFundingChart() {
       ${overplanned ? legendItem("Überplant", money.format(overplanned), "danger", "Projektbudgets überschreiten den Fördertopf") : ""}
     </div>
   `;
+}
+
+function fundingOverview() {
+  const activeBudgets = state.fundingBudgets.filter((budget) => budget.status !== "Inaktiv");
+  const activeBudgetIds = new Set(activeBudgets.map((budget) => budget.id));
+  const fundedProjects = state.projects.filter((project) => activeBudgetIds.has(effectiveProjectFundingBudgetId(project)));
+  const fundedProjectIds = new Set(fundedProjects.map((project) => project.id));
+  const totalFunding = activeBudgets.reduce((sum, budget) => sum + Number(budget.amount || 0), 0);
+  const plannedBudget = fundedProjects.reduce((sum, project) => sum + Number(project.budget || 0), 0);
+  const spent = state.expenses
+    .filter((expense) => fundedProjectIds.has(expense.projectId))
+    .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+
+  return {
+    totalFunding,
+    plannedBudget,
+    spent,
+    plannedOpen: Math.max(plannedBudget - spent, 0),
+    unplanned: totalFunding - plannedBudget,
+    overplanned: Math.max(plannedBudget - totalFunding, 0),
+  };
 }
 
 function legendItem(label, value, tone, detail = "") {
@@ -717,7 +738,18 @@ function renderRiskCenter() {
       detail: `Fehlt: ${missing.join(", ")}`,
     }));
 
-  const items = [...overdueTasks, ...missingReceipts, ...missingDocumentItems];
+  const fundingIssues = state.projects
+    .map((project) => ({ project, budget: state.fundingBudgets.find((entry) => entry.id === effectiveProjectFundingBudgetId(project)) }))
+    .filter(({ project, budget }) => !budget || budget.status === "Inaktiv" || !projectOverlapsFundingBudget(project, budget))
+    .map(({ project, budget }) => riskItem({
+      tone: "danger",
+      label: "Fördertopf",
+      title: project.name,
+      context: budget ? fundingBudgetName(budget.id) : "Nicht eindeutig zugeordnet",
+      detail: budget ? "Projektzeitraum passt nicht zum Förderzeitraum" : "Budget wird nicht in den Fördergeldsummen gezählt",
+    }));
+
+  const items = [...fundingIssues, ...overdueTasks, ...missingReceipts, ...missingDocumentItems];
   document.querySelector("#risk-list").innerHTML = items.length
     ? `<div class="risk-stack">${items.join("")}</div>`
     : `<div class="empty success">Alles im grünen Bereich.</div>`;
@@ -1335,22 +1367,29 @@ function fundingBudgetName(id) {
 }
 
 function projectFundingBudgetNames(project) {
-  const budgets = matchingFundingBudgets(project);
-  if (!budgets.length) return "Kein passender Förderzeitraum";
-  return budgets.map((budget) => escapeHtml(fundingBudgetName(budget.id))).join("<br>");
+  const id = effectiveProjectFundingBudgetId(project);
+  if (!id) return `<span class="muted">Nicht zugeordnet</span>`;
+  const budget = state.fundingBudgets.find((entry) => entry.id === id);
+  if (!budget) return `<span class="badge danger">Fördertopf fehlt</span>`;
+  const mismatch = !projectOverlapsFundingBudget(project, budget);
+  return `${escapeHtml(fundingBudgetName(id))}${mismatch ? '<div class="meta danger-text">Zeitraum passt nicht</div>' : ""}`;
 }
 
 function fundingBudgetAssigned(id, excludeProjectId = null) {
-  const budget = state.fundingBudgets.find((entry) => entry.id === id);
-  if (!budget) return 0;
   return state.projects
-    .filter((project) => project.id !== excludeProjectId && projectOverlapsFundingBudget(project, budget))
+    .filter((project) => project.id !== excludeProjectId && effectiveProjectFundingBudgetId(project) === id)
     .reduce((sum, project) => sum + Number(project.budget || 0), 0);
 }
 
-function fundingBudgetRemaining(id) {
+function fundingBudgetRemaining(id, excludeProjectId = null) {
   const budget = state.fundingBudgets.find((entry) => entry.id === id);
-  return Number(budget?.amount || 0) - fundingBudgetAssigned(id);
+  return Number(budget?.amount || 0) - fundingBudgetAssigned(id, excludeProjectId);
+}
+
+function effectiveProjectFundingBudgetId(project) {
+  if (project.fundingBudgetId) return project.fundingBudgetId;
+  const matches = matchingFundingBudgets(project);
+  return matches.length === 1 ? matches[0].id : "";
 }
 
 function calculateIndividualSupport(days, dailyRate) {
@@ -1401,6 +1440,7 @@ function fillSelects() {
   fillOptionSelect("#project-form [name=action]", getSettingValues("leadActions"), "Bitte wählen");
   fillCountrySelect();
   fillTravelBandSelect();
+  fillFundingBudgetSelect();
   fillOptionSelect("#expense-form [name=category]", getSettingValues("expenseCategories"));
   fillOptionSelect("#document-form [name=type]", getSettingValues("documentTypes"));
   renderRequiredDocumentFields();
@@ -1439,11 +1479,18 @@ function fillTravelBandSelect() {
 function fillFundingBudgetSelect(selectedId = null) {
   const select = document.querySelector("#project-form [name=fundingBudgetId]");
   const selected = selectedId ?? select.value;
+  const form = document.querySelector("#project-form");
+  const currentProjectId = form.elements.id.value || null;
+  const projectDates = {
+    startDate: form.elements.startDate.value,
+    endDate: form.elements.endDate.value,
+  };
   select.innerHTML = `<option value="">Kein Förderbudget zugeordnet</option>`;
   state.fundingBudgets
-    .filter((budget) => budget.status !== "Inaktiv" || budget.id === selected)
+    .filter((budget) => budget.id === selected || (budget.status !== "Inaktiv" && (!projectDates.startDate || !projectDates.endDate || projectOverlapsFundingBudget(projectDates, budget))))
     .forEach((budget) => {
-      const label = `${budget.name} · ${formatDate(budget.startDate)}-${formatDate(budget.endDate)} · Rest ${money.format(fundingBudgetRemaining(budget.id))}${budget.status === "Inaktiv" ? " · inaktiv" : ""}`;
+      const dateMismatch = projectDates.startDate && projectDates.endDate && !projectOverlapsFundingBudget(projectDates, budget);
+      const label = `${budget.name} · ${formatDate(budget.startDate)}-${formatDate(budget.endDate)} · frei ${money.format(fundingBudgetRemaining(budget.id, currentProjectId))}${budget.status === "Inaktiv" ? " · inaktiv" : ""}${dateMismatch ? " · Zeitraum passt nicht" : ""}`;
       const option = new Option(label, budget.id);
       option.selected = selected === budget.id;
       select.add(option);
@@ -1640,6 +1687,10 @@ function editItem(store, id) {
 
   if (store === "students") {
     renderRequiredDocumentFields();
+  }
+
+  if (store === "projects") {
+    fillFundingBudgetSelect(item.fundingBudgetId || effectiveProjectFundingBudgetId(item));
   }
 
   if (store === "users") {
