@@ -38,13 +38,13 @@
         <div class="brand-mark">E+</div>
         <div>
           <strong>Erasmus+</strong>
-          <span>Schüleraustausch</span>
+          <span>Schüler*innenaustausch</span>
         </div>
       </div>
       <nav class="nav" id="nav">
         <button class="nav-item active" data-view="dashboard">Dashboard</button>
         <button class="nav-item" data-view="projects">Projekte</button>
-        <button class="nav-item" data-view="students">Schüler</button>
+        <button class="nav-item" data-view="students">Teilnehmende</button>
         <button class="nav-item" data-view="expenses">Aufwände</button>
         <button class="nav-item" data-view="tasks">Aufgaben</button>
         <button class="nav-item" data-view="documents">Dokumente</button>
@@ -60,7 +60,7 @@
           <h1 id="page-title">Dashboard</h1>
         </div>
         <div class="search-wrap">
-          <input id="global-search" type="search" placeholder="Suchen: Projekte, Schüler, Belege..." />
+          <input id="global-search" type="search" placeholder="Suchen: Projekte, Teilnehmende, Belege..." />
         </div>
         <div class="userbar">
           <span id="current-user"></span>
@@ -182,7 +182,7 @@
           </section>
           <section id="participant-list-panel" class="panel wide participant-report-panel" hidden>
             <div class="panel-head no-print">
-              <h2>Teilnehmerliste</h2>
+              <h2>Teilnehmendenliste</h2>
               <div class="row-actions">
                 <button type="button" class="secondary small" id="close-participant-list">Schließen</button>
                 <button type="button" class="small" id="print-participant-list">Drucken / PDF</button>
@@ -196,7 +196,7 @@
       <section id="students" class="view">
         <div class="section-layout">
           <form id="student-form" class="panel form-panel">
-            <h2>Schüler erfassen</h2>
+            <h2>Teilnehmende erfassen</h2>
             <input type="hidden" name="id" />
             <label>Name <input name="name" required minlength="3" /></label>
             <div class="form-row">
@@ -207,8 +207,8 @@
             <div class="form-row">
               <label>Rolle
                 <select name="role">
-                  <option>Teilnehmer</option>
-                  <option>Nachrücker</option>
+                  <option value="Teilnehmer">Teilnehmende*r</option>
+                  <option value="Nachrücker">Nachrücker*in</option>
                 </select>
               </label>
               <label>Dokumentenstatus
@@ -220,7 +220,8 @@
               </label>
             </div>
             <fieldset>
-              <legend>Dokumente</legend>
+              <legend>Dokumente pro Projekt</legend>
+              <div id="project-document-tabs" class="doc-tabs"></div>
               <div id="required-document-fields" class="check-grid"></div>
             </fieldset>
             <div class="form-actions">
@@ -230,11 +231,11 @@
           </form>
           <section class="panel table-panel">
             <div class="panel-head">
-              <h2>Teilnehmerindex</h2>
+              <h2>Teilnehmendenindex</h2>
               <select id="student-filter">
                 <option value="">Alle Rollen</option>
-                <option>Teilnehmer</option>
-                <option>Nachrücker</option>
+                <option value="Teilnehmer">Teilnehmende*r</option>
+                <option value="Nachrücker">Nachrücker*in</option>
               </select>
             </div>
             <div class="table-wrap"><table id="students-table"></table></div>
@@ -248,7 +249,7 @@
             <h2>Aufwand erfassen</h2>
             <input type="hidden" name="id" />
             <label>Projekt <select name="projectId" required></select></label>
-            <label>Schüler <select name="studentId"><option value="">Ohne Schülerbezug</option></select></label>
+            <label>Teilnehmende*r <select name="studentId"><option value="">Ohne Personenbezug</option></select></label>
             <div class="form-row">
               <label>Kategorie
                 <select name="category" required></select>
@@ -347,7 +348,7 @@
               </label>
             </div>
             <label>Projekt <select name="projectId" required></select></label>
-            <label>Schüler <select name="studentId"><option value="">Ohne Schülerbezug</option></select></label>
+            <label>Teilnehmende*r <select name="studentId"><option value="">Ohne Personenbezug</option></select></label>
             <div class="form-row">
               <label>Datum <input name="date" type="date" required /></label>
               <label>Ablageort / Dateiname <input name="storageHint" placeholder="Ordner, Aktenzeichen oder Dateiname" /></label>
@@ -369,7 +370,7 @@
           </section>
           <section class="panel table-panel wide">
             <div class="panel-head">
-              <h2>Pflichtdokumente Schüler</h2>
+              <h2>Pflichtdokumente Teilnehmende</h2>
             </div>
             <div class="table-wrap"><table id="documents-table"></table></div>
           </section>
@@ -380,7 +381,7 @@
         <div class="content-grid">
           <section class="panel">
             <h2>Backup exportieren</h2>
-            <p class="muted">Speichert alle Projekte, Schüler, Aufwände und Aufgaben als JSON-Datei.</p>
+            <p class="muted">Speichert alle Projekte, Teilnehmenden, Aufwände und Aufgaben als JSON-Datei.</p>
             <button id="export-data">Export herunterladen</button>
           </section>
           <section class="panel">

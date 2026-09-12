@@ -1,6 +1,6 @@
 # Erasmus+ Management
 
-Eine lokale, responsive Single-Page-Webanwendung zur Verwaltung von Erasmus+ Schueleraustausch-Projekten.
+Eine lokale, responsive Single-Page-Webanwendung zur Verwaltung von Erasmus+ Schueler*innenaustausch-Projekten.
 
 ## Dateistruktur
 
@@ -46,7 +46,7 @@ Im Admin-Panel koennen ausserdem Stammdaten gepflegt werden:
 
 ## Datenhaltung
 
-Die Anwendung nutzt IndexedDB im Browser. Dadurch bleiben Projekte, Foerderbudgets, Partnereinrichtungen, Schueler, Aufwaende, Aufgaben, Dokumente, Stammdaten und Managementbenutzer lokal erhalten, bis Browserdaten geloescht werden.
+Die Anwendung nutzt IndexedDB im Browser. Dadurch bleiben Projekte, Foerderbudgets, Partnereinrichtungen, Teilnehmende, Aufwaende, Aufgaben, Dokumente, Stammdaten und Managementbenutzer lokal erhalten, bis Browserdaten geloescht werden.
 
 ## Lokaler Webserver fuer Windows
 
@@ -85,11 +85,11 @@ Wichtige Stellen in `app.js`:
 
 - Dashboard mit KPIs, Projektstatus, Restbudget und Risikoueberblick
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
-- Teilnehmerlisten pro Projekt mit Geburtsdatum, Rolle, Dokumentstatus, fehlenden Dokumenten und Druck-/PDF-Ausgabe
+- Teilnehmendenlisten pro Projekt mit Geburtsdatum, kompaktem Dokumentstatus, fehlenden Dokumenten und Druck-/PDF-Ausgabe
 - Automatische, bearbeitbare Foerderpauschalen pro Zielland und Distanzband beim Projektanlegen
 - Admin-Tabelle zum Aktualisieren, Speichern, Exportieren und Importieren der Foerderpauschalen-Vorlage
-- Schueler mit Projektzuordnung, Rolle und Dokumentenstatus
-- Aufwaende mit Kategorie, Betrag, Belegstatus, Projekt- und Schuelerbezug
+- Teilnehmende mit Projektzuordnung, Rolle und projektbezogenen Dokument-Tabs
+- Aufwaende mit Kategorie, Betrag, Belegstatus, Projekt- und Personenbezug
 - Aufgaben je Projekt mit Fortschrittsbalken
 - Dokumentenindex fuer projekt- und schuelerbezogene Unterlagen
 - Dokumentenmonitor fuer Einverstaendnis, Notfallkontakt und Versicherung

@@ -506,6 +506,34 @@ legend {
   gap: 8px;
 }
 
+.doc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.doc-tab {
+  min-height: 34px;
+  padding: 0 12px;
+  background: #e7edf3;
+  color: var(--text);
+}
+
+.doc-tab:hover,
+.doc-tab.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.doc-tab-panel {
+  display: none;
+  gap: 8px;
+}
+
+.doc-tab-panel.active {
+  display: grid;
+}
+
 .form-actions {
   display: flex;
   gap: 10px;

@@ -212,6 +212,7 @@ function bindForms() {
   document.querySelector("#user-form").addEventListener("submit", onUserSubmit);
   document.querySelector("#institution-form").addEventListener("submit", onInstitutionSubmit);
   document.querySelector("#fundingBudget-form").addEventListener("submit", onFundingBudgetSubmit);
+  document.querySelector("#student-form [name=projectIds]").addEventListener("change", () => renderRequiredDocumentFields());
   document.querySelector("#fundingBudget-form [name=startDate]").addEventListener("change", updateFundingBudgetEndDate);
   document.querySelector("#fundingBudget-form [name=durationMonths]").addEventListener("change", updateFundingBudgetEndDate);
   ["destinationCountry", "participantCount", "durationDays", "travelDays", "distanceBand", "greenTravel", "dailySupportRate", "travelGrantRate"].forEach((name) => {
@@ -248,6 +249,9 @@ function resetForm(formId) {
   if (formId === "project-form") {
     form.elements.budget.dataset.autoGrant = "true";
     updateGrantSuggestion();
+  }
+  if (formId === "student-form") {
+    renderRequiredDocumentFields();
   }
 }
 
@@ -319,7 +323,7 @@ async function onProjectSubmit(event) {
     budget: Number(data.budget),
     status: data.status,
   });
-  form.reset();
+  resetForm("project-form");
 }
 
 async function onStudentSubmit(event) {
@@ -340,9 +344,13 @@ async function onStudentSubmit(event) {
     projectIds,
     role: data.get("role"),
     documentStatus: data.get("documentStatus"),
-    documents: Object.fromEntries(getSettingValues("documentTypes").map((type) => [type, data.getAll("requiredDocuments").includes(type)])),
+    documents: Object.fromEntries(getSettingValues("documentTypes").map((type) => [type, projectIds.every((projectId) => data.getAll(`requiredDocuments:${projectId}`).includes(type))])),
+    documentsByProject: Object.fromEntries(projectIds.map((projectId) => [
+      projectId,
+      Object.fromEntries(getSettingValues("documentTypes").map((type) => [type, data.getAll(`requiredDocuments:${projectId}`).includes(type)])),
+    ])),
   });
-  form.reset();
+  resetForm("student-form");
 }
 
 async function onExpenseSubmit(event) {
@@ -602,7 +610,7 @@ function renderDashboard() {
     kpi("Projekt-Restbudgets", money.format(remainingBudget)),
     kpi("nicht verplantes Budget", money.format(fundingRemaining)),
     kpi("Offene Aufgaben", openTasks.length),
-    kpi("Reisende Schüler", travellingStudents),
+    kpi("Reisende Teilnehmende", travellingStudents),
   ].join("");
 
   const statusFilter = document.querySelector("#dashboard-status-filter").value;
@@ -784,8 +792,8 @@ function renderParticipantList(projectId, shouldScroll = false) {
 
   report.innerHTML = `
     <div class="report-title">
-      <p>Erasmus+ Schüleraustausch</p>
-      <h2>Teilnehmerliste ${escapeHtml(project.name)}</h2>
+      <p>Erasmus+ Schüler*innenaustausch</p>
+      <h2>Teilnehmendenliste ${escapeHtml(project.name)}</h2>
     </div>
     <div class="report-meta">
       <span><strong>Leitaktion:</strong> ${escapeHtml(project.action)}</span>
@@ -803,7 +811,7 @@ function renderParticipantList(projectId, shouldScroll = false) {
         <thead>
           <tr>
             <th>#</th>
-            <th>Schüler</th>
+            <th>Teilnehmende*r</th>
             <th>Geburtsdatum</th>
             ${documentHeaders}
             <th>Fehlt</th>
@@ -829,7 +837,7 @@ function closeParticipantList(resetState = true) {
 
 function printParticipantList() {
   if (!state.participantListProjectId) {
-    toast("Bitte zuerst eine Teilnehmerliste öffnen");
+    toast("Bitte zuerst eine Teilnehmendenliste öffnen");
     return;
   }
   document.body.classList.add("printing-participant-list");
@@ -843,7 +851,7 @@ function renderStudents() {
   renderTable("#students-table", ["Name", "Projekte", "Rolle", "Dokumente", ""], rows.map((student) => [
     `<strong>${escapeHtml(student.name)}</strong><div class="meta">${escapeHtml(student.className)} · ${formatDate(student.birthDate)}</div>`,
     student.projectIds.map(projectName).map(escapeHtml).join("<br>"),
-    badge(student.role, student.role === "Teilnehmer" ? "ok" : "warn"),
+    badge(roleLabel(student.role), student.role === "Teilnehmer" ? "ok" : "warn"),
     documentBadges(student),
     actions("students", student.id),
   ]));
@@ -852,7 +860,7 @@ function renderStudents() {
 function renderExpenses() {
   const receipt = document.querySelector("#receipt-filter").value;
   const rows = filterText(state.expenses).filter((expense) => !receipt || expense.receiptStatus === receipt);
-  renderTable("#expenses-table", ["Datum", "Projekt", "Schüler", "Kategorie", "Betrag", "Beleg", ""], rows.map((expense) => [
+  renderTable("#expenses-table", ["Datum", "Projekt", "Teilnehmende*r", "Kategorie", "Betrag", "Beleg", ""], rows.map((expense) => [
     formatDate(expense.date),
     escapeHtml(projectName(expense.projectId)),
     escapeHtml(studentName(expense.studentId)),
@@ -883,7 +891,7 @@ function renderTasks() {
 function renderDocuments() {
   const onlyMissing = document.querySelector("#document-filter").value === "missing";
   const rows = filterText(state.documents).filter((doc) => !onlyMissing || doc.status !== "Abgelegt");
-  renderTable("#document-index-table", ["Datum", "Dokument", "Projekt", "Schüler", "Status", ""], rows.map((doc) => [
+  renderTable("#document-index-table", ["Datum", "Dokument", "Projekt", "Teilnehmende*r", "Status", ""], rows.map((doc) => [
     formatDate(doc.date),
     `<strong>${escapeHtml(doc.title)}</strong><div class="meta">${escapeHtml(doc.type)} - ${escapeHtml(doc.storageHint || "Kein Ablageort erfasst")}</div>`,
     escapeHtml(projectName(doc.projectId)),
@@ -894,7 +902,7 @@ function renderDocuments() {
 
   const studentRows = filterText(studentProjectRows()).filter((row) => !onlyMissing || missingDocs(row.student, row.projectId).length);
   const documentTypes = getSettingValues("documentTypes");
-  renderTable("#documents-table", ["Schüler / Projekt", ...documentTypes, "Status"], studentRows.map(({ student, projectId }) => [
+  renderTable("#documents-table", ["Teilnehmende*r / Projekt", ...documentTypes, "Status"], studentRows.map(({ student, projectId }) => [
     `<strong>${escapeHtml(student.name)}</strong><div class="meta">${escapeHtml(student.className)} · ${escapeHtml(projectName(projectId))}</div>`,
     ...documentTypes.map((type) => yesNo(hasProjectDocument(student, type, projectId))),
     badge(missingDocs(student, projectId).length ? "Unvollständig" : "Vollständig", missingDocs(student, projectId).length ? "danger" : "ok"),
@@ -1455,10 +1463,60 @@ function fillInstitutionSelect(selectedIds = null) {
 
 function renderRequiredDocumentFields() {
   const container = document.querySelector("#required-document-fields");
-  const checked = [...container.querySelectorAll("[name=requiredDocuments]:checked")].map((input) => input.value);
-  container.innerHTML = getSettingValues("documentTypes").map((type) => `
-    <label class="check"><input type="checkbox" name="requiredDocuments" value="${escapeHtml(type)}" ${checked.includes(type) ? "checked" : ""} /> ${escapeHtml(type)}</label>
+  const tabs = document.querySelector("#project-document-tabs");
+  const form = document.querySelector("#student-form");
+  const projectIds = [...form.elements.projectIds.selectedOptions].map((option) => option.value);
+  const previous = collectProjectDocumentChecks(container);
+
+  if (!projectIds.length) {
+    tabs.innerHTML = "";
+    container.innerHTML = `<p class="hint">Bitte zuerst mindestens ein Projekt auswählen.</p>`;
+    return;
+  }
+
+  tabs.innerHTML = projectIds.map((projectId, index) => `
+    <button type="button" class="doc-tab ${index === 0 ? "active" : ""}" data-doc-tab="${escapeHtml(projectId)}">${escapeHtml(projectName(projectId))}</button>
   `).join("");
+
+  container.innerHTML = projectIds.map((projectId, index) => `
+    <div class="doc-tab-panel ${index === 0 ? "active" : ""}" data-doc-panel="${escapeHtml(projectId)}">
+      ${getSettingValues("documentTypes").map((type) => {
+        const checked = previous[projectId]?.[type] ?? currentStudentDocumentValue(form.elements.id.value, projectId, type);
+        return `<label class="check"><input type="checkbox" name="requiredDocuments:${escapeHtml(projectId)}" value="${escapeHtml(type)}" ${checked ? "checked" : ""} /> ${escapeHtml(type)}</label>`;
+      }).join("")}
+    </div>
+  `).join("");
+
+  tabs.querySelectorAll("[data-doc-tab]").forEach((button) => {
+    button.addEventListener("click", () => activateDocumentTab(button.dataset.docTab));
+  });
+}
+
+function collectProjectDocumentChecks(container) {
+  const checks = {};
+  container.querySelectorAll("[data-doc-panel]").forEach((panel) => {
+    const projectId = panel.dataset.docPanel;
+    checks[projectId] = {};
+    panel.querySelectorAll("input[type=checkbox]").forEach((input) => {
+      checks[projectId][input.value] = input.checked;
+    });
+  });
+  return checks;
+}
+
+function currentStudentDocumentValue(studentId, projectId, type) {
+  const student = state.students.find((entry) => entry.id === studentId);
+  if (!student) return false;
+  return hasProjectDocument(student, type, projectId);
+}
+
+function activateDocumentTab(projectId) {
+  document.querySelectorAll("#project-document-tabs [data-doc-tab]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.docTab === projectId);
+  });
+  document.querySelectorAll("#required-document-fields [data-doc-panel]").forEach((panel) => {
+    panel.classList.toggle("active", panel.dataset.docPanel === projectId);
+  });
 }
 
 function fillOptionSelect(selector, values, emptyLabel = null) {
@@ -1486,7 +1544,7 @@ function fillProjectSelect(selector, multiple = false, emptyLabel = null) {
 function fillStudentSelect(selector) {
   const select = document.querySelector(selector);
   const current = select.value;
-  select.innerHTML = `<option value="">Ohne Schülerbezug</option>`;
+  select.innerHTML = `<option value="">Ohne Personenbezug</option>`;
   state.students.forEach((student) => {
     const option = new Option(student.name, student.id);
     option.selected = current === student.id;
@@ -1539,7 +1597,7 @@ function actions(store, id) {
 function projectActions(id) {
   return `
     <div class="row-actions">
-      <button class="small" data-participant-list="${id}">Teilnehmerliste</button>
+      <button class="small" data-participant-list="${id}">Teilnehmendenliste</button>
       <button class="small secondary" data-edit data-store="projects" data-id="${id}">Bearbeiten</button>
       <button class="small danger" data-delete data-store="projects" data-id="${id}">Löschen</button>
     </div>
@@ -1578,9 +1636,7 @@ function editItem(store, id) {
   });
 
   if (store === "students") {
-    form.querySelectorAll("[name=requiredDocuments]").forEach((input) => {
-      input.checked = hasDocument(item, input.value);
-    });
+    renderRequiredDocumentFields();
   }
 
   if (store === "users") {
@@ -1681,6 +1737,12 @@ function filterText(items) {
 
 function projectName(id) {
   return state.projects.find((project) => project.id === id)?.name || "Nicht zugeordnet";
+}
+
+function roleLabel(role) {
+  if (role === "Teilnehmer") return "Teilnehmende*r";
+  if (role === "Nachrücker") return "Nachrücker*in";
+  return role || "-";
 }
 
 function studentName(id) {
