@@ -87,7 +87,8 @@ Wichtige Stellen in `app.js`:
 - Projektakte mit Projektdetails, Budget, Teilnehmenden, Aufgaben, Aufwaenden, Dokumenten und Historie
 - Aenderungshistorie fuer lokale Verwaltungsaktionen
 - Sicherheitsbackup vor Import, Beispieldaten-Reset und Loeschvorgaengen plus manueller Sicherungsbutton
-- Editierbare Druckvorlagen fuer Europass Lernvereinbarung und Europass Mobilitaet pro Teilnehmende*r
+- Speicherbare Druckvorlagen fuer Europass Lernvereinbarung und Europass Mobilitaet pro Teilnehmende*r
+- Batch-Ausgabe pro Projekt fuer Teilnahmebescheinigungen, Europass Mobilitaet und Lernvereinbarungen
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
 - Teilnehmendenlisten pro Projekt mit Geburtsdatum, kompaktem Dokumentstatus, fehlenden Dokumenten und Druck-/PDF-Ausgabe
 - Automatische, bearbeitbare Foerderpauschalen pro Zielland und Distanzband beim Projektanlegen

@@ -917,6 +917,14 @@ th {
   font-size: 1.55rem;
 }
 
+.project-file-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 420px;
+}
+
 .project-file-grid,
 .project-file-sections {
   display: grid;
@@ -997,6 +1005,16 @@ th {
   color: var(--text);
 }
 
+.template-batch {
+  display: grid;
+  gap: 22px;
+}
+
+.template-batch .eu-template {
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 22px;
+}
+
 .eu-template header {
   border: 2px solid var(--primary);
   border-left: 12px solid var(--primary);
@@ -1049,6 +1067,23 @@ th {
 .eu-template p {
   margin: 0;
   line-height: 1.55;
+}
+
+.template-input,
+.template-textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 8px 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.template-textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.5;
 }
 
 .template-notice {
@@ -1426,6 +1461,11 @@ th {
     display: grid;
   }
 
+  .project-file-actions {
+    justify-content: flex-start;
+    max-width: none;
+  }
+
   .project-file-grid,
   .project-file-sections,
   .signature-grid {
@@ -1506,8 +1546,37 @@ th {
     max-width: none;
   }
 
+  body.printing-template-document .template-batch {
+    display: block;
+  }
+
+  body.printing-template-document .template-batch .eu-template {
+    break-after: page;
+    page-break-after: always;
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  body.printing-template-document .template-batch .eu-template:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
   body.printing-template-document .eu-template header h1 {
     font-size: 18pt;
+  }
+
+  body.printing-template-document .clear-field {
+    display: none !important;
+  }
+
+  body.printing-template-document .template-input,
+  body.printing-template-document .template-textarea {
+    border: 0;
+    padding: 0;
+    background: transparent !important;
+    color: #17202a !important;
+    resize: none;
   }
 
   body.printing-participant-list .report-title h2 {

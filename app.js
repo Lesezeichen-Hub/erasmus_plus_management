@@ -1,6 +1,6 @@
 const DB_NAME = "erasmus_plus_management";
-const DB_VERSION = 7;
-const STORES = ["projects", "students", "expenses", "tasks", "documents", "users", "settings", "institutions", "fundingBudgets", "auditLogs"];
+const DB_VERSION = 8;
+const STORES = ["projects", "students", "expenses", "tasks", "documents", "users", "settings", "institutions", "fundingBudgets", "auditLogs", "templateData"];
 const SESSION_KEY = "erasmus_plus_management_user";
 const DEFAULT_SETTINGS = {
   leadActions: ["KA1", "KA2", "KA3"],
@@ -80,6 +80,7 @@ const STORE_LABELS = {
   settings: "Stammdaten",
   institutions: "Partnereinrichtung",
   fundingBudgets: "Förderbudget",
+  templateData: "Dokumentvorlage",
 };
 
 const state = {
@@ -93,11 +94,13 @@ const state = {
   institutions: [],
   fundingBudgets: [],
   auditLogs: [],
+  templateData: [],
   currentUser: null,
   view: "dashboard",
   search: "",
   participantListProjectId: null,
   projectFileProjectId: null,
+  templateDocument: null,
 };
 
 let db;
@@ -182,7 +185,7 @@ function clearStore(storeName) {
 }
 
 async function loadState() {
-  const [projects, students, expenses, tasks, documents, users, settings, institutions, fundingBudgets, auditLogs] = await Promise.all(STORES.map(getAll));
+  const [projects, students, expenses, tasks, documents, users, settings, institutions, fundingBudgets, auditLogs, templateData] = await Promise.all(STORES.map(getAll));
   state.projects = projects.sort(sortByName);
   state.students = students.sort(sortByName);
   state.expenses = expenses.sort((a, b) => (b.date || "").localeCompare(a.date || ""));
@@ -193,6 +196,7 @@ async function loadState() {
   state.institutions = institutions.sort(sortByName);
   state.fundingBudgets = fundingBudgets.sort((a, b) => (b.startDate || "").localeCompare(a.startDate || ""));
   state.auditLogs = auditLogs.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  state.templateData = templateData;
   if (state.currentUser) {
     state.currentUser = state.users.find((user) => user.id === state.currentUser.id && user.status === "Aktiv") || null;
   }
@@ -335,6 +339,8 @@ function bindBackup() {
   document.querySelector("#close-project-file").addEventListener("click", closeProjectFile);
   document.querySelector("#close-template-document").addEventListener("click", closeTemplateDocument);
   document.querySelector("#print-template-document").addEventListener("click", printTemplateDocument);
+  document.querySelector("#save-template-values").addEventListener("click", saveTemplateValues);
+  document.querySelector("#reset-template-values").addEventListener("click", resetTemplateValues);
   document.querySelector("#export-grant-templates").addEventListener("click", exportGrantTemplates);
   document.querySelector("#import-grant-templates").addEventListener("click", importGrantTemplates);
   window.addEventListener("afterprint", () => document.body.classList.remove("printing-participant-list"));
@@ -887,6 +893,7 @@ function projectFileTable(title, headers, rows) {
 function templateActions(projectId, studentId) {
   return `
     <div class="row-actions">
+      <button class="small secondary" data-template-doc="certificate" data-project-id="${projectId}" data-student-id="${studentId}">Bescheinigung</button>
       <button class="small secondary" data-template-doc="learningAgreement" data-project-id="${projectId}" data-student-id="${studentId}">Lernvereinbarung</button>
       <button class="small secondary" data-template-doc="europass" data-project-id="${projectId}" data-student-id="${studentId}">Europass</button>
     </div>
@@ -900,16 +907,49 @@ function showTemplateDocument(type, projectId, studentId) {
     toast("Vorlage konnte nicht erstellt werden");
     return;
   }
-  const title = type === "europass" ? "Europass Mobilität" : "Europass Lernvereinbarung";
+  const title = templateTitle(type);
+  state.templateDocument = { type, projectId, studentId };
+  const values = templateValues(type, project, student);
   document.querySelector("#template-document-title").textContent = title;
-  document.querySelector("#template-document").innerHTML = type === "europass"
-    ? europassTemplate(project, student)
-    : learningAgreementTemplate(project, student);
+  document.querySelector("#template-document").innerHTML = renderTemplateByType(type, project, student, values);
+  enhanceClearableFields();
   document.querySelector("#template-document-panel").hidden = false;
   document.querySelector("#template-document-panel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function showTemplateBatch(type, projectId) {
+  const project = state.projects.find((entry) => entry.id === projectId);
+  const students = state.students.filter((entry) => (entry.projectIds || []).includes(projectId));
+  if (!project || !students.length) {
+    toast("Keine Teilnehmenden für die Batch-Ausgabe gefunden");
+    return;
+  }
+  state.templateDocument = { type, projectId, studentId: "" };
+  document.querySelector("#template-document-title").textContent = `${templateTitle(type)} · ${students.length} Teilnehmende`;
+  document.querySelector("#template-document").innerHTML = `
+    <div class="template-batch">
+      ${students.map((student) => renderTemplateByType(type, project, student, templateValues(type, project, student))).join("")}
+    </div>
+  `;
+  enhanceClearableFields();
+  document.querySelector("#template-document-panel").hidden = false;
+  document.querySelector("#template-document-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function templateTitle(type) {
+  if (type === "europass") return "Europass Mobilität";
+  if (type === "certificate") return "Teilnahmebescheinigung";
+  return "Europass Lernvereinbarung";
+}
+
+function renderTemplateByType(type, project, student, values) {
+  if (type === "europass") return europassTemplate(project, student, values);
+  if (type === "certificate") return certificateTemplate(project, student, values);
+  return learningAgreementTemplate(project, student, values);
+}
+
 function closeTemplateDocument() {
+  state.templateDocument = null;
   document.querySelector("#template-document-panel").hidden = true;
   document.querySelector("#template-document").innerHTML = "";
 }
@@ -920,9 +960,83 @@ function printTemplateDocument() {
   setTimeout(() => document.body.classList.remove("printing-template-document"), 1000);
 }
 
-function learningAgreementTemplate(project, student) {
-  const institutions = projectInstitutionNames(project);
-  const outcomes = projectLearningOutcomes(project);
+async function saveTemplateValues() {
+  if (!state.templateDocument) return;
+  if (!state.templateDocument.studentId) {
+    toast("Batch-Ausgaben werden aus den Einzelwerten erzeugt. Bitte Einzelvorlage speichern.");
+    return;
+  }
+  const fields = {};
+  document.querySelectorAll("#template-document [data-template-field]").forEach((field) => {
+    fields[field.dataset.templateField] = field.value;
+  });
+  const record = {
+    id: templateDataId(state.templateDocument.type, state.templateDocument.projectId, state.templateDocument.studentId),
+    ...state.templateDocument,
+    fields,
+  };
+  await put("templateData", record);
+  await addAuditLog("Aktualisiert", "templateData", record);
+  await loadState();
+  syncSQLiteSnapshot();
+  toast("Vorlagenwerte gespeichert");
+}
+
+async function resetTemplateValues() {
+  if (!state.templateDocument || !confirm("Gespeicherte Werte für diese Vorlage zurücksetzen?")) return;
+  await remove("templateData", templateDataId(state.templateDocument.type, state.templateDocument.projectId, state.templateDocument.studentId));
+  await addAuditLog("Gelöscht", "templateData", {
+    ...state.templateDocument,
+    id: templateDataId(state.templateDocument.type, state.templateDocument.projectId, state.templateDocument.studentId),
+  });
+  await loadState();
+  const current = state.templateDocument;
+  showTemplateDocument(current.type, current.projectId, current.studentId);
+  syncSQLiteSnapshot();
+  toast("Standardwerte wiederhergestellt");
+}
+
+function templateValues(type, project, student) {
+  const defaults = defaultTemplateValues(type, project, student);
+  const saved = state.templateData.find((entry) => entry.id === templateDataId(type, project.id, student.id))?.fields || {};
+  return { ...defaults, ...saved };
+}
+
+function defaultTemplateValues(type, project, student) {
+  const common = {
+    sendingInstitution: "Bitte Schulname ergänzen",
+    receivingInstitution: stripHtml(projectInstitutionNames(project)),
+    learningOutcomes: projectLearningOutcomes(project),
+    activities: projectTaskList(project.id, type === "europass" ? "Aus Projektaufgaben übernehmen und nach der Mobilität anpassen" : "Offen, In Arbeit oder geplant"),
+  };
+  if (type === "europass") {
+    return {
+      ...common,
+      mobilityDescription: `Teilnahme an ${project.name} im Rahmen von Erasmus+ ${project.action}.`,
+      acquiredCompetences: common.learningOutcomes,
+      assessmentRecognition: "Die erreichten Lernergebnisse wurden durch die beteiligten Einrichtungen bestätigt. Details bitte nach Abschluss der Mobilität ergänzen.",
+    };
+  }
+  if (type === "certificate") {
+    return {
+      ...common,
+      certificateText: `${student.name} hat im Zeitraum ${formatDate(project.startDate)} bis ${formatDate(project.endDate)} am Erasmus+ Projekt "${project.name}" teilgenommen.`,
+      certificateDetails: `Mobilität nach ${project.destinationCountry || "Bitte Land ergänzen"} mit der aufnehmenden Einrichtung ${common.receivingInstitution}.`,
+      certificateRecognition: "Die Teilnahme und die im Rahmen der Mobilität erworbenen Lernerfahrungen werden hiermit bestätigt.",
+    };
+  }
+  return {
+    ...common,
+    responsibilities: "Teilnehmende Person: aktive Teilnahme, Dokumentation der Lernergebnisse, Einhaltung der Vereinbarungen. Entsendende Einrichtung: Vorbereitung, Betreuung, Anerkennung. Aufnehmende Einrichtung: Lerngelegenheiten, Begleitung, Rückmeldung.",
+    monitoringRecognition: "Die verantwortlichen Lehrkräfte begleiten den Lernfortschritt. Nach Abschluss werden erreichte Lernergebnisse geprüft und durch Europass Mobilität oder ein gleichwertiges Dokument bestätigt.",
+  };
+}
+
+function templateDataId(type, projectId, studentId) {
+  return `${type}:${projectId}:${studentId}`;
+}
+
+function learningAgreementTemplate(project, student, values) {
   return `
     <article class="eu-template">
       <header>
@@ -942,19 +1056,19 @@ function learningAgreementTemplate(project, student) {
         ["Leitaktion", project.action],
         ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
         ["Zielland", project.destinationCountry || "-"],
-        ["Aufnehmende Einrichtung", stripHtml(institutions)],
-        ["Entsendende Einrichtung", "Bitte Schulname ergänzen"],
+        ["Aufnehmende Einrichtung", values.receivingInstitution, "receivingInstitution"],
+        ["Entsendende Einrichtung", values.sendingInstitution, "sendingInstitution"],
       ])}
-      ${templateTextSection("3. Lernziele und erwartete Lernergebnisse", outcomes)}
-      ${templateTextSection("4. Geplante Aktivitäten", projectTaskList(project.id, "Offen, In Arbeit oder geplant"))}
-      ${templateTextSection("5. Aufgaben und Zuständigkeiten", "Teilnehmende Person: aktive Teilnahme, Dokumentation der Lernergebnisse, Einhaltung der Vereinbarungen. Entsendende Einrichtung: Vorbereitung, Betreuung, Anerkennung. Aufnehmende Einrichtung: Lerngelegenheiten, Begleitung, Rückmeldung.")}
-      ${templateTextSection("6. Begleitung, Monitoring und Anerkennung", "Die verantwortlichen Lehrkräfte begleiten den Lernfortschritt. Nach Abschluss werden erreichte Lernergebnisse geprüft und durch Europass Mobilität oder ein gleichwertiges Dokument bestätigt.")}
+      ${templateTextSection("3. Lernziele und erwartete Lernergebnisse", values.learningOutcomes, "learningOutcomes")}
+      ${templateTextSection("4. Geplante Aktivitäten", values.activities, "activities")}
+      ${templateTextSection("5. Aufgaben und Zuständigkeiten", values.responsibilities, "responsibilities")}
+      ${templateTextSection("6. Begleitung, Monitoring und Anerkennung", values.monitoringRecognition, "monitoringRecognition")}
       ${signatureGrid(["Teilnehmende*r", "Erziehungsberechtigte", "Entsendende Schule", "Aufnehmende Schule"])}
     </article>
   `;
 }
 
-function europassTemplate(project, student) {
+function europassTemplate(project, student, values) {
   return `
     <article class="eu-template">
       <header>
@@ -969,17 +1083,46 @@ function europassTemplate(project, student) {
         ["Klasse", student.className],
       ])}
       ${templateSection("2. Beteiligte Einrichtungen", [
-        ["Entsendende Einrichtung", "Bitte Schulname ergänzen"],
-        ["Aufnehmende Einrichtung", stripHtml(projectInstitutionNames(project))],
+        ["Entsendende Einrichtung", values.sendingInstitution, "sendingInstitution"],
+        ["Aufnehmende Einrichtung", values.receivingInstitution, "receivingInstitution"],
         ["Projekt", project.name],
         ["Land", project.destinationCountry || "-"],
         ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
       ])}
-      ${templateTextSection("3. Beschreibung der Mobilität", `Teilnahme an ${project.name} im Rahmen von Erasmus+ ${project.action}.`)}
-      ${templateTextSection("4. Durchgeführte Aktivitäten", projectTaskList(project.id, "Aus Projektaufgaben übernehmen und nach der Mobilität anpassen"))}
-      ${templateTextSection("5. Erworbene Kenntnisse, Fähigkeiten und Kompetenzen", projectLearningOutcomes(project))}
-      ${templateTextSection("6. Bewertung / Anerkennung", "Die erreichten Lernergebnisse wurden durch die beteiligten Einrichtungen bestätigt. Details bitte nach Abschluss der Mobilität ergänzen.")}
+      ${templateTextSection("3. Beschreibung der Mobilität", values.mobilityDescription, "mobilityDescription")}
+      ${templateTextSection("4. Durchgeführte Aktivitäten", values.activities, "activities")}
+      ${templateTextSection("5. Erworbene Kenntnisse, Fähigkeiten und Kompetenzen", values.acquiredCompetences, "acquiredCompetences")}
+      ${templateTextSection("6. Bewertung / Anerkennung", values.assessmentRecognition, "assessmentRecognition")}
       ${signatureGrid(["Entsendende Einrichtung", "Aufnehmende Einrichtung"])}
+    </article>
+  `;
+}
+
+function certificateTemplate(project, student, values) {
+  return `
+    <article class="eu-template certificate-template">
+      <header>
+        <p>Erasmus+ Schulbildung</p>
+        <h1>Teilnahmebescheinigung</h1>
+        <span>${escapeHtml(project.name)}</span>
+      </header>
+      ${templateSection("Teilnehmende Person", [
+        ["Name", student.name],
+        ["Klasse", student.className],
+        ["Geburtsdatum", formatDate(student.birthDate)],
+      ])}
+      ${templateSection("Projekt", [
+        ["Projektname", project.name],
+        ["Leitaktion", project.action],
+        ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
+        ["Zielland", project.destinationCountry || "-"],
+        ["Aufnehmende Einrichtung", values.receivingInstitution, "receivingInstitution"],
+        ["Entsendende Einrichtung", values.sendingInstitution, "sendingInstitution"],
+      ])}
+      ${templateTextSection("Bescheinigung", values.certificateText, "certificateText")}
+      ${templateTextSection("Angaben zur Mobilität", values.certificateDetails, "certificateDetails")}
+      ${templateTextSection("Bestätigung / Anerkennung", values.certificateRecognition, "certificateRecognition")}
+      ${signatureGrid(["Entsendende Schule", "Aufnehmende Schule"])}
     </article>
   `;
 }
@@ -989,14 +1132,22 @@ function templateSection(title, rows) {
     <section>
       <h2>${escapeHtml(title)}</h2>
       <table>
-        <tbody>${rows.map(([label, value]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`).join("")}</tbody>
+        <tbody>${rows.map(([label, value, field]) => `<tr><th>${escapeHtml(label)}</th><td>${field ? templateInput(field, value) : escapeHtml(value)}</td></tr>`).join("")}</tbody>
       </table>
     </section>
   `;
 }
 
-function templateTextSection(title, text) {
-  return `<section><h2>${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p></section>`;
+function templateTextSection(title, text, field) {
+  return `<section><h2>${escapeHtml(title)}</h2>${field ? templateTextarea(field, text) : `<p>${escapeHtml(text)}</p>`}</section>`;
+}
+
+function templateInput(field, value) {
+  return `<input class="template-input" data-template-field="${escapeHtml(field)}" value="${escapeHtml(value)}" />`;
+}
+
+function templateTextarea(field, value) {
+  return `<textarea class="template-textarea" data-template-field="${escapeHtml(field)}" rows="4">${escapeHtml(value)}</textarea>`;
 }
 
 function templateNotice(text) {
@@ -1175,7 +1326,12 @@ function renderProjectFile(projectId, shouldScroll = false) {
         <p>${escapeHtml(project.action)} · ${escapeHtml(project.status)}</p>
         <h2>${escapeHtml(project.name)}</h2>
       </div>
-      ${badge(remaining < 0 ? "Budget überschritten" : "Budget OK", remaining < 0 ? "danger" : "ok")}
+      <div class="project-file-actions">
+        ${badge(remaining < 0 ? "Budget überschritten" : "Budget OK", remaining < 0 ? "danger" : "ok")}
+        <button class="small secondary" data-template-batch="certificate" data-project-id="${project.id}">Alle Bescheinigungen</button>
+        <button class="small secondary" data-template-batch="europass" data-project-id="${project.id}">Alle Europass</button>
+        <button class="small secondary" data-template-batch="learningAgreement" data-project-id="${project.id}">Alle Lernvereinbarungen</button>
+      </div>
     </div>
     <div class="project-file-grid">
       ${detailCard("Rahmen", [
@@ -1250,6 +1406,9 @@ function renderProjectFile(projectId, shouldScroll = false) {
   `;
   container.querySelectorAll("[data-template-doc]").forEach((button) => {
     button.addEventListener("click", () => showTemplateDocument(button.dataset.templateDoc, button.dataset.projectId, button.dataset.studentId));
+  });
+  container.querySelectorAll("[data-template-batch]").forEach((button) => {
+    button.addEventListener("click", () => showTemplateBatch(button.dataset.templateBatch, button.dataset.projectId));
   });
   panel.hidden = false;
   if (shouldScroll) panel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2285,6 +2444,9 @@ async function cleanupProjectReferences(projectId) {
   for (const document of state.documents.filter((entry) => entry.projectId === projectId)) {
     await remove("documents", document.id);
   }
+  for (const template of state.templateData.filter((entry) => entry.projectId === projectId)) {
+    await remove("templateData", template.id);
+  }
   for (const student of state.students.filter((entry) => entry.projectIds.includes(projectId))) {
     await put("students", { ...student, projectIds: student.projectIds.filter((id) => id !== projectId) });
   }
@@ -2296,6 +2458,9 @@ async function cleanupStudentReferences(studentId) {
   }
   for (const document of state.documents.filter((entry) => entry.studentId === studentId)) {
     await put("documents", { ...document, studentId: "" });
+  }
+  for (const template of state.templateData.filter((entry) => entry.studentId === studentId)) {
+    await remove("templateData", template.id);
   }
 }
 
