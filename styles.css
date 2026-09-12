@@ -253,6 +253,14 @@ textarea { resize: vertical; }
   font-size: 2rem;
 }
 
+.kpi small {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
 .content-grid,
 .section-layout {
   display: grid;

@@ -610,11 +610,13 @@ function renderDashboard() {
   const openTasks = state.tasks.filter((task) => task.status !== "Erledigt");
   const travellingStudents = state.students.filter((student) => student.role === "Teilnehmer").length;
   const overview = fundingOverview();
+  const activeFundingCount = state.fundingBudgets.filter((budget) => budget.status !== "Inaktiv").length;
+  const unplannedDetail = activeFundingCount > 1 ? `Summe aus ${activeFundingCount} aktiven Förderbudgets` : "aus einem aktiven Förderbudget";
 
   document.querySelector("#kpi-grid").innerHTML = [
     kpi("Aktive Projekte", activeProjects.length),
     kpi("In Projekten offen", money.format(overview.plannedOpen)),
-    kpi("nicht verplantes Budget", money.format(overview.unplanned)),
+    kpi("nicht verplantes Budget", money.format(overview.unplanned), unplannedDetail),
     kpi("Offene Aufgaben", openTasks.length),
     kpi("Reisende Teilnehmende", travellingStudents),
   ].join("");
@@ -1636,8 +1638,8 @@ function projectStatusCard(project) {
   `;
 }
 
-function kpi(label, value) {
-  return `<article class="kpi"><span>${label}</span><strong>${value}</strong></article>`;
+function kpi(label, value, detail = "") {
+  return `<article class="kpi"><span>${label}</span><strong>${value}</strong>${detail ? `<small>${escapeHtml(detail)}</small>` : ""}</article>`;
 }
 
 function actions(store, id) {
