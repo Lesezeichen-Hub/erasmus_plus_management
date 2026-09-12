@@ -325,6 +325,9 @@ function bindFilters() {
 
 function bindBackup() {
   document.querySelector("#export-data").addEventListener("click", exportData);
+  document.querySelector("#safety-backup").addEventListener("click", () => {
+    toast(createSafetyBackup("manuell") ? "Sicherheitsbackup erstellt" : "Keine lokalen Daten für ein Sicherheitsbackup vorhanden");
+  });
   document.querySelector("#import-data").addEventListener("click", importData);
   document.querySelector("#seed-data").addEventListener("click", seedData);
   document.querySelector("#close-participant-list").addEventListener("click", closeParticipantList);
@@ -663,7 +666,7 @@ function renderDashboard() {
     kpi("Aktive Projekte", activeProjects.length),
     kpi("In Projekten offen", money.format(overview.plannedOpen)),
     kpi("nicht verplantes Budget", money.format(overview.unplanned), unplannedDetail),
-    kpi("Projektbudget ohne Fördertopf", money.format(overview.unassignedPlannedBudget), "wird nicht vom Fördertopf abgezogen"),
+    kpi("Projektbudget ohne Förderbudget", money.format(overview.unassignedPlannedBudget), "wird nicht vom Förderbudget abgezogen"),
     kpi("Offene Aufgaben", openTasks.length),
     kpi("Reisende Teilnehmende", travellingStudents),
   ].join("");
@@ -720,11 +723,11 @@ function renderFundingChart() {
       <span><strong>${money.format(spent)}</strong><small>${spentPercent}% verbraucht</small></span>
     </div>
     <div class="chart-legend">
-      ${legendItem("Verbraucht", money.format(spent), "spent", `${spentPercent}% vom Fördertopf`)}
-      ${legendItem("Verplant offen", money.format(plannedOpen), "planned", `${plannedPercent}% vom Fördertopf`)}
-      ${legendItem("Nicht verplant", money.format(remaining), "remaining", `${remainingPercent}% vom Fördertopf`)}
-      ${overplanned ? legendItem("Überplant", money.format(overplanned), "danger", "Projektbudgets überschreiten den Fördertopf") : ""}
-      ${unassignedPlannedBudget ? legendItem("Ohne Fördertopf", money.format(unassignedPlannedBudget), "danger", "nicht in dieser Verteilung enthalten") : ""}
+      ${legendItem("Verbraucht", money.format(spent), "spent", `${spentPercent}% vom Förderbudget`)}
+      ${legendItem("Verplant offen", money.format(plannedOpen), "planned", `${plannedPercent}% vom Förderbudget`)}
+      ${legendItem("Nicht verplant", money.format(remaining), "remaining", `${remainingPercent}% vom Förderbudget`)}
+      ${overplanned ? legendItem("Überplant", money.format(overplanned), "danger", "Projektbudgets überschreiten das Förderbudget") : ""}
+      ${unassignedPlannedBudget ? legendItem("Ohne Förderbudget", money.format(unassignedPlannedBudget), "danger", "nicht in dieser Verteilung enthalten") : ""}
     </div>
   `;
 }
@@ -808,7 +811,7 @@ function fundingOrphanSummary() {
     .reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   return {
     id: "orphan",
-    name: "Ohne gültigen Fördertopf",
+    name: "Ohne gültiges Förderbudget",
     period: "Bitte im Projekt bearbeiten",
     total: 0,
     planned,
@@ -922,7 +925,7 @@ function renderRiskCenter() {
     .filter(({ project, budget }) => !budget || budget.status === "Inaktiv" || !projectOverlapsFundingBudget(project, budget))
     .map(({ project, budget }) => riskItem({
       tone: "danger",
-      label: "Fördertopf",
+      label: "Förderbudget",
       title: project.name,
       context: budget ? fundingBudgetName(budget.id) : "Nicht eindeutig zugeordnet",
       detail: budget ? "Projektzeitraum passt nicht zum Förderzeitraum" : "Budget wird nicht in den Fördergeldsummen gezählt",
@@ -965,7 +968,7 @@ function renderAuditLog() {
 function renderProjects() {
   const status = document.querySelector("#project-filter").value;
   const rows = filterText(state.projects).filter((project) => !status || project.status === status);
-  renderTable("#projects-table", ["Projekt", "Zeitraum", "Budget", "Fördertopf", "Status", "Fortschritt", ""], rows.map((project) => [
+  renderTable("#projects-table", ["Projekt", "Zeitraum", "Budget", "Förderbudget", "Status", "Fortschritt", ""], rows.map((project) => [
     `<strong>${escapeHtml(project.name)}</strong><div class="meta">${escapeHtml(project.action)} · ${projectInstitutionNames(project)}${project.partners ? `<br>${escapeHtml(project.partners)}` : ""}${project.destinationCountry ? `<br>${escapeHtml(project.destinationCountry)} · ${Number(project.participantCount || 0)} Pers. · Vorschlag ${money.format(Number(project.calculatedGrant || 0))}` : ""}</div>`,
     `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`,
     `${money.format(project.budget)}<div class="meta">Rest ${money.format(budgetRemaining(project.id))}</div>`,
@@ -1039,7 +1042,7 @@ function renderProjectFile(projectId, shouldScroll = false) {
     <div class="project-file-grid">
       ${detailCard("Rahmen", [
         ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
-        ["Fördertopf", budget ? fundingBudgetName(budget.id) : "Nicht eindeutig zugeordnet"],
+        ["Förderbudget", budget ? fundingBudgetName(budget.id) : "Nicht eindeutig zugeordnet"],
         ["Partnereinrichtungen", stripHtml(projectInstitutionNames(project))],
         ["Weitere Partner", project.partners || "-"],
         ["Zielland", project.destinationCountry || "-"],
@@ -1700,7 +1703,7 @@ function projectFundingBudgetNames(project) {
   const id = effectiveProjectFundingBudgetId(project);
   if (!id) return `<span class="muted">Nicht zugeordnet</span>`;
   const budget = state.fundingBudgets.find((entry) => entry.id === id);
-  if (!budget) return `<span class="badge danger">Fördertopf fehlt</span>`;
+  if (!budget) return `<span class="badge danger">Förderbudget fehlt</span>`;
   const mismatch = !projectOverlapsFundingBudget(project, budget);
   return `${escapeHtml(fundingBudgetName(id))}${mismatch ? '<div class="meta danger-text">Zeitraum passt nicht</div>' : ""}`;
 }
@@ -2041,6 +2044,7 @@ function editItem(store, id) {
 async function deleteItem(store, id) {
   if (!confirm("Eintrag wirklich löschen?")) return;
   const deletedItem = state[store]?.find((entry) => entry.id === id);
+  createSafetyBackup(`vor-loeschen-${store}`);
   if (store === "institutions") {
     await toggleInstitution(id);
     return;
@@ -2370,6 +2374,17 @@ function buildBackupPayload() {
   };
 }
 
+function createSafetyBackup(reason) {
+  if (!hasLocalData()) return false;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  downloadJson({
+    ...buildBackupPayload(),
+    safetyBackup: true,
+    reason,
+  }, `erasmus-plus-sicherheitsbackup-${reason}-${timestamp}.json`);
+  return true;
+}
+
 function hasLocalData() {
   return STORES.some((store) => Array.isArray(state[store]) && state[store].length > 0);
 }
@@ -2423,6 +2438,7 @@ async function importData() {
   if (!confirm("Import ersetzt alle lokalen Daten. Fortfahren?")) return;
 
   try {
+    createSafetyBackup("vor-import");
     const payload = JSON.parse(await file.text());
     const normalizedData = normalizeImportData(payload);
     if (!normalizedData) {
@@ -2481,6 +2497,7 @@ function importCount(data) {
 
 async function seedData() {
   if (!confirm("Beispieldaten ersetzen alle lokalen Daten. Fortfahren?")) return;
+  createSafetyBackup("vor-beispieldaten");
   const ids = {
     p1: createId(),
     p2: createId(),

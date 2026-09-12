@@ -86,6 +86,7 @@ Wichtige Stellen in `app.js`:
 - Dashboard mit KPIs, Projektstatus, Restbudget und Risikoueberblick
 - Projektakte mit Projektdetails, Budget, Teilnehmenden, Aufgaben, Aufwaenden, Dokumenten und Historie
 - Aenderungshistorie fuer lokale Verwaltungsaktionen
+- Sicherheitsbackup vor Import, Beispieldaten-Reset und Loeschvorgaengen plus manueller Sicherungsbutton
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
 - Teilnehmendenlisten pro Projekt mit Geburtsdatum, kompaktem Dokumentstatus, fehlenden Dokumenten und Druck-/PDF-Ausgabe
 - Automatische, bearbeitbare Foerderpauschalen pro Zielland und Distanzband beim Projektanlegen
