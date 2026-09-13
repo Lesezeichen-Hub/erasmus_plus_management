@@ -60,6 +60,8 @@ Nach erfolgreichen Aenderungen legt die App zusaetzlich automatisch rotierende S
 
 Mit `ErasmusPlusManagementServer.exe` kann die App lokal ueber `http://127.0.0.1:8765/` ausgeliefert werden. Der Server nutzt nur den lokalen Rechner, oeffnet automatisch den Browser und waehlt bei belegtem Port automatisch den naechsten freien Port.
 
+Beim Start prueft die EXE automatisch die feste GitHub-Quelle `purfect/erasmus_plus_management` auf eine hoehere Version und installiert dann die aktuellen Web-App-Dateien. Die Pruefung hat ein kurzes Zeitlimit; ohne Internet startet der Server wie gewohnt weiter. Der Updatevorgang beruehrt weder `data\\erasmus_plus_management.sqlite`, Browserdaten noch JSON-Backups. Mit `-updates=false` laesst sich die Pruefung fuer einen Start abschalten.
+
 Wenn Schreibrechte im App-Ordner vorhanden sind, legt der Server beim Start zusaetzlich `data\erasmus_plus_management.sqlite` an. Die Browser-App speichert weiter schnell in IndexedDB und sendet bei Aenderungen parallel einen kompletten Backup-Snapshot an den lokalen Server. Der Server legt diese Snapshots in SQLite ab. Wenn die Browser-interne Datenbank leer ist und ein SQLite-Snapshot existiert, importiert die App diesen beim Start automatisch zurueck in IndexedDB.
 
 Start per Doppelklick:

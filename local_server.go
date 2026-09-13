@@ -7,6 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -21,14 +22,52 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+const (
+	updateBaseURL     = "https://raw.githubusercontent.com/purfect/erasmus_plus_management/main/"
+	maxUpdateFileSize = 10 << 20
+)
+
+// These are the only files the local server may replace from the fixed GitHub repository.
+// Local databases, backups and the server executable are deliberately outside this list.
+var updateFiles = []string{
+	"index.html",
+	"app.js",
+	"management-reports.js",
+	"styles.css",
+	"reset_database.html",
+	"LICENSE-lucide.txt",
+	"version.json", // Kept last so the displayed version changes only after the app files are ready.
+}
+
+type appVersion struct {
+	Version string `json:"version"`
+}
+
+type updateResult struct {
+	Current string
+	Latest  string
+	Updated bool
+}
+
 func main() {
 	port := flag.Int("port", 8765, "Startport fuer den lokalen Webserver")
 	noBrowser := flag.Bool("no-browser", false, "Browser nicht automatisch oeffnen")
+	checkUpdates := flag.Bool("updates", true, "Aktuelle Web-App-Dateien von GitHub beim Start pruefen")
 	flag.Parse()
 
 	root, err := appRoot()
 	if err != nil {
 		log.Fatal(err)
+	}
+	if *checkUpdates {
+		result, updateErr := updateApplicationFiles(root)
+		if updateErr != nil {
+			fmt.Println("GitHub-Update: nicht verfuegbar (Start wird fortgesetzt):", updateErr)
+		} else if result.Updated {
+			fmt.Printf("GitHub-Update: %s -> %s installiert\n", result.Current, result.Latest)
+		} else {
+			fmt.Println("GitHub-Update: bereits aktuell (Version", result.Current+")")
+		}
 	}
 	sqliteStore, sqliteErr := openSQLiteStore(root)
 	if sqliteStore != nil {
@@ -80,6 +119,157 @@ func main() {
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		log.Fatal(err)
 	}
+}
+
+func updateApplicationFiles(root string) (updateResult, error) {
+	local, err := readAppVersion(filepath.Join(root, "version.json"))
+	if err != nil {
+		return updateResult{}, fmt.Errorf("lokale version.json: %w", err)
+	}
+	remoteVersionData, err := downloadUpdateFile("version.json")
+	if err != nil {
+		return updateResult{Current: local.Version}, err
+	}
+	var remote appVersion
+	if err := json.Unmarshal(remoteVersionData, &remote); err != nil || remote.Version == "" {
+		if err == nil {
+			err = errors.New("Versionsnummer fehlt")
+		}
+		return updateResult{Current: local.Version}, fmt.Errorf("GitHub version.json: %w", err)
+	}
+	result := updateResult{Current: local.Version, Latest: remote.Version}
+	if !versionIsNewer(remote.Version, local.Version) {
+		return result, nil
+	}
+
+	staged := make(map[string][]byte, len(updateFiles))
+	for _, name := range updateFiles {
+		contents, err := downloadUpdateFile(name)
+		if err != nil {
+			return result, fmt.Errorf("GitHub-Datei %s: %w", name, err)
+		}
+		staged[name] = contents
+	}
+	if err := installUpdatedFiles(root, staged); err != nil {
+		return result, err
+	}
+	result.Updated = true
+	return result, nil
+}
+
+func readAppVersion(path string) (appVersion, error) {
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		return appVersion{}, err
+	}
+	var version appVersion
+	if err := json.Unmarshal(contents, &version); err != nil {
+		return appVersion{}, err
+	}
+	if version.Version == "" {
+		return appVersion{}, errors.New("Versionsnummer fehlt")
+	}
+	return version, nil
+}
+
+func downloadUpdateFile(name string) ([]byte, error) {
+	client := &http.Client{Timeout: 8 * time.Second}
+	response, err := client.Get(updateBaseURL + name)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %s", response.Status)
+	}
+	if response.ContentLength > maxUpdateFileSize {
+		return nil, errors.New("Datei ist zu gross")
+	}
+	contents, err := io.ReadAll(io.LimitReader(response.Body, maxUpdateFileSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(contents) == 0 || len(contents) > maxUpdateFileSize {
+		return nil, errors.New("ungueltige Dateigroesse")
+	}
+	return contents, nil
+}
+
+func installUpdatedFiles(root string, staged map[string][]byte) error {
+	for _, name := range updateFiles {
+		if err := os.WriteFile(filepath.Join(root, "."+name+".update"), staged[name], 0644); err != nil {
+			return fmt.Errorf("Update vorbereiten (%s): %w", name, err)
+		}
+	}
+	installed := make([]string, 0, len(updateFiles))
+	for _, name := range updateFiles {
+		target := filepath.Join(root, name)
+		temporary := filepath.Join(root, "."+name+".update")
+		backup := filepath.Join(root, "."+name+".backup")
+		_ = os.Remove(backup)
+		if _, err := os.Stat(target); err == nil {
+			if err := os.Rename(target, backup); err != nil {
+				restoreUpdatedFiles(root, installed)
+				return fmt.Errorf("Sicherung anlegen (%s): %w", name, err)
+			}
+		}
+		if err := os.Rename(temporary, target); err != nil {
+			_ = os.Rename(backup, target)
+			restoreUpdatedFiles(root, installed)
+			return fmt.Errorf("Update installieren (%s): %w", name, err)
+		}
+		installed = append(installed, name)
+	}
+	for _, name := range updateFiles {
+		_ = os.Remove(filepath.Join(root, "."+name+".backup"))
+		_ = os.Remove(filepath.Join(root, "."+name+".update"))
+	}
+	return nil
+}
+
+func restoreUpdatedFiles(root string, installed []string) {
+	for index := len(installed) - 1; index >= 0; index-- {
+		name := installed[index]
+		target := filepath.Join(root, name)
+		backup := filepath.Join(root, "."+name+".backup")
+		_ = os.Remove(target)
+		_ = os.Rename(backup, target)
+	}
+	for _, name := range updateFiles {
+		_ = os.Remove(filepath.Join(root, "."+name+".update"))
+	}
+}
+
+func versionIsNewer(candidate, current string) bool {
+	parse := func(version string) ([3]int, bool) {
+		var parts [3]int
+		segments := strings.Split(strings.TrimPrefix(version, "v"), ".")
+		if len(segments) != 3 {
+			return parts, false
+		}
+		for index, segment := range segments {
+			value, err := strconv.Atoi(segment)
+			if err != nil || value < 0 {
+				return parts, false
+			}
+			parts[index] = value
+		}
+		return parts, true
+	}
+	candidateParts, candidateOK := parse(candidate)
+	currentParts, currentOK := parse(current)
+	if !candidateOK {
+		return false
+	}
+	if !currentOK {
+		return true
+	}
+	for index := range candidateParts {
+		if candidateParts[index] != currentParts[index] {
+			return candidateParts[index] > currentParts[index]
+		}
+	}
+	return false
 }
 
 func appRoot() (string, error) {

@@ -6,5 +6,5 @@ if not exist "ErasmusPlusManagementServer.exe" (
   pause
   exit /b 1
 )
-ErasmusPlusManagementServer.exe
+ErasmusPlusManagementServer.exe -updates=true
 pause
