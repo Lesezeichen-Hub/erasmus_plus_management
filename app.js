@@ -1043,18 +1043,10 @@ function buildTemplatePrintDocument() {
             display: block;
             box-sizing: border-box;
             background: #fff;
+          }
+          .print-page + .print-page {
             break-before: page;
             page-break-before: always;
-            break-after: page;
-            page-break-after: always;
-          }
-          .print-page:first-child {
-            break-before: auto;
-            page-break-before: auto;
-          }
-          .print-page:last-child {
-            break-after: auto;
-            page-break-after: auto;
           }
           .template-document {
             border: 0 !important;
