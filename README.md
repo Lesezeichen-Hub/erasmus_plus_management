@@ -41,6 +41,7 @@ Im Admin-Panel koennen ausserdem Stammdaten gepflegt werden:
 - Kategorien fuer Aufwaende
 - benoetigte beziehungsweise verwendete Dokumenttypen
 - Leitaktionen
+- Klassen und Gruppen fuer die Teilnehmendenmaske
 - Partnereinrichtungen, also teilnehmende Schulen oder Organisationen
 - Foerderbudgets mit Gesamtbudget, Zeitraum und Laufzeit 15 oder 24 Monate
 - feste Formulardaten wie entsendende Schule, Schulort, Ansprechpartner*in, Kontaktadresse und Standardtext fuer Anerkennung
@@ -99,6 +100,7 @@ Wichtige Stellen in `app.js`:
 - Batch-Ausgabe pro Projekt fuer Teilnahmebescheinigungen, Europass Mobilitaet und Lernvereinbarungen; beim Drucken/PDF beginnt jedes Dokument auf einer neuen A4-Seite
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
 - Teilnehmende mit globalen Stammdaten und projektbezogenen Angaben wie Rolle, Dokumentenstatus und Notiz
+- Klassen/Gruppen werden im Admin-Panel gepflegt und bei Teilnehmenden per Dropdown ausgewaehlt
 - Teilnehmendenlisten pro Projekt mit Geburtsdatum, kompaktem Dokumentstatus, fehlenden Dokumenten und Druck-/PDF-Ausgabe
 - Automatische, bearbeitbare Foerderpauschalen pro Zielland und Distanzband beim Projektanlegen
 - Admin-Tabelle zum Aktualisieren, Speichern, Exportieren und Importieren der Foerderpauschalen-Vorlage

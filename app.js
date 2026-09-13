@@ -6,6 +6,7 @@ const AUTO_BACKUP_KEY = "erasmus_plus_management_auto_backups";
 const AUTO_BACKUP_LIMIT = 8;
 const DEFAULT_SETTINGS = {
   leadActions: ["KA1", "KA2", "KA3"],
+  classGroups: ["8a", "8b", "8c", "9a", "9b", "9c", "10a", "10b", "10c"],
   templateDefaults: {
     sendingInstitution: "",
     sendingCity: "",
@@ -2008,6 +2009,7 @@ function renderSettings() {
   renderSettingList("expenseCategories", "#expense-categories-list", (value) => state.expenses.some((expense) => expense.category === value));
   renderSettingList("documentTypes", "#document-types-list", (value) => settingValueInUse("documentTypes", value));
   renderSettingList("leadActions", "#lead-actions-list", (value) => state.projects.some((project) => project.action === value));
+  renderSettingList("classGroups", "#class-groups-list", (value) => state.students.some((student) => student.className === value));
   renderGrantSettings();
 }
 
@@ -2146,6 +2148,7 @@ function settingLabel(key) {
     leadActions: "Leitaktionen",
     expenseCategories: "Aufwandskategorien",
     documentTypes: "Dokumenttypen",
+    classGroups: "Klassen / Gruppen",
     countryGrantRates: "Förderpauschalen Länder",
     travelGrantBands: "Reisepauschalen",
     templateDefaults: "Feste Formulardaten",
@@ -2318,6 +2321,7 @@ function settingValueInUse(key, value) {
   if (key === "expenseCategories") return state.expenses.some((expense) => expense.category === value);
   if (key === "documentTypes") return state.documents.some((doc) => doc.type === value) || state.students.some((student) => student.documents?.[value] === true);
   if (key === "leadActions") return state.projects.some((project) => project.action === value);
+  if (key === "classGroups") return state.students.some((student) => student.className === value);
   return false;
 }
 
@@ -2446,6 +2450,7 @@ function fillSelects() {
   fillFundingBudgetSelect();
   fillOptionSelect("#expense-form [name=category]", getSettingValues("expenseCategories"));
   fillOptionSelect("#document-form [name=type]", getSettingValues("documentTypes"));
+  fillClassGroupSelect();
   renderRequiredDocumentFields();
   fillInstitutionSelect();
   fillProjectSelect("#student-form [name=projectIds]", true);
@@ -2475,6 +2480,18 @@ function fillTravelBandSelect() {
   getTravelGrantBands().forEach((band) => {
     const option = new Option(`${band.label} · ${band.standard}/${band.green} €`, band.id);
     option.selected = current === band.id;
+    select.add(option);
+  });
+}
+
+function fillClassGroupSelect(selectedValue = null) {
+  const select = document.querySelector("#student-form [name=className]");
+  const selected = selectedValue ?? select.value;
+  const values = uniqueValues([...getSettingValues("classGroups"), ...state.students.map((student) => student.className).filter(Boolean)]);
+  select.innerHTML = `<option value="">Klasse / Gruppe wählen</option>`;
+  values.forEach((value) => {
+    const option = new Option(value, value);
+    option.selected = selected === value;
     select.add(option);
   });
 }
@@ -2628,6 +2645,11 @@ function fillOptionSelect(selector, values, emptyLabel = null) {
     option.selected = current === value;
     select.add(option);
   });
+}
+
+function uniqueValues(values) {
+  return [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "de", { numeric: true, sensitivity: "base" }));
 }
 
 function fillProjectSelect(selector, multiple = false, emptyLabel = null) {

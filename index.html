@@ -234,7 +234,7 @@
             <input type="hidden" name="id" />
             <label>Name <input name="name" required minlength="3" /></label>
             <div class="form-row">
-              <label>Klasse <input name="className" required placeholder="10b" /></label>
+              <label>Klasse / Gruppe <select name="className" required></select></label>
               <label>Geburtsdatum <input name="birthDate" type="date" required /></label>
             </div>
             <label>Projektzuordnung <select name="projectIds" multiple size="4" required></select></label>
@@ -623,6 +623,14 @@
                   <button type="submit">Hinzufügen</button>
                 </div>
                 <div id="lead-actions-list" class="chip-list"></div>
+              </form>
+              <form class="setting-box" data-setting-form="classGroups">
+                <h3>Klassen / Gruppen</h3>
+                <div class="inline-form">
+                  <input name="value" required minlength="1" placeholder="Neue Klasse oder Gruppe" />
+                  <button type="submit">Hinzufügen</button>
+                </div>
+                <div id="class-groups-list" class="chip-list"></div>
               </form>
             </div>
           </section>
