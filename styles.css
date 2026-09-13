@@ -756,6 +756,10 @@ textarea { resize: vertical; }
 .project-form-section[open] > summary { color: var(--primary); }
 .project-form-section > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .project-form-fields { display: grid; gap: 12px; padding-bottom: 18px; min-width: 0; }
+.project-text-group { border-top: 1px solid var(--line); min-width: 0; }
+.project-text-group > summary { padding: 12px 0; cursor: pointer; color: var(--muted-strong); font-weight: 600; }
+.project-text-group[open] > summary { color: var(--primary); }
+.project-text-group textarea { width: 100%; }
 .project-form-fields label,
 .project-form-fields .form-row > * { min-width: 0; }
 .project-form-fields input,

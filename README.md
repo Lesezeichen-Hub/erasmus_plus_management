@@ -142,3 +142,18 @@ enthaelt sie in den Details. Im Templateeditor ist zusaetzlich
 haben weiterhin Vorrang; mit Zuruecksetzen der Vorlagenwerte werden die aktuellen
 Projektdaten neu eingesetzt. Das Projektfeld ist Teil der bestehenden
 IndexedDB-Speicherung und der JSON-Backups sowie SQLite-Snapshots.
+# Version 1.43.0
+
+Unter Projekt bearbeiten > Aktivitaeten & Formulartexte stehen gemeinsame
+Vorgaben fuer Lernziele, geplante Aktivitaeten, Zustaendigkeiten, Begleitung,
+Europass-Kompetenzen, Mobilitaetsbeschreibung und Anerkennung bereit. Auch die
+drei Textbloecke der Teilnahmebescheinigung und die Formularinhalte der vier
+Mobilitaetsvorlagen koennen projektweise vorgegeben werden.
+
+Leere Felder verwenden die Standardvorlage. Platzhalter wie `{name}`, `{projekt}`,
+`{kompetenzen}`, `{mobilitaetsbeschreibung}`, `{zustaendigkeiten}` und `{begleitung}`
+werden pro Person ersetzt. Individuell gespeicherte Formulartexte haben Vorrang;
+zum Uebernehmen neuer Projektvorgaben die jeweilige Vorlage zuruecksetzen.
+Einzel- und Batch-Ausgaben verwenden dieselben Projektvorgaben. Die Werte werden
+als `formTexts` mit dem Projekt gespeichert und sind in den Backups enthalten.
+Gesundheits- und Notfallangaben bleiben personenbezogen in der Schueler*innenakte.

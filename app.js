@@ -377,6 +377,7 @@ function bindNavigation() {
 
 function bindForms() {
   document.querySelector("#project-form").addEventListener("submit", onProjectSubmit);
+  renderProjectFormTexts();
   document.querySelector("#project-form").addEventListener("invalid", (event) => {
     const section = event.target.closest("details");
     if (section) section.open = true;
@@ -440,6 +441,8 @@ function resetForm(formId) {
     updateFundingBudgetEndDate();
   }
   if (formId === "project-form") {
+    renderProjectFormTexts();
+    enhanceClearableFields();
     form.querySelector("h2").textContent = "Projekt erfassen";
     form.querySelectorAll(".project-form-section").forEach((section, index) => { section.open = index === 0; });
     form.elements.budget.dataset.autoGrant = "true";
@@ -553,6 +556,9 @@ async function onProjectSubmit(event) {
     partners: data.partners.trim(),
     // Stored with the project in IndexedDB and included in JSON/SQLite snapshots.
     completedActivities: (data.completedActivities || "").trim(),
+    // Project-wide template defaults share the project's persistence and backups.
+    formTexts: Object.fromEntries([...form.querySelectorAll("[data-project-form-text]")]
+      .map((field) => [field.dataset.projectFormText, field.value.trim()]).filter(([, value]) => value)),
     startDate: data.startDate,
     endDate: data.endDate,
     fundingBudgetId: data.fundingBudgetId || "",
@@ -1529,7 +1535,60 @@ function setTemplateSaveStatus(status, savedAt = "") {
   element.textContent = labels[status] || "";
 }
 
+function renderProjectFormTexts(values = {}) {
+  const groups = [
+    ["Lernprogramm / Lernvereinbarung", [
+      ["learningOutcomes", "Lernziele und erwartete Lernergebnisse"],
+      ["plannedActivities", "Geplante Aktivitäten"],
+      ["responsibilities", "Aufgaben und Zuständigkeiten"],
+      ["monitoringRecognition", "Begleitung, Monitoring und Anerkennung"],
+    ]],
+    ["Europass", [
+      ["mobilityDescription", "Beschreibung der Mobilität"],
+      ["acquiredCompetences", "Erworbene Kenntnisse, Fähigkeiten und Kompetenzen"],
+      ["assessmentRecognition", "Bewertung / Anerkennung"],
+    ]],
+    ["Teilnahmebescheinigung", [
+      ["certificateText", "Bescheinigung"],
+      ["certificateDetails", "Angaben zur Mobilität"],
+      ["certificateRecognition", "Bestätigung / Anerkennung"],
+    ]],
+    ["Gemeinsame Anerkennung", [["recognitionText", "Anerkennung (allgemein)"]]],
+    ["Formularinhalte", DEFAULT_MOBILITY_FORM_TEMPLATES.map((template) => [`body:${template.id}`, template.title])],
+  ];
+  document.querySelector("#project-form-texts").innerHTML = groups.map(([title, fields]) => `
+    <details class="project-text-group">
+      <summary>${escapeHtml(title)}</summary>
+      <div class="project-form-fields">${fields.map(([key, label]) => `
+        <label>${escapeHtml(label)}<textarea rows="4" name="formText:${key}" data-project-form-text="${key}" placeholder="Standardvorlage">${escapeHtml(values[key] || "")}</textarea></label>
+      `).join("")}</div>
+    </details>`).join("");
+}
+
 function defaultTemplateValues(type, project, student) {
+  const values = baseTemplateValues(type, project, student);
+  const texts = project.formTexts || {};
+  const sharedFields = ["learningOutcomes", "recognitionText", "responsibilities", "monitoringRecognition",
+    "mobilityDescription", "acquiredCompetences", "assessmentRecognition", "certificateText", "certificateDetails", "certificateRecognition"];
+  // Resolve common values first so placeholders in document bodies use project defaults.
+  for (const key of sharedFields) {
+    if (texts[key]) values[key] = applyTemplatePlaceholders(texts[key], project, student, values);
+  }
+  if (type === "learningAgreement" && texts.plannedActivities) {
+    values.activities = applyTemplatePlaceholders(texts.plannedActivities, project, student, values);
+  }
+  if (!texts.acquiredCompetences && texts.learningOutcomes) values.acquiredCompetences = values.learningOutcomes;
+  for (const key of ["monitoringRecognition", "assessmentRecognition", "certificateRecognition"]) {
+    if (!texts[key] && texts.recognitionText) values[key] = values.recognitionText;
+  }
+  const template = getMobilityFormTemplate(type);
+  if (template) {
+    values.formBody = applyTemplatePlaceholders(texts[`body:${type}`] || template.body, project, student, values);
+  }
+  return values;
+}
+
+function baseTemplateValues(type, project, student) {
   const defaults = getTemplateDefaults();
   const profile = studentProjectProfile(student, project.id);
   const sendingInstitution = defaults.sendingInstitution || "Bitte Schulname ergänzen";
@@ -1622,6 +1681,10 @@ function applyTemplatePlaceholders(text, project, student, values) {
     lernziele: values.learningOutcomes,
     aktivitaeten: values.activities,
     durchgefuehrte_aktivitaeten: values.completedActivities,
+    kompetenzen: values.acquiredCompetences || values.learningOutcomes,
+    mobilitaetsbeschreibung: values.mobilityDescription || "",
+    zustaendigkeiten: values.responsibilities || "",
+    begleitung: values.monitoringRecognition || values.recognitionText || "",
     anerkennung: values.recognitionText || values.assessmentRecognition || getTemplateDefaults().recognitionText || "",
     medienregelung: values.mediaConsent,
     notfallkontakt_1: values.emergencyContact1,
@@ -3587,6 +3650,8 @@ function editItem(store, id) {
   if (store === "projects") {
     fillInstitutionSelect(item.institutionIds || []);
     form.elements.completedActivities.value = item.completedActivities || "";
+    renderProjectFormTexts(item.formTexts || {});
+    enhanceClearableFields();
     form.querySelector("h2").textContent = "Projekt bearbeiten";
     form.elements.budget.dataset.autoGrant = "false";
   }
