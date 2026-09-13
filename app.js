@@ -4,6 +4,15 @@ const STORES = ["projects", "students", "expenses", "tasks", "documents", "users
 const SESSION_KEY = "erasmus_plus_management_user";
 const AUTO_BACKUP_KEY = "erasmus_plus_management_auto_backups";
 const AUTO_BACKUP_LIMIT = 8;
+const MOBILITY_PROFILE_FIELDS = [
+  "mobilityNote",
+  "emergencyContact1",
+  "emergencyContact2",
+  "allergies",
+  "medicalNotes",
+  "insurance",
+  "mediaConsent",
+];
 const DEFAULT_MOBILITY_FORM_TEMPLATES = [
   {
     id: "grantAgreement",
@@ -36,6 +45,90 @@ const DEFAULT_MOBILITY_FORM_TEMPLATES = [
     notice: "Für die Mitnahme durch betreuende Lehrkräfte. Medizinische Angaben bitte vor Ausgabe prüfen und ergänzen.",
     body: "Teilnehmende Person: {name}, Klasse {klasse}, Geburtsdatum {geburtsdatum}\nProjekt: {projekt}, Zielland: {zielland}, Zeitraum: {zeitraum}\n\nNotfallkontakt 1: {notfallkontakt_1}\nNotfallkontakt 2: {notfallkontakt_2}\n\nAllergien / Unverträglichkeiten: {allergien}\nMedikamente / Vorerkrankungen: {medizinische_hinweise}\nVersicherung / Besonderheiten: {versicherung}",
     signatures: "Erziehungsberechtigte, Betreuende Lehrkraft",
+  },
+];
+const HELP_TOPICS = [
+  {
+    category: "Start",
+    title: "Grundidee der Anwendung",
+    text: "Die App verwaltet Erasmus+ Projekte, Schüler*innen, Budgets, Aufwände, Aufgaben, Dokumente, Formulare und Akten lokal im Browser. Alles bleibt auf dem Gerät und kann als JSON-Backup exportiert werden.",
+    steps: ["Dashboard öffnen", "Projektstatus, Budget und Meldungen prüfen", "Bei Bedarf über die Suche direkt nach Projekt, Person oder Beleg filtern"],
+    view: "dashboard",
+    keywords: "übersicht dashboard status kpi lokal indexeddb hub",
+  },
+  {
+    category: "Projekte",
+    title: "Projekt anlegen oder bearbeiten",
+    text: "Ein Projekt enthält Leitaktion, Status, Zeitraum, Partnereinrichtungen, Zielland, Förderbudget, Budget und Förderpauschalen. Die Projektakte bündelt später alle Einzelheiten.",
+    steps: ["Menü Projekte öffnen", "Projektformular ausfüllen", "Förderbudget und Zielland wählen", "Speichern"],
+    view: "projects",
+    keywords: "projekt katalog leitaktion partner schule förderpauschale budget projektakte archivieren",
+  },
+  {
+    category: "Teilnehmende",
+    title: "Schüler*innen mehreren Projekten zuordnen",
+    text: "Eine Schüler*in kann mehreren Projekten zugeordnet werden. Rollen, Dokumentstatus, Notfallkontakte, Gesundheitsangaben, Versicherung und Einwilligungen werden projektbezogen gepflegt.",
+    steps: ["Menü Teilnehmende öffnen", "Person auswählen oder neu anlegen", "Mehrere Projekte markieren", "Projekt-Tab öffnen", "Mobilitätsrelevante Angaben pflegen"],
+    view: "students",
+    keywords: "schüler schülerin teilnehmende projektzuordnung dokumente tabs rolle mobilitätsakte notfallkontakt allergien versicherung medien",
+  },
+  {
+    category: "Dokumente",
+    title: "Fehlende Dokumente finden",
+    text: "Der Dokumentenmonitor zeigt je Schüler*in und Projekt, welche Pflichtdokumente vorhanden sind und welche fehlen. Die benötigten Dokumenttypen werden im Adminbereich konfiguriert.",
+    steps: ["Menü Dokumente öffnen", "Filter auf Nur offene Dokumente stellen", "Fehlende Unterlagen nachpflegen"],
+    view: "documents",
+    keywords: "dokument einverständnis notfallkontakt versicherung fehlend pflichtdokument monitor",
+  },
+  {
+    category: "Formulare",
+    title: "Formulare pro Schüler*in drucken",
+    text: "Die Formularzentrale erzeugt Teilnehmervereinbarung, Lernvereinbarung, Einverständnis/Datenschutz, Notfallkarte, Teilnahmebescheinigung und Europass Mobilität mit vorausgefüllten Daten aus Projekt, Schule und projektbezogener Schüler*innenakte.",
+    steps: ["Menü Formulare öffnen", "Projekt wählen", "Formular wählen", "Schüler*in wählen", "Einzelformular öffnen und Drucken / PDF nutzen"],
+    view: "forms",
+    keywords: "formular vorlage teilnehmervereinbarung grant agreement lernvereinbarung europass notfallkarte datenschutz drucken pdf",
+  },
+  {
+    category: "Formulare",
+    title: "Batch-Ausgabe für ein ganzes Projekt",
+    text: "Für ein Projekt können alle Formulare einer Art für alle zugeordneten Schüler*innen am Stück erstellt werden. Beim Druck beginnt jedes Dokument auf einer neuen A4-Seite.",
+    steps: ["Menü Formulare öffnen", "Projekt und Formular wählen", "Ganzes Projekt anklicken", "Drucken / PDF starten"],
+    view: "forms",
+    keywords: "batch serienbrief alle projekt a4 neue seite ausdrucken aushändigen",
+  },
+  {
+    category: "Admin",
+    title: "Formular-Templates mit Platzhaltern bearbeiten",
+    text: "Admins können die Texte der Mobilitätsformulare anpassen. Platzhalter wie {name}, {projekt}, {zeitraum}, {entsendende_schule} und {aufnehmende_einrichtung} werden beim Erzeugen ersetzt.",
+    steps: ["Menü Admin öffnen", "Grunddaten & Vorlagen aufklappen", "Formular-Templates bearbeiten", "Template speichern"],
+    view: "admin",
+    adminOnly: true,
+    keywords: "template editor platzhalter admin formular texte standard wiederherstellen",
+  },
+  {
+    category: "Admin",
+    title: "Stammdaten verwalten",
+    text: "Im Adminbereich werden Benutzer, Förderbudgets, Partnereinrichtungen, Klassen/Gruppen, Leitaktionen, Dokumenttypen, Aufwandskategorien, feste Formulardaten und Förderpauschalen gepflegt.",
+    steps: ["Als Admin anmelden", "Admin öffnen", "Passende Gruppe aufklappen", "Änderungen speichern"],
+    view: "admin",
+    adminOnly: true,
+    keywords: "benutzer rollen förderbudget partnereinrichtungen klassen gruppen leitaktionen kategorien pauschalen",
+  },
+  {
+    category: "Backup",
+    title: "Backup exportieren und importieren",
+    text: "Backups enthalten Projekte, Schüler*innen, Aufwände, Aufgaben, Dokumente, Benutzer, Einstellungen, Formularwerte, Akten- und Historieneinträge. Vor riskanten Vorgängen wird zusätzlich eine Sicherung angeboten.",
+    steps: ["Menü Backup öffnen", "Export herunterladen", "Zum Wiederherstellen Datei auswählen und Import starten"],
+    view: "backup",
+    keywords: "backup export import json sicherung wiederherstellen indexeddb daten",
+  },
+  {
+    category: "Archiv",
+    title: "Archivmodus verwenden",
+    text: "Archivierte Projekte und Schüler*innen bleiben nachvollziehbar, werden aber gegen Bearbeiten, Löschen und neue Folgedaten geschützt. So bleiben alte Zuordnungen und Akten erhalten.",
+    steps: ["Projekt oder Schüler*in im Index suchen", "Mehr-Menü öffnen", "Archivieren oder Wieder öffnen wählen"],
+    view: "projects",
+    keywords: "archiv archivieren sperren abgeschlossen wieder öffnen löschen schutz",
   },
 ];
 const DEFAULT_SETTINGS = {
@@ -296,6 +389,8 @@ function bindForms() {
   document.querySelector("#mobility-form-type").addEventListener("change", renderMobilityFormOverview);
   document.querySelector("#open-mobility-form").addEventListener("click", openSelectedMobilityForm);
   document.querySelector("#batch-mobility-form").addEventListener("click", batchSelectedMobilityForm);
+  document.querySelector("#help-search").addEventListener("input", renderHelp);
+  document.querySelector("#help-category").addEventListener("change", renderHelp);
   document.querySelector("[data-reset-template-defaults]").addEventListener("click", resetTemplateDefaultsForm);
   document.querySelector("#student-form [name=projectIds]").addEventListener("change", () => renderRequiredDocumentFields());
   document.querySelector("#fundingBudget-form [name=startDate]").addEventListener("change", updateFundingBudgetEndDate);
@@ -498,6 +593,12 @@ async function onStudentSubmit(event) {
         role: data.get(`projectRole:${projectId}`) || data.get("role"),
         documentStatus: data.get(`projectDocumentStatus:${projectId}`) || data.get("documentStatus"),
         mobilityNote: (data.get(`projectMobilityNote:${projectId}`) || "").trim(),
+        emergencyContact1: (data.get(`projectEmergencyContact1:${projectId}`) || "").trim(),
+        emergencyContact2: (data.get(`projectEmergencyContact2:${projectId}`) || "").trim(),
+        allergies: (data.get(`projectAllergies:${projectId}`) || "").trim(),
+        medicalNotes: (data.get(`projectMedicalNotes:${projectId}`) || "").trim(),
+        insurance: (data.get(`projectInsurance:${projectId}`) || "").trim(),
+        mediaConsent: (data.get(`projectMediaConsent:${projectId}`) || "").trim(),
       },
     ])),
     documents: Object.fromEntries(getSettingValues("documentTypes").map((type) => [type, projectIds.every((projectId) => data.getAll(`requiredDocuments:${projectId}`).includes(type))])),
@@ -792,6 +893,7 @@ function render() {
   renderFundingBudgets();
   renderInstitutions();
   renderSettings();
+  renderHelp();
   renderAutomaticBackupStatus();
   enhanceClearableFields();
 }
@@ -1383,6 +1485,7 @@ function setTemplateSaveStatus(status, savedAt = "") {
 
 function defaultTemplateValues(type, project, student) {
   const defaults = getTemplateDefaults();
+  const profile = studentProjectProfile(student, project.id);
   const sendingInstitution = defaults.sendingInstitution || "Bitte Schulname ergänzen";
   const recognitionText = defaults.recognitionText || "Die erreichten Lernergebnisse wurden durch die beteiligten Einrichtungen bestätigt. Details bitte nach Abschluss der Mobilität ergänzen.";
   const common = {
@@ -1394,12 +1497,12 @@ function defaultTemplateValues(type, project, student) {
     learningOutcomes: projectLearningOutcomes(project),
     activities: projectTaskList(project.id, type === "europass" ? "Aus Projektaufgaben übernehmen und nach der Mobilität anpassen" : "Offen, In Arbeit oder geplant"),
     recognitionText,
-    mediaConsent: "Bitte Auswahl / Einschränkungen ergänzen.",
-    emergencyContact1: "Bitte Name, Beziehung und Telefonnummer ergänzen.",
-    emergencyContact2: "Bitte optional ergänzen.",
-    allergies: "Keine Angaben / bitte ergänzen.",
-    medicalNotes: "Keine Angaben / bitte ergänzen.",
-    insurance: "Bitte Versicherung / Auslandsschutz ergänzen.",
+    mediaConsent: profile.mediaConsent || "Bitte Auswahl / Einschränkungen ergänzen.",
+    emergencyContact1: profile.emergencyContact1 || "Bitte Name, Beziehung und Telefonnummer ergänzen.",
+    emergencyContact2: profile.emergencyContact2 || "Bitte optional ergänzen.",
+    allergies: profile.allergies || "Keine Angaben / bitte ergänzen.",
+    medicalNotes: profile.medicalNotes || "Keine Angaben / bitte ergänzen.",
+    insurance: profile.insurance || "Bitte Versicherung / Auslandsschutz ergänzen.",
   };
   const customTemplate = getMobilityFormTemplate(type);
   if (customTemplate) {
@@ -1865,6 +1968,24 @@ function renderStudentFile(studentId, shouldScroll = false) {
           templateActions(project.id, student.id),
         ];
       }))}
+      ${projectFileTable("Mobilitätsrelevante Angaben", ["Projekt", "Notfallkontakte", "Gesundheit", "Versicherung / Medien"], projects.map((project) => {
+        const profile = studentProjectProfile(student, project.id);
+        return [
+          `<strong>${escapeHtml(project.name)}</strong>`,
+          compactLines([
+            ["Kontakt 1", profile.emergencyContact1],
+            ["Kontakt 2", profile.emergencyContact2],
+          ]),
+          compactLines([
+            ["Allergien", profile.allergies],
+            ["Medizin", profile.medicalNotes],
+          ]),
+          compactLines([
+            ["Versicherung", profile.insurance],
+            ["Medien", profile.mediaConsent],
+          ]),
+        ];
+      }))}
       ${projectFileTable("Aufwände", ["Datum", "Projekt", "Kategorie", "Betrag", "Beleg"], expenses.map((expense) => [
         formatDate(expense.date),
         escapeHtml(projectName(expense.projectId)),
@@ -2178,6 +2299,66 @@ function renderForms() {
   fillProjectSelect("#mobility-form-project", false, "Projekt wählen");
   fillMobilityFormStudentSelect();
   renderMobilityFormOverview();
+}
+
+function renderHelp() {
+  const results = document.querySelector("#help-results");
+  if (!results) return;
+  fillHelpCategorySelect();
+  const query = normalizeSearch(document.querySelector("#help-search")?.value || "");
+  const category = document.querySelector("#help-category")?.value || "";
+  const topics = HELP_TOPICS
+    .filter((topic) => !topic.adminOnly || isAdmin())
+    .filter((topic) => !category || topic.category === category)
+    .filter((topic) => {
+      if (!query) return true;
+      return normalizeSearch([
+        topic.category,
+        topic.title,
+        topic.text,
+        topic.keywords,
+        ...(topic.steps || []),
+      ].join(" ")).includes(query);
+    });
+
+  document.querySelector("#help-count").textContent = query || category
+    ? `${topics.length} passende Hilfethemen`
+    : "Alle Hilfethemen werden angezeigt.";
+  results.innerHTML = topics.length ? topics.map(helpTopicCard).join("") : emptyState();
+  results.querySelectorAll("[data-help-view]").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.view = button.dataset.helpView;
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+}
+
+function fillHelpCategorySelect() {
+  const select = document.querySelector("#help-category");
+  if (!select) return;
+  const current = select.value;
+  const categories = uniqueValues(HELP_TOPICS.filter((topic) => !topic.adminOnly || isAdmin()).map((topic) => topic.category));
+  select.innerHTML = `<option value="">Alle Kategorien</option>`;
+  categories.forEach((category) => {
+    const option = new Option(category, category);
+    option.selected = current === category;
+    select.add(option);
+  });
+}
+
+function helpTopicCard(topic) {
+  return `
+    <article class="help-card">
+      <div>
+        <span class="help-category">${escapeHtml(topic.category)}</span>
+        <h3>${escapeHtml(topic.title)}</h3>
+        <p>${escapeHtml(topic.text)}</p>
+      </div>
+      ${topic.steps?.length ? `<ol>${topic.steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("")}</ol>` : ""}
+      ${topic.view ? `<button type="button" class="secondary small" data-help-view="${escapeHtml(topic.view)}">Zum Bereich</button>` : ""}
+    </article>
+  `;
 }
 
 function renderMobilityFormOverview() {
@@ -3001,6 +3182,24 @@ function projectProfileFields(studentId, projectId, previous = null) {
       <label class="wide">Projektbezogene Notiz
         <textarea name="projectMobilityNote:${escapeHtml(projectId)}" rows="2" placeholder="z. B. besondere Vereinbarung, Reisegruppe, Betreuung">${escapeHtml(profile.mobilityNote || "")}</textarea>
       </label>
+      <label>Notfallkontakt 1
+        <input name="projectEmergencyContact1:${escapeHtml(projectId)}" value="${escapeHtml(profile.emergencyContact1 || "")}" placeholder="Name, Beziehung, Telefon" />
+      </label>
+      <label>Notfallkontakt 2
+        <input name="projectEmergencyContact2:${escapeHtml(projectId)}" value="${escapeHtml(profile.emergencyContact2 || "")}" placeholder="optional" />
+      </label>
+      <label>Versicherung
+        <input name="projectInsurance:${escapeHtml(projectId)}" value="${escapeHtml(profile.insurance || "")}" placeholder="Versicherung / Auslandsschutz" />
+      </label>
+      <label>Medienregelung
+        <input name="projectMediaConsent:${escapeHtml(projectId)}" value="${escapeHtml(profile.mediaConsent || "")}" placeholder="Foto/Video ja, nein oder eingeschränkt" />
+      </label>
+      <label class="wide">Allergien / Unverträglichkeiten
+        <textarea name="projectAllergies:${escapeHtml(projectId)}" rows="2" placeholder="Keine oder Details eintragen">${escapeHtml(profile.allergies || "")}</textarea>
+      </label>
+      <label class="wide">Medizinische Hinweise
+        <textarea name="projectMedicalNotes:${escapeHtml(projectId)}" rows="2" placeholder="Medikamente, Vorerkrankungen, Besonderheiten">${escapeHtml(profile.medicalNotes || "")}</textarea>
+      </label>
     </div>
   `;
 }
@@ -3013,6 +3212,12 @@ function collectProjectProfileFields(container) {
       role: panel.querySelector(`[name="projectRole:${cssEscape(projectId)}"]`)?.value || "",
       documentStatus: panel.querySelector(`[name="projectDocumentStatus:${cssEscape(projectId)}"]`)?.value || "",
       mobilityNote: panel.querySelector(`[name="projectMobilityNote:${cssEscape(projectId)}"]`)?.value || "",
+      emergencyContact1: panel.querySelector(`[name="projectEmergencyContact1:${cssEscape(projectId)}"]`)?.value || "",
+      emergencyContact2: panel.querySelector(`[name="projectEmergencyContact2:${cssEscape(projectId)}"]`)?.value || "",
+      allergies: panel.querySelector(`[name="projectAllergies:${cssEscape(projectId)}"]`)?.value || "",
+      medicalNotes: panel.querySelector(`[name="projectMedicalNotes:${cssEscape(projectId)}"]`)?.value || "",
+      insurance: panel.querySelector(`[name="projectInsurance:${cssEscape(projectId)}"]`)?.value || "",
+      mediaConsent: panel.querySelector(`[name="projectMediaConsent:${cssEscape(projectId)}"]`)?.value || "",
     };
   });
   return profiles;
@@ -3442,6 +3647,12 @@ function studentArchivedProjectDataWouldChange(studentId, nextProjectIds, formDa
       role: formData.get(`projectRole:${projectId}`) || existing.role || "Teilnehmer",
       documentStatus: formData.get(`projectDocumentStatus:${projectId}`) || existing.documentStatus || "",
       mobilityNote: (formData.get(`projectMobilityNote:${projectId}`) || "").trim(),
+      emergencyContact1: (formData.get(`projectEmergencyContact1:${projectId}`) || "").trim(),
+      emergencyContact2: (formData.get(`projectEmergencyContact2:${projectId}`) || "").trim(),
+      allergies: (formData.get(`projectAllergies:${projectId}`) || "").trim(),
+      medicalNotes: (formData.get(`projectMedicalNotes:${projectId}`) || "").trim(),
+      insurance: (formData.get(`projectInsurance:${projectId}`) || "").trim(),
+      mediaConsent: (formData.get(`projectMediaConsent:${projectId}`) || "").trim(),
     };
     return JSON.stringify(previousDocs) !== JSON.stringify(nextDocs) || JSON.stringify(previousProfile) !== JSON.stringify(nextProfile);
   });
@@ -3501,6 +3712,13 @@ function filterText(items) {
   return items.filter((item) => JSON.stringify(item).toLowerCase().includes(state.search));
 }
 
+function normalizeSearch(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function projectName(id) {
   return state.projects.find((project) => project.id === id)?.name || "Nicht zugeordnet";
 }
@@ -3522,6 +3740,12 @@ function studentProjectProfile(student, projectId) {
     role: profile.role || student.role || "Teilnehmer",
     documentStatus: profile.documentStatus || student.documentStatus || (missingDocs(student, projectId).length ? "Unvollständig" : "Vollständig"),
     mobilityNote: profile.mobilityNote || "",
+    emergencyContact1: profile.emergencyContact1 || "",
+    emergencyContact2: profile.emergencyContact2 || "",
+    allergies: profile.allergies || "",
+    medicalNotes: profile.medicalNotes || "",
+    insurance: profile.insurance || "",
+    mediaConsent: profile.mediaConsent || "",
   };
 }
 
@@ -3699,6 +3923,14 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#039;",
   })[char]);
+}
+
+function compactLines(rows) {
+  const lines = rows.map(([label, value]) => {
+    const text = String(value || "").trim();
+    return `<div><strong>${escapeHtml(label)}:</strong> ${escapeHtml(text || "-")}</div>`;
+  });
+  return `<div class="compact-lines">${lines.join("")}</div>`;
 }
 
 function cssEscape(value) {

@@ -102,10 +102,12 @@ Wichtige Stellen in `app.js`:
 - Speicherbare Druckvorlagen fuer Europass Lernvereinbarung und Europass Mobilitaet pro Teilnehmende*r
 - Eigener Menuepunkt fuer Mobilitaetsformulare mit Einzel- und Batchausgabe pro Projekt
 - Admin-Editor fuer Teilnehmervereinbarung, Lernvereinbarung, Einverstaendnis/Datenschutz und Notfallkarte mit Platzhaltern wie `{name}`, `{projekt}` und `{entsendende_schule}`
+- Durchsuchbarer Hilfebereich mit Kategorien und Sprung in die passenden Module
 - Batch-Ausgabe pro Projekt fuer Teilnahmebescheinigungen, Europass Mobilitaet und Lernvereinbarungen; beim Drucken/PDF beginnt jedes Dokument auf einer neuen A4-Seite
 - Platzsparendere Dokumentvorlagen mit kompakteren Tabellen, Eingabefeldern und Signaturbereichen
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
 - Teilnehmende mit globalen Stammdaten und projektbezogenen Angaben wie Rolle, Dokumentenstatus und Notiz
+- Projektbezogene mobilitaetsrelevante Angaben je Schueler*in: Notfallkontakte, Allergien, medizinische Hinweise, Versicherung und Medienregelung
 - Klassen/Gruppen werden im Admin-Panel gepflegt und bei Teilnehmenden per Dropdown ausgewaehlt
 - Teilnehmendenlisten pro Projekt mit Geburtsdatum, kompaktem Dokumentstatus, fehlenden Dokumenten und Druck-/PDF-Ausgabe
 - Automatische, bearbeitbare Foerderpauschalen pro Zielland und Distanzband beim Projektanlegen

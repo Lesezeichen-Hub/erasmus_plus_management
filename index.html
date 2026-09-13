@@ -51,6 +51,7 @@
         <button class="nav-item" data-view="forms">Formulare</button>
         <button class="nav-item" data-view="admin" data-admin-only>Admin</button>
         <button class="nav-item" data-view="backup">Backup</button>
+        <button class="nav-item" data-view="help">Hilfe</button>
       </nav>
     </aside>
 
@@ -466,6 +467,27 @@
             <h2>Beispieldaten</h2>
             <p class="muted">Füllt die Anwendung mit einem kleinen Erasmus+-Szenario zum Ausprobieren.</p>
             <button id="seed-data" class="secondary">Beispieldaten laden</button>
+          </section>
+        </div>
+      </section>
+
+      <section id="help" class="view">
+        <div class="help-layout">
+          <section class="panel help-search-panel">
+            <h2>Hilfe durchsuchen</h2>
+            <label>Suchbegriff <input id="help-search" type="search" placeholder="z. B. Backup, Formulare, Dokumente, Schüler*innen..." /></label>
+            <label>Kategorie
+              <select id="help-category">
+                <option value="">Alle Kategorien</option>
+              </select>
+            </label>
+            <p id="help-count" class="hint">Alle Hilfethemen werden angezeigt.</p>
+          </section>
+          <section class="panel wide help-results-panel">
+            <div class="panel-head">
+              <h2>Hilfethemen</h2>
+            </div>
+            <div id="help-results" class="help-results"></div>
           </section>
         </div>
       </section>
