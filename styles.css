@@ -742,6 +742,16 @@ textarea { resize: vertical; }
   gap: 13px;
 }
 
+.management-report-workspace { padding: 18px; display: grid; gap: 20px; min-width: 0; }
+.management-report-workspace form { max-width: 900px; }
+.management-report-workspace label { min-width: 0; }
+.management-report-workspace .form-actions { flex-wrap: wrap; }
+#management-report-preview { width: 100%; height: 850px; border: 1px solid var(--line); background: white; border-radius: 4px; }
+@media (max-width: 600px) {
+  .management-report-workspace { padding: 12px; }
+  .management-report-workspace .form-row { grid-template-columns: minmax(0, 1fr); }
+}
+
 #project-form { gap: 0; align-content: start; min-width: 0; }
 #project-form h2 { margin-bottom: 16px; }
 .project-form-section { border-top: 1px solid var(--line); min-width: 0; }

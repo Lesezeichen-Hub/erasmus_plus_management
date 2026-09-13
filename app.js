@@ -55,6 +55,14 @@ const DEFAULT_MOBILITY_FORM_TEMPLATES = [
 ];
 const HELP_TOPICS = [
   {
+    category: "Admin",
+    title: "Kurzberichte für Schulleitung und Verwaltung",
+    text: "Im Adminbereich stehen Kurzbericht, Finanzübersicht und Statusbericht mit Vorschau, A4-Druck/PDF und eigenständigem HTML-Export bereit. Persönliche Schüler*innendaten werden nicht ausgegeben.",
+    steps: ["Admin > Berichte für Schulleitung & Verwaltung öffnen", "Bericht, Projekt und optional Zeitraum oder Status wählen", "Bericht erstellen", "Drucken / PDF oder HTML exportieren wählen"],
+    view: "admin",
+    keywords: "bericht kurzbericht schulleitung verwaltung export drucken pdf finanzen",
+  },
+  {
     category: "Start",
     title: "Grundidee der Anwendung",
     text: "Die App verwaltet Erasmus+ Projekte, Schüler*innen, Budgets, Aufwände, Aufgaben, Dokumente, Formulare und Akten lokal im Browser. Alles bleibt auf dem Gerät und kann als JSON-Backup exportiert werden.",
@@ -376,6 +384,7 @@ function bindNavigation() {
 }
 
 function bindForms() {
+  bindManagementReports();
   document.querySelector("#project-form").addEventListener("submit", onProjectSubmit);
   renderProjectFormTexts();
   document.querySelector("#project-form").addEventListener("invalid", (event) => {
@@ -892,6 +901,7 @@ async function onSettingSubmit(event) {
 
 function render() {
   renderAuth();
+  refreshManagementReports();
   if (!state.currentUser) return;
   if (state.view === "admin" && !isAdmin()) state.view = "dashboard";
   document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active-view", view.id === state.view));

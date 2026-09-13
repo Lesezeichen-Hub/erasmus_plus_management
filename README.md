@@ -157,3 +157,19 @@ zum Uebernehmen neuer Projektvorgaben die jeweilige Vorlage zuruecksetzen.
 Einzel- und Batch-Ausgaben verwenden dieselben Projektvorgaben. Die Werte werden
 als `formTexts` mit dem Projekt gespeichert und sind in den Backups enthalten.
 Gesundheits- und Notfallangaben bleiben personenbezogen in der Schueler*innenakte.
+# Version 1.44.0
+
+Admin > Berichte fuer Schulleitung & Verwaltung bietet Kurzbericht,
+Finanzuebersicht und Statusbericht. Projekte lassen sich nach Projekt,
+ueberlappendem Projektzeitraum, Status und Archiv filtern. Finanzwerte gelten
+fuer die gesamte Laufzeit der ausgewaehlten Projekte. Die Foerderbudget-Tabelle
+zeigt dagegen die vollstaendigen zugehoerigen Foerderbudgets mit allen ihren
+Projektzuordnungen. Geldsummen werden in Cent addiert.
+
+Die Vorschau ist zugleich die isolierte Druckausgabe in A4 hochkant. Ueber
+Drucken / PDF kann im Browser als PDF gespeichert werden. HTML exportieren
+erstellt einen eigenstaendigen Bericht mit eingebettetem Layout. Berichte
+enthalten aggregierte Zahlen, keine Namen, Geburtsdaten oder Gesundheitsdaten
+von Schueler*innen. Freie Anmerkungen und Projektausschnitte werden unveraendert
+als Text uebernommen. Filter und Anmerkungen sind temporaer; es werden keine
+zusaetzlichen Datensaetze gespeichert. Rechentests: `node management-reports.test.cjs`.
