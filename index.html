@@ -526,11 +526,11 @@
         <div class="kpi-grid admin-kpis" id="admin-user-kpis"></div>
         <div class="admin-accordion">
           <details class="admin-group" id="management-reports">
-            <summary>Berichte für Schulleitung & Verwaltung</summary>
+            <summary>Berichte & Export</summary>
             <div class="management-report-workspace">
               <form id="management-report-form" class="form-panel">
                 <div class="form-row">
-                  <label>Bericht<select name="reportType"><option value="summary">Kurzbericht Schulleitung</option><option value="finance">Finanzübersicht Verwaltung</option><option value="status">Projektstatus & Handlungsbedarf</option></select></label>
+                  <label>Bericht<select name="reportType"><option value="summary">Kurzbericht</option><option value="finance">Finanzübersicht</option><option value="status">Projektstatus & Handlungsbedarf</option></select></label>
                   <label>Projekt<select name="projectId"><option value="">Alle Projekte</option></select></label>
                 </div>
                 <div class="form-row">
@@ -549,7 +549,7 @@
                 </div>
                 <p id="management-report-status" class="meta" role="status" aria-live="polite"></p>
               </form>
-              <iframe id="management-report-preview" title="Vorschau des Berichts für Schulleitung und Verwaltung" hidden></iframe>
+              <iframe id="management-report-preview" title="Berichtsvorschau" hidden></iframe>
             </div>
           </details>
           <details class="admin-group" open>

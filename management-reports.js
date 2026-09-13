@@ -1,6 +1,11 @@
 /* Reports are generated from the current state; no student records or report copies are stored. */
 function bindManagementReports() {
   const form = document.querySelector("#management-report-form");
+  form.elements.projectId.addEventListener("change", () => {
+    const project = state.projects.find((entry) => entry.id === form.elements.projectId.value);
+    form.elements.from.value = project?.startDate || "";
+    form.elements.to.value = project?.endDate || "";
+  });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     if (!isAdmin()) return;
@@ -99,7 +104,7 @@ function managementReportRows(filters) {
 }
 
 function buildManagementReport(filters, rows) {
-  const titles = { summary: "Kurzbericht Schulleitung", finance: "Finanzübersicht Verwaltung", status: "Projektstatus & Handlungsbedarf" };
+  const titles = { summary: "Kurzbericht", finance: "Finanzübersicht", status: "Projektstatus & Handlungsbedarf" };
   const title = titles[filters.reportType] || titles.summary;
   const e = escapeHtml;
   const cash = (cents) => money.format(cents / 100);
