@@ -359,6 +359,11 @@ function bindBackup() {
   document.querySelector("#import-grant-templates").addEventListener("click", importGrantTemplates);
   window.addEventListener("afterprint", () => document.body.classList.remove("printing-participant-list"));
   window.addEventListener("afterprint", () => document.body.classList.remove("printing-template-document"));
+  window.addEventListener("beforeprint", () => {
+    if (!document.querySelector("#template-document-panel").hidden) {
+      document.body.classList.add("printing-template-document");
+    }
+  });
 }
 
 async function onProjectSubmit(event) {
@@ -1009,7 +1014,6 @@ function closeTemplateDocument() {
 function printTemplateDocument() {
   document.body.classList.add("printing-template-document");
   window.print();
-  setTimeout(() => document.body.classList.remove("printing-template-document"), 1000);
 }
 
 async function saveTemplateValues(options = {}) {

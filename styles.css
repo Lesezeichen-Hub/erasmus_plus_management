@@ -1112,6 +1112,13 @@ th {
 
 .template-page {
   display: block;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.template-page + .template-page {
+  break-before: page;
+  page-break-before: always;
 }
 
 .template-batch .eu-template {
@@ -1653,6 +1660,28 @@ th {
 
   body.printing-template-document .template-batch {
     display: block;
+  }
+
+  .template-batch {
+    display: block !important;
+  }
+
+  .template-batch .template-page {
+    display: block;
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .template-batch .template-page + .template-page {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .template-batch .template-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
   }
 
   body.printing-template-document .template-page {
