@@ -1115,6 +1115,7 @@ function buildTemplatePrintDocument() {
             max-width: none !important;
             margin: 0 !important;
             color: #17202a !important;
+            font-size: 9.5pt !important;
           }
           .eu-template,
           .eu-template section,
@@ -1122,6 +1123,40 @@ function buildTemplatePrintDocument() {
           .template-notice {
             background: #fff !important;
             box-shadow: none !important;
+          }
+          .eu-template header {
+            padding: 8px 10px !important;
+            margin-bottom: 5px !important;
+          }
+          .eu-template header h1 {
+            font-size: 15pt !important;
+          }
+          .eu-template section {
+            padding: 6px 8px !important;
+            margin-top: 5px !important;
+          }
+          .eu-template section h2 {
+            margin-bottom: 4px !important;
+            font-size: 9.5pt !important;
+          }
+          .eu-template th,
+          .eu-template td {
+            padding: 3px 4px !important;
+            line-height: 1.15 !important;
+          }
+          .eu-template p {
+            line-height: 1.25 !important;
+          }
+          .template-notice {
+            padding: 5px 7px !important;
+            font-size: 8.5pt !important;
+          }
+          .signature-grid {
+            gap: 7px !important;
+          }
+          .signature-grid span {
+            height: 28px !important;
+            margin-bottom: 4px !important;
           }
           .template-batch .eu-template {
             border-bottom: 0 !important;
@@ -1138,6 +1173,8 @@ function buildTemplatePrintDocument() {
             background: transparent !important;
             color: #17202a !important;
             resize: none !important;
+            min-height: 0 !important;
+            line-height: 1.2 !important;
           }
         </style>
       </head>
@@ -2888,10 +2925,10 @@ function projectActions(id) {
   return `
     <div class="row-actions compact-actions">
       <button class="small" data-project-file="${id}">Projektakte</button>
+      <button class="small secondary" data-participant-list="${id}">Teilnehmendenliste</button>
       <details class="action-menu">
         <summary class="small secondary" role="button">Mehr</summary>
         <div class="action-menu-list">
-          <button type="button" data-participant-list="${id}">Teilnehmendenliste</button>
           <button type="button" data-project-archive="${id}">${archived ? "Wieder öffnen" : "Archivieren"}</button>
           <button type="button" data-edit data-store="projects" data-id="${id}" ${archived ? "disabled" : ""}>Bearbeiten</button>
           <button type="button" class="danger" data-delete data-store="projects" data-id="${id}" ${archived ? "disabled" : ""}>Löschen</button>

@@ -101,6 +101,7 @@ Wichtige Stellen in `app.js`:
 - Sicherheitsbackup vor Import, Beispieldaten-Reset und Loeschvorgaengen plus manueller Sicherungsbutton
 - Speicherbare Druckvorlagen fuer Europass Lernvereinbarung und Europass Mobilitaet pro Teilnehmende*r
 - Batch-Ausgabe pro Projekt fuer Teilnahmebescheinigungen, Europass Mobilitaet und Lernvereinbarungen; beim Drucken/PDF beginnt jedes Dokument auf einer neuen A4-Seite
+- Platzsparendere Dokumentvorlagen mit kompakteren Tabellen, Eingabefeldern und Signaturbereichen
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
 - Teilnehmende mit globalen Stammdaten und projektbezogenen Angaben wie Rolle, Dokumentenstatus und Notiz
 - Klassen/Gruppen werden im Admin-Panel gepflegt und bei Teilnehmenden per Dropdown ausgewaehlt

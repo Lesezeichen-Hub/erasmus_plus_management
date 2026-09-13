@@ -923,7 +923,7 @@ th {
 .compact-actions {
   justify-content: flex-end;
   align-items: flex-start;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .action-menu {
@@ -1180,7 +1180,7 @@ th {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 20px;
+  padding: 14px;
 }
 
 .eu-template {
@@ -1191,7 +1191,7 @@ th {
 
 .template-batch {
   display: grid;
-  gap: 22px;
+  gap: 12px;
 }
 
 .template-page {
@@ -1212,15 +1212,15 @@ th {
 
 .template-batch .eu-template {
   border-bottom: 1px dashed var(--line);
-  padding-bottom: 22px;
+  padding-bottom: 12px;
 }
 
 .eu-template header {
   border: 2px solid var(--primary);
   border-left: 12px solid var(--primary);
   border-radius: 8px;
-  padding: 18px;
-  margin-bottom: 14px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
   background: var(--surface-raised);
 }
 
@@ -1235,38 +1235,45 @@ th {
 }
 
 .eu-template header h1 {
-  margin: 4px 0;
-  font-size: 1.75rem;
+  margin: 2px 0;
+  font-size: 1.45rem;
 }
 
 .eu-template section {
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 14px;
-  margin-top: 12px;
+  padding: 9px 12px;
+  margin-top: 8px;
   background: var(--surface);
 }
 
 .eu-template section h2 {
-  margin: 0 0 10px;
-  font-size: 1rem;
+  margin: 0 0 6px;
+  font-size: 0.92rem;
   color: var(--primary);
 }
 
 .eu-template table {
   width: 100%;
+  border-spacing: 0;
 }
 
 .eu-template th {
   width: 32%;
   color: var(--muted-strong);
   text-transform: none;
-  font-size: 0.86rem;
+  font-size: 0.8rem;
+}
+
+.eu-template th,
+.eu-template td {
+  padding: 5px 6px;
+  line-height: 1.25;
 }
 
 .eu-template p {
   margin: 0;
-  line-height: 1.55;
+  line-height: 1.35;
 }
 
 .template-input,
@@ -1274,38 +1281,39 @@ th {
   width: 100%;
   border: 1px solid var(--line);
   border-radius: 7px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
+  min-height: 32px;
 }
 
 .template-textarea {
-  min-height: 96px;
+  min-height: 72px;
   resize: vertical;
-  line-height: 1.5;
+  line-height: 1.32;
 }
 
 .template-notice {
   border: 1px dashed var(--line);
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 7px 10px;
   color: var(--muted);
   background: var(--surface-raised);
-  font-size: 0.86rem;
+  font-size: 0.8rem;
 }
 
 .signature-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 10px;
 }
 
 .signature-grid span {
   display: block;
-  height: 54px;
+  height: 38px;
   border-bottom: 1px solid var(--text);
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .signature-grid strong,
@@ -1752,6 +1760,7 @@ button:disabled {
 
   body.printing-template-document .eu-template {
     max-width: none;
+    font-size: 9.5pt;
   }
 
   body.printing-template-document .template-batch {
@@ -1808,7 +1817,46 @@ button:disabled {
   }
 
   body.printing-template-document .eu-template header h1 {
-    font-size: 18pt;
+    font-size: 15pt;
+  }
+
+  body.printing-template-document .eu-template header {
+    padding: 8px 10px;
+    margin-bottom: 5px;
+  }
+
+  body.printing-template-document .eu-template section {
+    padding: 6px 8px;
+    margin-top: 5px;
+  }
+
+  body.printing-template-document .eu-template section h2 {
+    margin-bottom: 4px;
+    font-size: 9.5pt;
+  }
+
+  body.printing-template-document .eu-template th,
+  body.printing-template-document .eu-template td {
+    padding: 3px 4px;
+    line-height: 1.15;
+  }
+
+  body.printing-template-document .eu-template p {
+    line-height: 1.25;
+  }
+
+  body.printing-template-document .template-notice {
+    padding: 5px 7px;
+    font-size: 8.5pt;
+  }
+
+  body.printing-template-document .signature-grid {
+    gap: 7px;
+  }
+
+  body.printing-template-document .signature-grid span {
+    height: 28px;
+    margin-bottom: 4px;
   }
 
   body.printing-template-document .clear-field {
@@ -1822,6 +1870,8 @@ button:disabled {
     background: transparent !important;
     color: #17202a !important;
     resize: none;
+    min-height: 0;
+    line-height: 1.2;
   }
 
   body.printing-participant-list .report-title h2 {
