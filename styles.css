@@ -1033,6 +1033,29 @@ th {
   flex-wrap: wrap;
 }
 
+.student-edit-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0;
+  flex: 0 0 34px;
+}
+.student-edit-icon:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+#students-table tbody tr > td { transition: background-color 120ms ease; }
+#students-table tbody tr:hover > td,
+#students-table tbody tr:focus-within > td { background-color: var(--surface-soft); }
+#students-table tbody tr:hover > td:first-child,
+#students-table tbody tr:focus-within > td:first-child { box-shadow: inset 3px 0 var(--primary); }
+@media (prefers-reduced-motion: reduce) {
+  #students-table tbody tr > td { transition: none; }
+}
+
 .action-menu {
   min-width: 76px;
 }

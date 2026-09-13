@@ -3525,11 +3525,17 @@ function studentActions(id) {
   return `
     <div class="row-actions compact-actions">
       <button class="small" data-student-file="${id}">Mobilitätsakte</button>
+      <button type="button" class="secondary student-edit-icon" data-edit data-store="students" data-id="${id}" aria-label="${archived ? "Bearbeiten (archiviert)" : "Bearbeiten"}" title="${archived ? "Archiviert: zum Bearbeiten wieder öffnen" : "Bearbeiten"}" ${archived ? "disabled" : ""}>
+        <!-- Lucide pencil icon, ISC license: LICENSE-lucide.txt -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+          <path d="m15 5 4 4" />
+        </svg>
+      </button>
       <details class="action-menu">
         <summary class="small secondary" role="button">Mehr</summary>
         <div class="action-menu-list">
           <button type="button" data-student-archive="${id}">${archived ? "Wieder öffnen" : "Archivieren"}</button>
-          <button type="button" data-edit data-store="students" data-id="${id}" ${archived ? "disabled" : ""}>Bearbeiten</button>
           <button type="button" class="danger" data-delete data-store="students" data-id="${id}" ${archived ? "disabled" : ""}>Löschen</button>
         </div>
       </details>
