@@ -373,6 +373,8 @@ async function onProjectSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
+  const existing = state.projects.find((project) => project.id === data.id);
+  const archived = data.status === "Archiviert";
   if (new Date(data.endDate) < new Date(data.startDate)) {
     toast("Enddatum darf nicht vor dem Startdatum liegen");
     return;
@@ -411,6 +413,8 @@ async function onProjectSubmit(event) {
     grantSource: GRANT_SOURCE,
     budget: Number(data.budget),
     status: data.status,
+    archivedAt: archived ? existing?.archivedAt || new Date().toISOString() : "",
+    archivedBy: archived ? existing?.archivedBy || state.currentUser?.id || "" : "",
   });
   resetForm("project-form");
 }
@@ -419,9 +423,19 @@ async function onStudentSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const data = new FormData(form);
+  const existing = state.students.find((student) => student.id === data.get("id"));
+  if (existing?.archived === true) {
+    toast("Archivierte Schüler*innen sind gesperrt. Bitte erst wieder öffnen.");
+    return;
+  }
   const projectIds = [...form.elements.projectIds.selectedOptions].map((option) => option.value);
   if (!projectIds.length) {
     toast("Bitte mindestens ein Projekt auswählen");
+    return;
+  }
+
+  if (studentArchivedProjectDataWouldChange(data.get("id"), projectIds, data)) {
+    toast("Archivierte Projektzuordnungen sind gesperrt. Bitte Projekt erst wieder öffnen.");
     return;
   }
 
@@ -454,6 +468,14 @@ async function onExpenseSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
+  if (projectIsArchived(data.projectId)) {
+    toast("Archivierte Projekte sind gesperrt. Bitte Projekt erst wieder öffnen.");
+    return;
+  }
+  if (studentIsArchived(data.studentId)) {
+    toast("Archivierte Schüler*innen sind gesperrt. Bitte erst wieder öffnen.");
+    return;
+  }
   await persist("expenses", {
     id: data.id || createId(),
     projectId: data.projectId,
@@ -471,6 +493,10 @@ async function onTaskSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
+  if (projectIsArchived(data.projectId)) {
+    toast("Archivierte Projekte sind gesperrt. Bitte Projekt erst wieder öffnen.");
+    return;
+  }
   await persist("tasks", {
     id: data.id || createId(),
     projectId: data.projectId,
@@ -486,6 +512,14 @@ async function onDocumentSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const data = Object.fromEntries(new FormData(form));
+  if (projectIsArchived(data.projectId)) {
+    toast("Archivierte Projekte sind gesperrt. Bitte Projekt erst wieder öffnen.");
+    return;
+  }
+  if (studentIsArchived(data.studentId)) {
+    toast("Archivierte Schüler*innen sind gesperrt. Bitte erst wieder öffnen.");
+    return;
+  }
   await persist("documents", {
     id: data.id || createId(),
     title: data.title.trim(),
@@ -748,7 +782,7 @@ function renderDashboard() {
 }
 
 function renderProjectStatusSummary() {
-  const statuses = ["Geplant", "Aktiv", "Abrechnung", "Abgeschlossen"];
+  const statuses = ["Geplant", "Aktiv", "Abrechnung", "Abgeschlossen", "Archiviert"];
   const total = state.projects.length;
   document.querySelector("#project-status-summary").innerHTML = `
     <div class="status-total"><strong>${total}</strong><span>Projekte gesamt</span></div>
@@ -968,6 +1002,7 @@ function showTemplateDocument(type, projectId, studentId) {
   document.querySelector("#template-document-title").textContent = title;
   document.querySelector("#template-document").innerHTML = renderTemplateByType(type, project, student, values);
   bindTemplateSaveTracking();
+  setTemplateDocumentLocked(project.status === "Archiviert" || student.archived === true);
   setTemplateSaveStatus(templateHasSavedValues(type, projectId, studentId) ? "saved" : "new");
   enhanceClearableFields();
   document.querySelector("#template-document-panel").hidden = false;
@@ -996,6 +1031,7 @@ function showTemplateBatch(type, projectId) {
       ${students.map((student) => `<div class="template-page">${renderTemplateByType(type, project, student, templateValues(type, project, student))}</div>`).join("")}
     </div>
   `;
+  setTemplateDocumentLocked(true);
   setTemplateSaveStatus("batch");
   enhanceClearableFields();
   document.querySelector("#template-document-panel").hidden = false;
@@ -1147,6 +1183,11 @@ async function saveTemplateValues(options = {}) {
     toast("Batch-Ausgaben werden aus den Einzelwerten erzeugt. Bitte Einzelvorlage speichern.");
     return;
   }
+  if (projectIsArchived(state.templateDocument.projectId) || studentIsArchived(state.templateDocument.studentId)) {
+    setTemplateSaveStatus("locked");
+    if (!options.silent) toast("Archivierte Projekte oder Schüler*innen sind gesperrt. Bitte erst wieder öffnen.");
+    return;
+  }
   clearTimeout(templateAutoSaveTimer);
   const fields = {};
   document.querySelectorAll("#template-document [data-template-field]").forEach((field) => {
@@ -1209,6 +1250,15 @@ function bindTemplateSaveTracking() {
   });
 }
 
+function setTemplateDocumentLocked(locked) {
+  document.querySelectorAll("#template-document [data-template-field]").forEach((field) => {
+    if (field.tagName === "TEXTAREA" || field.tagName === "INPUT") field.readOnly = locked;
+    if (field.tagName === "SELECT") field.disabled = locked;
+  });
+  document.querySelector("#save-template-values").disabled = locked;
+  document.querySelector("#reset-template-values").disabled = locked;
+}
+
 function setTemplateSaveStatus(status, savedAt = "") {
   const element = document.querySelector("#template-save-status");
   if (!element) return;
@@ -1222,6 +1272,7 @@ function setTemplateSaveStatus(status, savedAt = "") {
     saving: "Speichere...",
     autosaving: "Autospeichern...",
     saved: savedTime ? `Gesichert um ${savedTime}` : "Gespeichert",
+    locked: "Archiviert · nur lesbar",
     error: "Nicht gesichert",
   };
   element.textContent = labels[status] || "";
@@ -1577,17 +1628,20 @@ function renderStudentFile(studentId, shouldScroll = false) {
   const history = state.auditLogs
     .filter((entry) => auditTouchesStudent(entry, student.id))
     .slice(0, 25);
+  const archived = student.archived === true;
 
   container.innerHTML = `
     <div class="project-file-title">
       <div>
         <p>Mobilitätsakte Schüler*in</p>
-        <h2>${escapeHtml(student.name)}</h2>
+        <h2>${escapeHtml(student.name)} ${archived ? badge("Archiviert", "neutral") : ""}</h2>
       </div>
       <div class="project-file-actions">
-        <button class="small secondary" data-edit data-store="students" data-id="${student.id}">Stammdaten bearbeiten</button>
+        <button class="small secondary" data-student-archive="${student.id}">${archived ? "Wieder öffnen" : "Archivieren"}</button>
+        <button class="small secondary" data-edit data-store="students" data-id="${student.id}" ${archived ? "disabled" : ""}>Stammdaten bearbeiten</button>
       </div>
     </div>
+    ${archived ? `<div class="project-file-warning">${badge("Archiviert", "warn")} Diese Schüler*in ist gesperrt und bleibt nur lesbar. Zum Bearbeiten bitte wieder öffnen.</div>` : ""}
     <div class="project-file-grid">
       ${detailCard("Stammdaten", [
         ["Name", student.name],
@@ -1640,6 +1694,7 @@ function renderStudentFile(studentId, shouldScroll = false) {
   `;
   panel.hidden = false;
   container.querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => editItem(button.dataset.store, button.dataset.id)));
+  container.querySelectorAll("[data-student-archive]").forEach((button) => button.addEventListener("click", () => toggleStudentArchive(button.dataset.studentArchive)));
   container.querySelectorAll("[data-template-doc]").forEach((button) => {
     button.addEventListener("click", () => openTemplateDocument(button.dataset.templateDoc, button.dataset.projectId, button.dataset.studentId));
   });
@@ -1663,6 +1718,7 @@ function renderProjectFile(projectId, shouldScroll = false) {
   const spent = expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   const remaining = Number(project.budget || 0) - spent;
   const progress = taskProgress(project.id);
+  const archived = project.status === "Archiviert";
   const missingDocumentRows = students
     .map((student) => ({ student, missing: missingDocs(student, project.id) }))
     .filter((entry) => entry.missing.length);
@@ -1681,8 +1737,10 @@ function renderProjectFile(projectId, shouldScroll = false) {
         <button class="small secondary" data-template-batch="certificate" data-project-id="${project.id}">Alle Bescheinigungen</button>
         <button class="small secondary" data-template-batch="europass" data-project-id="${project.id}">Alle Europass</button>
         <button class="small secondary" data-template-batch="learningAgreement" data-project-id="${project.id}">Alle Lernvereinbarungen</button>
+        <button class="small secondary" data-project-archive="${project.id}">${archived ? "Wieder öffnen" : "Archivieren"}</button>
       </div>
     </div>
+    ${archived ? `<div class="project-file-warning">${badge("Archiviert", "warn")} Dieses Projekt ist gesperrt und bleibt nur lesbar. Zum Bearbeiten bitte wieder öffnen.</div>` : ""}
     <div class="project-file-grid">
       ${detailCard("Rahmen", [
         ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
@@ -1761,6 +1819,9 @@ function renderProjectFile(projectId, shouldScroll = false) {
   });
   container.querySelectorAll("[data-template-batch]").forEach((button) => {
     button.addEventListener("click", () => showTemplateBatch(button.dataset.templateBatch, button.dataset.projectId));
+  });
+  container.querySelectorAll("[data-project-archive]").forEach((button) => {
+    button.addEventListener("click", () => toggleProjectArchive(button.dataset.projectArchive));
   });
   panel.hidden = false;
   if (shouldScroll) panel.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1854,7 +1915,7 @@ function renderStudents() {
   renderTable("#students-table", ["Name", "Projektrollen", "Dokumente je Projekt", "Gesamt", ""], rows.map((student) => {
     const missing = missingDocsByProject(student);
     return [
-    `<strong>${escapeHtml(student.name)}</strong><div class="meta">${escapeHtml(student.className)} · ${formatDate(student.birthDate)}</div>`,
+    `<strong>${escapeHtml(student.name)}</strong>${student.archived ? ` ${badge("Archiviert", "neutral")}` : ""}<div class="meta">${escapeHtml(student.className)} · ${formatDate(student.birthDate)}</div>`,
     studentProjectRoleSummary(student),
     documentProjectSummary(student),
     badge(missing.total ? `${missing.total} fehlt` : "Vollständig", missing.total ? "danger" : "ok"),
@@ -2354,6 +2415,32 @@ async function toggleFundingBudget(id) {
   await persist("fundingBudgets", { ...budget, status: budget.status === "Inaktiv" ? "Aktiv" : "Inaktiv" });
 }
 
+async function toggleProjectArchive(id) {
+  const project = state.projects.find((entry) => entry.id === id);
+  if (!project) return;
+  const archived = project.status === "Archiviert";
+  await persist("projects", {
+    ...project,
+    status: archived ? "Abgeschlossen" : "Archiviert",
+    archivedAt: archived ? "" : new Date().toISOString(),
+    archivedBy: archived ? "" : state.currentUser?.id || "",
+  });
+  toast(archived ? "Projekt wieder geöffnet" : "Projekt archiviert");
+}
+
+async function toggleStudentArchive(id) {
+  const student = state.students.find((entry) => entry.id === id);
+  if (!student) return;
+  const archived = student.archived === true;
+  await persist("students", {
+    ...student,
+    archived: !archived,
+    archivedAt: archived ? "" : new Date().toISOString(),
+    archivedBy: archived ? "" : state.currentUser?.id || "",
+  });
+  toast(archived ? "Schüler*in wieder geöffnet" : "Schüler*in archiviert");
+}
+
 function institutionName(id) {
   const institution = state.institutions.find((entry) => entry.id === id);
   if (!institution) return "Unbekannte Partnereinrichtung";
@@ -2667,8 +2754,10 @@ function fillStudentSelect(selector) {
   const select = document.querySelector(selector);
   const current = select.value;
   select.innerHTML = `<option value="">Ohne Personenbezug</option>`;
-  state.students.forEach((student) => {
-    const option = new Option(student.name, student.id);
+  state.students
+    .filter((student) => student.archived !== true || current === student.id)
+    .forEach((student) => {
+    const option = new Option(`${student.name}${student.archived ? " · archiviert" : ""}`, student.id);
     option.selected = current === student.id;
     select.add(option);
   });
@@ -2739,6 +2828,8 @@ function renderTable(selector, headers, rows) {
   table.querySelectorAll("[data-institution-toggle]").forEach((button) => button.addEventListener("click", () => toggleInstitution(button.dataset.institutionToggle)));
   table.querySelectorAll("[data-user-toggle]").forEach((button) => button.addEventListener("click", () => toggleUserStatus(button.dataset.userToggle)));
   table.querySelectorAll("[data-funding-budget-toggle]").forEach((button) => button.addEventListener("click", () => toggleFundingBudget(button.dataset.fundingBudgetToggle)));
+  table.querySelectorAll("[data-project-archive]").forEach((button) => button.addEventListener("click", () => toggleProjectArchive(button.dataset.projectArchive)));
+  table.querySelectorAll("[data-student-archive]").forEach((button) => button.addEventListener("click", () => toggleStudentArchive(button.dataset.studentArchive)));
 }
 
 function renderList(selector, items) {
@@ -2766,22 +2857,28 @@ function actions(store, id) {
 }
 
 function studentActions(id) {
+  const student = state.students.find((entry) => entry.id === id);
+  const archived = student?.archived === true;
   return `
     <div class="row-actions">
       <button class="small" data-student-file="${id}">Mobilitätsakte</button>
-      <button class="small secondary" data-edit data-store="students" data-id="${id}">Bearbeiten</button>
-      <button class="small danger" data-delete data-store="students" data-id="${id}">Löschen</button>
+      <button class="small secondary" data-student-archive="${id}">${archived ? "Wieder öffnen" : "Archivieren"}</button>
+      <button class="small secondary" data-edit data-store="students" data-id="${id}" ${archived ? "disabled" : ""}>Bearbeiten</button>
+      <button class="small danger" data-delete data-store="students" data-id="${id}" ${archived ? "disabled" : ""}>Löschen</button>
     </div>
   `;
 }
 
 function projectActions(id) {
+  const project = state.projects.find((entry) => entry.id === id);
+  const archived = project?.status === "Archiviert";
   return `
     <div class="row-actions">
       <button class="small" data-project-file="${id}">Projektakte</button>
       <button class="small" data-participant-list="${id}">Teilnehmendenliste</button>
-      <button class="small secondary" data-edit data-store="projects" data-id="${id}">Bearbeiten</button>
-      <button class="small danger" data-delete data-store="projects" data-id="${id}">Löschen</button>
+      <button class="small secondary" data-project-archive="${id}">${archived ? "Wieder öffnen" : "Archivieren"}</button>
+      <button class="small secondary" data-edit data-store="projects" data-id="${id}" ${archived ? "disabled" : ""}>Bearbeiten</button>
+      <button class="small danger" data-delete data-store="projects" data-id="${id}" ${archived ? "disabled" : ""}>Löschen</button>
     </div>
   `;
 }
@@ -2789,6 +2886,18 @@ function projectActions(id) {
 function editItem(store, id) {
   const item = state[store].find((entry) => entry.id === id);
   if (!item) return;
+  if (store === "students" && item.archived === true) {
+    toast("Archivierte Schüler*innen sind gesperrt. Bitte erst wieder öffnen.");
+    return;
+  }
+  if (itemTouchesArchivedStudent(store, item)) {
+    toast("Archivierte Schüler*innen sind gesperrt. Bitte erst wieder öffnen.");
+    return;
+  }
+  if (store !== "students" && itemTouchesArchivedProject(store, item)) {
+    toast("Archivierte Projekte sind gesperrt. Bitte Projekt erst wieder öffnen.");
+    return;
+  }
 
   state.view = VIEW_BY_STORE[store] || "dashboard";
   render();
@@ -2839,8 +2948,26 @@ function editItem(store, id) {
 }
 
 async function deleteItem(store, id) {
+  const itemForArchiveCheck = state[store]?.find((entry) => entry.id === id);
+  if (store === "students" && itemForArchiveCheck?.archived === true) {
+    toast("Archivierte Schüler*innen sind gesperrt. Bitte erst wieder öffnen.");
+    return;
+  }
+  if (itemTouchesArchivedStudent(store, itemForArchiveCheck)) {
+    toast("Archivierte Schüler*innen sind gesperrt. Bitte erst wieder öffnen.");
+    return;
+  }
+  if (itemTouchesArchivedProject(store, itemForArchiveCheck)) {
+    toast("Archivierte Projekte sind gesperrt. Bitte Projekt erst wieder öffnen.");
+    return;
+  }
   if (!confirm("Eintrag wirklich löschen?")) return;
   const deletedItem = state[store]?.find((entry) => entry.id === id);
+  if (!deletedItem) return;
+  if (store === "projects" && deletedItem.status === "Archiviert") {
+    toast("Archivierte Projekte sind gesperrt. Bitte Projekt erst wieder öffnen.");
+    return;
+  }
   createSafetyBackup(`vor-loeschen-${store}`);
   if (store === "institutions") {
     await toggleInstitution(id);
@@ -2931,6 +3058,47 @@ function budgetRemaining(projectId) {
   const project = state.projects.find((entry) => entry.id === projectId);
   const spent = state.expenses.filter((expense) => expense.projectId === projectId).reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
   return Number(project?.budget || 0) - spent;
+}
+
+function projectIsArchived(projectId) {
+  return state.projects.some((project) => project.id === projectId && project.status === "Archiviert");
+}
+
+function studentIsArchived(studentId) {
+  return Boolean(studentId) && state.students.some((student) => student.id === studentId && student.archived === true);
+}
+
+function itemTouchesArchivedProject(store, item = {}) {
+  if (!item) return false;
+  if (store === "projects") return item.status === "Archiviert";
+  if (["expenses", "tasks", "documents", "templateData"].includes(store)) return projectIsArchived(item.projectId);
+  if (store === "students") return (item.projectIds || []).some(projectIsArchived);
+  return false;
+}
+
+function itemTouchesArchivedStudent(store, item = {}) {
+  if (!item) return false;
+  if (store === "students") return item.archived === true;
+  if (["expenses", "documents", "templateData"].includes(store)) return studentIsArchived(item.studentId);
+  return false;
+}
+
+function studentArchivedProjectDataWouldChange(studentId, nextProjectIds, formData) {
+  const existing = state.students.find((student) => student.id === studentId);
+  if (!existing) return false;
+  const archivedProjectIds = (existing.projectIds || []).filter(projectIsArchived);
+  return archivedProjectIds.some((projectId) => {
+    if (!nextProjectIds.includes(projectId)) return true;
+    const previousDocs = getSettingValues("documentTypes").map((type) => [type, hasProjectDocument(existing, type, projectId)]);
+    const nextDocs = getSettingValues("documentTypes").map((type) => [type, formData.getAll(`requiredDocuments:${projectId}`).includes(type)]);
+    const previousProfile = studentProjectProfile(existing, projectId);
+    const nextProfile = {
+      role: formData.get(`projectRole:${projectId}`) || existing.role || "Teilnehmer",
+      documentStatus: formData.get(`projectDocumentStatus:${projectId}`) || existing.documentStatus || "",
+      mobilityNote: (formData.get(`projectMobilityNote:${projectId}`) || "").trim(),
+    };
+    return JSON.stringify(previousDocs) !== JSON.stringify(nextDocs) || JSON.stringify(previousProfile) !== JSON.stringify(nextProfile);
+  });
 }
 
 async function addAuditLog(action, store, entity) {
@@ -3092,7 +3260,7 @@ function badge(text, tone = "") {
 }
 
 function statusTone(status) {
-  return status === "Aktiv" ? "ok" : status === "Abrechnung" ? "warn" : "";
+  return status === "Aktiv" ? "ok" : status === "Abrechnung" ? "warn" : status === "Archiviert" ? "neutral" : "";
 }
 
 function isOverdue(date) {

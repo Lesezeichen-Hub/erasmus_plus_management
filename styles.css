@@ -1372,6 +1372,7 @@ th {
 .badge.ok { background: var(--success-bg); color: var(--success-text); }
 .badge.warn { background: var(--warning-badge-bg); color: var(--warning-text); }
 .badge.danger { background: var(--danger-bg); color: var(--danger-text); }
+.badge.neutral { background: var(--neutral-badge-bg); color: var(--neutral-badge-text); }
 
 .traffic {
   display: inline-block;
@@ -1383,6 +1384,12 @@ th {
 
 .traffic.warn { background: var(--warn); }
 .traffic.danger { background: var(--danger); }
+.traffic.neutral { background: var(--muted); }
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 .item {
   border: 1px solid var(--line);
