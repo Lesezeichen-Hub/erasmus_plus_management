@@ -108,6 +108,7 @@ Wichtige Stellen in `app.js`:
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
 - Teilnehmende mit globalen Stammdaten und projektbezogenen Angaben wie Rolle, Dokumentenstatus und Notiz
 - Projektbezogene mobilitaetsrelevante Angaben je Schueler*in: Notfallkontakte, Allergien, medizinische Hinweise, Versicherung und Medienregelung
+- Formulartexte wachsen in der Vorschau automatisch mit und werden beim Drucken/PDF vollstaendig ausgegeben
 - Klassen/Gruppen werden im Admin-Panel gepflegt und bei Teilnehmenden per Dropdown ausgewaehlt
 - Teilnehmendenlisten pro Projekt mit Geburtsdatum, kompaktem Dokumentstatus, fehlenden Dokumenten und Druck-/PDF-Ausgabe
 - Automatische, bearbeitbare Foerderpauschalen pro Zielland und Distanzband beim Projektanlegen

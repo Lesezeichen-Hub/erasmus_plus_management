@@ -1161,6 +1161,7 @@ function showTemplateDocument(type, projectId, studentId) {
   setTemplateDocumentLocked(project.status === "Archiviert" || student.archived === true);
   setTemplateSaveStatus(templateHasSavedValues(type, projectId, studentId) ? "saved" : "new");
   enhanceClearableFields();
+  resizeTemplateTextareas();
   document.querySelector("#template-document-panel").hidden = false;
   document.querySelector("#template-document-panel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -1198,6 +1199,7 @@ function showTemplateBatch(type, projectId) {
   setTemplateDocumentLocked(true);
   setTemplateSaveStatus("batch");
   enhanceClearableFields();
+  resizeTemplateTextareas();
   document.querySelector("#template-document-panel").hidden = false;
   document.querySelector("#template-document-panel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -1315,6 +1317,16 @@ function buildTemplatePrintDocument() {
           .eu-template p {
             line-height: 1.25 !important;
           }
+          .template-print-value,
+          .template-print-text {
+            display: block !important;
+            min-height: 1.2em !important;
+            color: #17202a !important;
+          }
+          .template-print-text {
+            white-space: pre-wrap !important;
+            line-height: 1.25 !important;
+          }
           .template-notice {
             padding: 5px 7px !important;
             font-size: 8.5pt !important;
@@ -1370,16 +1382,18 @@ function copyTemplateFieldValuesForPrint(source, clone) {
   sourceFields.forEach((sourceField, index) => {
     const cloneField = cloneFields[index];
     if (!cloneField) return;
-    if (cloneField.tagName === "TEXTAREA") {
-      cloneField.textContent = sourceField.value;
-    } else if (cloneField.tagName === "SELECT") {
-      [...cloneField.options].forEach((option) => {
-        option.selected = option.value === sourceField.value;
-      });
-    } else {
-      cloneField.setAttribute("value", sourceField.value);
-    }
+    const replacement = document.createElement(cloneField.tagName === "TEXTAREA" ? "div" : "span");
+    replacement.className = cloneField.tagName === "TEXTAREA" ? "template-print-text" : "template-print-value";
+    replacement.textContent = fieldDisplayValue(sourceField);
+    cloneField.replaceWith(replacement);
   });
+}
+
+function fieldDisplayValue(field) {
+  if (field.tagName === "SELECT") {
+    return field.selectedOptions?.[0]?.textContent || field.value || "";
+  }
+  return field.value || "";
 }
 
 async function saveTemplateValues(options = {}) {
@@ -1442,7 +1456,9 @@ function templateHasSavedValues(type, projectId, studentId) {
 function bindTemplateSaveTracking() {
   clearTimeout(templateAutoSaveTimer);
   document.querySelectorAll("#template-document [data-template-field]").forEach((field) => {
+    if (field.tagName === "TEXTAREA") resizeTemplateTextarea(field);
     field.addEventListener("input", () => {
+      if (field.tagName === "TEXTAREA") resizeTemplateTextarea(field);
       setTemplateSaveStatus("dirty");
       clearTimeout(templateAutoSaveTimer);
       templateAutoSaveTimer = setTimeout(() => {
@@ -1453,6 +1469,15 @@ function bindTemplateSaveTracking() {
       }, 900);
     });
   });
+}
+
+function resizeTemplateTextareas() {
+  document.querySelectorAll("#template-document textarea.template-textarea").forEach(resizeTemplateTextarea);
+}
+
+function resizeTemplateTextarea(field) {
+  field.style.height = "auto";
+  field.style.height = `${field.scrollHeight + 2}px`;
 }
 
 function setTemplateDocumentLocked(locked) {

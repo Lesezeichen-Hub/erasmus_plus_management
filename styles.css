@@ -1384,8 +1384,21 @@ th {
 
 .template-textarea {
   min-height: 72px;
+  overflow: hidden;
   resize: vertical;
   line-height: 1.32;
+}
+
+.template-print-value,
+.template-print-text {
+  display: block;
+  min-height: 1.2em;
+  color: inherit;
+}
+
+.template-print-text {
+  white-space: pre-wrap;
+  line-height: 1.25;
 }
 
 .template-notice {
