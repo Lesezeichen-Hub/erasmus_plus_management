@@ -159,7 +159,7 @@ als `formTexts` mit dem Projekt gespeichert und sind in den Backups enthalten.
 Gesundheits- und Notfallangaben bleiben personenbezogen in der Schueler*innenakte.
 # Version 1.44.0
 
-Admin > Berichte & Export bietet Kurzbericht,
+Projekte > Berichte & Export bietet fuer alle angemeldeten Benutzer*innen Kurzbericht,
 Finanzuebersicht und Statusbericht. Projekte lassen sich nach Projekt,
 ueberlappendem Projektzeitraum, Status und Archiv filtern. Finanzwerte gelten
 fuer die gesamte Laufzeit der ausgewaehlten Projekte. Die Foerderbudget-Tabelle

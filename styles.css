@@ -743,6 +743,7 @@ textarea { resize: vertical; }
 }
 
 .management-report-workspace { padding: 18px; display: grid; gap: 20px; min-width: 0; }
+#projects > #management-reports { margin-bottom: 18px; }
 .management-report-workspace form { max-width: 900px; }
 .management-report-workspace label { min-width: 0; }
 .management-report-workspace .form-actions { flex-wrap: wrap; }

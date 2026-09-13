@@ -8,7 +8,7 @@ function bindManagementReports() {
   });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    if (!isAdmin()) return;
+    if (!state.currentUser) return;
     const filters = Object.fromEntries(new FormData(form));
     if (filters.from && filters.to && filters.from > filters.to) {
       document.querySelector("#management-report-status").textContent = "Das Enddatum darf nicht vor dem Startdatum liegen.";
@@ -28,19 +28,19 @@ function bindManagementReports() {
   form.addEventListener("input", () => invalidateManagementReport("Auswahl geändert. Bericht neu erstellen."));
   form.addEventListener("change", () => invalidateManagementReport("Auswahl geändert. Bericht neu erstellen."));
   document.querySelector("#management-report-preview").addEventListener("load", () => {
-    const ready = isAdmin() && !document.querySelector("#management-report-preview").hidden;
+    const ready = !!state.currentUser && !document.querySelector("#management-report-preview").hidden;
     document.querySelector("#management-report-print").disabled = !ready;
     document.querySelector("#management-report-download").disabled = !ready;
   });
   document.querySelector("#management-report-print").addEventListener("click", () => {
     const frame = document.querySelector("#management-report-preview");
-    if (!isAdmin() || frame.hidden) return;
+    if (!state.currentUser || frame.hidden) return;
     frame.contentWindow.focus();
     frame.contentWindow.print();
   });
   document.querySelector("#management-report-download").addEventListener("click", () => {
     const frame = document.querySelector("#management-report-preview");
-    if (!isAdmin() || frame.hidden) return;
+    if (!state.currentUser || frame.hidden) return;
     const url = URL.createObjectURL(new Blob([frame.srcdoc], { type: "text/html;charset=utf-8" }));
     const link = document.createElement("a");
     link.href = url;
@@ -62,7 +62,7 @@ function invalidateManagementReport(message = "") {
 function refreshManagementReports() {
   const form = document.querySelector("#management-report-form");
   invalidateManagementReport();
-  if (!isAdmin()) {
+  if (!state.currentUser) {
     form.reset();
     form.elements.projectId.replaceChildren(new Option("Alle Projekte", ""));
     return;

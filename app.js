@@ -55,11 +55,11 @@ const DEFAULT_MOBILITY_FORM_TEMPLATES = [
 ];
 const HELP_TOPICS = [
   {
-    category: "Admin",
+    category: "Projekte",
     title: "Berichte & Export",
-    text: "Im Adminbereich stehen Kurzbericht, Finanzübersicht und Statusbericht mit Vorschau, A4-Druck/PDF und eigenständigem HTML-Export bereit. Persönliche Schüler*innendaten werden nicht ausgegeben.",
-    steps: ["Admin > Berichte & Export öffnen", "Bericht und Projekt wählen; der Projektzeitraum wird übernommen und bleibt anpassbar", "Bericht erstellen", "Drucken / PDF oder HTML exportieren wählen"],
-    view: "admin",
+    text: "Unter Projekte stehen Kurzbericht, Finanzübersicht und Statusbericht mit Vorschau, A4-Druck/PDF und eigenständigem HTML-Export bereit. Persönliche Schüler*innendaten werden nicht ausgegeben.",
+    steps: ["Projekte > Berichte & Export öffnen", "Bericht und Projekt wählen; der Projektzeitraum wird übernommen und bleibt anpassbar", "Bericht erstellen", "Drucken / PDF oder HTML exportieren wählen"],
+    view: "projects",
     keywords: "bericht kurzbericht schulleitung verwaltung export drucken pdf finanzen",
   },
   {

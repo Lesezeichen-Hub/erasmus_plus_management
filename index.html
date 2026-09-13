@@ -124,6 +124,33 @@
       </section>
 
       <section id="projects" class="view">
+          <details class="admin-group" id="management-reports">
+            <summary>Berichte & Export</summary>
+            <div class="management-report-workspace">
+              <form id="management-report-form" class="form-panel">
+                <div class="form-row">
+                  <label>Bericht<select name="reportType"><option value="summary">Kurzbericht</option><option value="finance">Finanzübersicht</option><option value="status">Projektstatus & Handlungsbedarf</option></select></label>
+                  <label>Projekt<select name="projectId"><option value="">Alle Projekte</option></select></label>
+                </div>
+                <div class="form-row">
+                  <label>Projektzeitraum ab<input name="from" type="date" /></label>
+                  <label>Projektzeitraum bis<input name="to" type="date" /></label>
+                </div>
+                <div class="form-row">
+                  <label>Status<select name="status"><option value="">Alle Status</option><option>Geplant</option><option>Aktiv</option><option>Abgeschlossen</option><option>Abrechnung</option><option>Archiviert</option></select></label>
+                  <label class="check"><input name="includeArchived" type="checkbox" /> Archivierte Projekte einschließen</label>
+                </div>
+                <label>Einordnung / Anmerkungen<textarea name="comment" rows="2" maxlength="4000"></textarea></label>
+                <div class="form-actions">
+                  <button type="submit">Bericht erstellen</button>
+                  <button type="button" class="secondary" id="management-report-print" disabled>Drucken / PDF</button>
+                  <button type="button" class="secondary" id="management-report-download" disabled>HTML exportieren</button>
+                </div>
+                <p id="management-report-status" class="meta" role="status" aria-live="polite"></p>
+              </form>
+              <iframe id="management-report-preview" title="Berichtsvorschau" hidden></iframe>
+            </div>
+          </details>
         <div class="section-layout">
           <form id="project-form" class="panel form-panel">
             <h2>Projekt erfassen</h2>
@@ -525,33 +552,6 @@
       <section id="admin" class="view">
         <div class="kpi-grid admin-kpis" id="admin-user-kpis"></div>
         <div class="admin-accordion">
-          <details class="admin-group" id="management-reports">
-            <summary>Berichte & Export</summary>
-            <div class="management-report-workspace">
-              <form id="management-report-form" class="form-panel">
-                <div class="form-row">
-                  <label>Bericht<select name="reportType"><option value="summary">Kurzbericht</option><option value="finance">Finanzübersicht</option><option value="status">Projektstatus & Handlungsbedarf</option></select></label>
-                  <label>Projekt<select name="projectId"><option value="">Alle Projekte</option></select></label>
-                </div>
-                <div class="form-row">
-                  <label>Projektzeitraum ab<input name="from" type="date" /></label>
-                  <label>Projektzeitraum bis<input name="to" type="date" /></label>
-                </div>
-                <div class="form-row">
-                  <label>Status<select name="status"><option value="">Alle Status</option><option>Geplant</option><option>Aktiv</option><option>Abgeschlossen</option><option>Abrechnung</option><option>Archiviert</option></select></label>
-                  <label class="check"><input name="includeArchived" type="checkbox" /> Archivierte Projekte einschließen</label>
-                </div>
-                <label>Einordnung / Anmerkungen<textarea name="comment" rows="2" maxlength="4000"></textarea></label>
-                <div class="form-actions">
-                  <button type="submit">Bericht erstellen</button>
-                  <button type="button" class="secondary" id="management-report-print" disabled>Drucken / PDF</button>
-                  <button type="button" class="secondary" id="management-report-download" disabled>HTML exportieren</button>
-                </div>
-                <p id="management-report-status" class="meta" role="status" aria-live="polite"></p>
-              </form>
-              <iframe id="management-report-preview" title="Berichtsvorschau" hidden></iframe>
-            </div>
-          </details>
           <details class="admin-group" open>
             <summary>Benutzer & Rollen</summary>
             <div class="section-layout">
