@@ -109,6 +109,7 @@ const state = {
   search: "",
   participantListProjectId: null,
   projectFileProjectId: null,
+  studentFileStudentId: null,
   templateDocument: null,
 };
 
@@ -351,6 +352,7 @@ function bindBackup() {
   document.querySelector("#close-participant-list").addEventListener("click", closeParticipantList);
   document.querySelector("#print-participant-list").addEventListener("click", printParticipantList);
   document.querySelector("#close-project-file").addEventListener("click", closeProjectFile);
+  document.querySelector("#close-student-file").addEventListener("click", closeStudentFile);
   document.querySelector("#close-template-document").addEventListener("click", closeTemplateDocument);
   document.querySelector("#print-template-document").addEventListener("click", printTemplateDocument);
   document.querySelector("#save-template-values").addEventListener("click", saveTemplateValues);
@@ -971,6 +973,14 @@ function showTemplateDocument(type, projectId, studentId) {
   document.querySelector("#template-document-panel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function openTemplateDocument(type, projectId, studentId) {
+  if (state.view !== "projects") {
+    state.view = "projects";
+    render();
+  }
+  showTemplateDocument(type, projectId, studentId);
+}
+
 function showTemplateBatch(type, projectId) {
   const project = state.projects.find((entry) => entry.id === projectId);
   const students = state.students.filter((entry) => (entry.projectIds || []).includes(projectId));
@@ -1503,6 +1513,11 @@ function renderProjects() {
   } else {
     closeProjectFile(false);
   }
+  if (state.studentFileStudentId && state.students.some((student) => student.id === state.studentFileStudentId)) {
+    renderStudentFile(state.studentFileStudentId);
+  } else {
+    closeStudentFile(false);
+  }
 }
 
 function showParticipantList(projectId) {
@@ -1521,6 +1536,113 @@ function closeProjectFile(resetState = true) {
   if (resetState) state.projectFileProjectId = null;
   if (panel) panel.hidden = true;
   if (container) container.innerHTML = "";
+}
+
+function showStudentFile(studentId) {
+  state.studentFileStudentId = studentId;
+  renderStudentFile(studentId, true);
+}
+
+function closeStudentFile(resetState = true) {
+  const panel = document.querySelector("#student-file-panel");
+  const container = document.querySelector("#student-file");
+  if (resetState) state.studentFileStudentId = null;
+  if (panel) panel.hidden = true;
+  if (container) container.innerHTML = "";
+}
+
+function renderStudentFile(studentId, shouldScroll = false) {
+  const student = state.students.find((entry) => entry.id === studentId);
+  const panel = document.querySelector("#student-file-panel");
+  const container = document.querySelector("#student-file");
+  if (!student) {
+    closeStudentFile();
+    return;
+  }
+
+  const projects = (student.projectIds || [])
+    .map((projectId) => state.projects.find((project) => project.id === projectId))
+    .filter(Boolean);
+  const expenses = state.expenses.filter((expense) => expense.studentId === student.id);
+  const docs = state.documents.filter((doc) => doc.studentId === student.id);
+  const templateRows = state.templateData
+    .filter((entry) => entry.studentId === student.id)
+    .sort((a, b) => (a.type || "").localeCompare(b.type || "", "de"))
+    .map((entry) => [
+      escapeHtml(projectName(entry.projectId)),
+      escapeHtml(templateTitle(entry.type)),
+      badge("Gespeichert", "ok"),
+    ]);
+  const history = state.auditLogs
+    .filter((entry) => auditTouchesStudent(entry, student.id))
+    .slice(0, 25);
+
+  container.innerHTML = `
+    <div class="project-file-title">
+      <div>
+        <p>Mobilitätsakte Schüler*in</p>
+        <h2>${escapeHtml(student.name)}</h2>
+      </div>
+      <div class="project-file-actions">
+        <button class="small secondary" data-edit data-store="students" data-id="${student.id}">Stammdaten bearbeiten</button>
+      </div>
+    </div>
+    <div class="project-file-grid">
+      ${detailCard("Stammdaten", [
+        ["Name", student.name],
+        ["Klasse", student.className],
+        ["Geburtsdatum", formatDate(student.birthDate)],
+        ["Projekte", String(projects.length)],
+      ])}
+      ${detailCard("Status", [
+        ["Offene Dokumente", String(missingDocsByProject(student).total)],
+        ["Aufwände gesamt", money.format(expenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0))],
+        ["Gespeicherte Vorlagen", String(templateRows.length)],
+      ])}
+    </div>
+    <div class="project-file-sections">
+      ${projectFileTable("Projektbezogene Mobilitäten", ["Projekt", "Zeitraum", "Rolle", "Dokumente", "Notiz", "Vorlagen"], projects.map((project) => {
+        const profile = studentProjectProfile(student, project.id);
+        const missing = missingDocs(student, project.id);
+        return [
+          `<strong>${escapeHtml(project.name)}</strong><div class="meta">${escapeHtml(project.action)} · ${projectInstitutionNames(project)}</div>`,
+          `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`,
+          badge(roleLabel(profile.role), profile.role === "Teilnehmer" ? "ok" : "warn"),
+          missing.length ? badge(`${missing.length} fehlt`, "danger") + `<div class="meta">${escapeHtml(missing.join(", "))}</div>` : badge("Vollständig", "ok"),
+          escapeHtml(profile.mobilityNote || "-"),
+          templateActions(project.id, student.id),
+        ];
+      }))}
+      ${projectFileTable("Aufwände", ["Datum", "Projekt", "Kategorie", "Betrag", "Beleg"], expenses.map((expense) => [
+        formatDate(expense.date),
+        escapeHtml(projectName(expense.projectId)),
+        escapeHtml(expense.category),
+        money.format(expense.amount),
+        badge(expense.receiptStatus, expense.receiptStatus === "Vorhanden" ? "ok" : "danger"),
+      ]))}
+      ${projectFileTable("Dokumentenindex", ["Datum", "Projekt", "Dokument", "Status", "Ablage"], docs.map((doc) => [
+        formatDate(doc.date),
+        escapeHtml(projectName(doc.projectId)),
+        escapeHtml(doc.title || doc.type),
+        badge(doc.status, doc.status === "Abgelegt" ? "ok" : doc.status === "Fehlt" ? "danger" : "warn"),
+        escapeHtml(doc.storageHint || "-"),
+      ]))}
+      ${projectFileTable("Gespeicherte Formularwerte", ["Projekt", "Vorlage", "Status"], templateRows)}
+      ${projectFileTable("Änderungshistorie", ["Zeitpunkt", "Aktion", "Bereich", "Eintrag", "Projekt"], history.map((entry) => [
+        formatDateTime(entry.createdAt),
+        badge(entry.action, entry.action === "Gelöscht" ? "danger" : entry.action === "Angelegt" ? "ok" : "warn"),
+        escapeHtml(entry.storeLabel || entry.store),
+        escapeHtml(entry.entityLabel || "-"),
+        escapeHtml(projectName(entry.projectId || entry.projectIds?.[0] || "")),
+      ]))}
+    </div>
+  `;
+  panel.hidden = false;
+  container.querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => editItem(button.dataset.store, button.dataset.id)));
+  container.querySelectorAll("[data-template-doc]").forEach((button) => {
+    button.addEventListener("click", () => openTemplateDocument(button.dataset.templateDoc, button.dataset.projectId, button.dataset.studentId));
+  });
+  if (shouldScroll) panel.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function renderProjectFile(projectId, shouldScroll = false) {
@@ -1634,7 +1756,7 @@ function renderProjectFile(projectId, shouldScroll = false) {
     ${missingDocumentRows.length ? `<div class="project-file-warning">${badge("Dokumente fehlen", "danger")} ${escapeHtml(missingDocumentRows.map(({ student, missing }) => `${student.name}: ${missing.join(", ")}`).join(" · "))}</div>` : ""}
   `;
   container.querySelectorAll("[data-template-doc]").forEach((button) => {
-    button.addEventListener("click", () => showTemplateDocument(button.dataset.templateDoc, button.dataset.projectId, button.dataset.studentId));
+    button.addEventListener("click", () => openTemplateDocument(button.dataset.templateDoc, button.dataset.projectId, button.dataset.studentId));
   });
   container.querySelectorAll("[data-template-batch]").forEach((button) => {
     button.addEventListener("click", () => showTemplateBatch(button.dataset.templateBatch, button.dataset.projectId));
@@ -1735,7 +1857,7 @@ function renderStudents() {
     studentProjectRoleSummary(student),
     documentProjectSummary(student),
     badge(missing.total ? `${missing.total} fehlt` : "Vollständig", missing.total ? "danger" : "ok"),
-    actions("students", student.id),
+    studentActions(student.id),
   ];
   }));
 }
@@ -2588,8 +2710,9 @@ function renderTable(selector, headers, rows) {
   table.querySelectorAll("[data-delete]").forEach((button) => button.addEventListener("click", () => deleteItem(button.dataset.store, button.dataset.id)));
   table.querySelectorAll("[data-participant-list]").forEach((button) => button.addEventListener("click", () => showParticipantList(button.dataset.participantList)));
   table.querySelectorAll("[data-project-file]").forEach((button) => button.addEventListener("click", () => showProjectFile(button.dataset.projectFile)));
+  table.querySelectorAll("[data-student-file]").forEach((button) => button.addEventListener("click", () => showStudentFile(button.dataset.studentFile)));
   table.querySelectorAll("[data-template-doc]").forEach((button) => {
-    button.addEventListener("click", () => showTemplateDocument(button.dataset.templateDoc, button.dataset.projectId, button.dataset.studentId));
+    button.addEventListener("click", () => openTemplateDocument(button.dataset.templateDoc, button.dataset.projectId, button.dataset.studentId));
   });
   table.querySelectorAll("[data-institution-toggle]").forEach((button) => button.addEventListener("click", () => toggleInstitution(button.dataset.institutionToggle)));
   table.querySelectorAll("[data-user-toggle]").forEach((button) => button.addEventListener("click", () => toggleUserStatus(button.dataset.userToggle)));
@@ -2618,6 +2741,16 @@ function kpi(label, value, detail = "") {
 
 function actions(store, id) {
   return `<div class="row-actions"><button class="small secondary" data-edit data-store="${store}" data-id="${id}">Bearbeiten</button><button class="small danger" data-delete data-store="${store}" data-id="${id}">Löschen</button></div>`;
+}
+
+function studentActions(id) {
+  return `
+    <div class="row-actions">
+      <button class="small" data-student-file="${id}">Mobilitätsakte</button>
+      <button class="small secondary" data-edit data-store="students" data-id="${id}">Bearbeiten</button>
+      <button class="small danger" data-delete data-store="students" data-id="${id}">Löschen</button>
+    </div>
+  `;
 }
 
 function projectActions(id) {
@@ -2717,6 +2850,7 @@ async function deleteItem(store, id) {
   }
   if (store === "students") {
     await cleanupStudentReferences(id);
+    if (state.studentFileStudentId === id) closeStudentFile();
   }
   await remove(store, id);
   if (deletedItem) {
@@ -2787,6 +2921,7 @@ async function addAuditLog(action, store, entity) {
     entityLabel: entityLabel(store, entity),
     projectId: auditProjectId(store, entity),
     projectIds: auditProjectIds(store, entity),
+    studentId: auditStudentId(store, entity),
     userId: state.currentUser?.id || "",
     userName: state.currentUser?.name || "System",
     createdAt: new Date().toISOString(),
@@ -2812,8 +2947,17 @@ function auditProjectIds(store, entity = {}) {
   return [entity.projectId].filter(Boolean);
 }
 
+function auditStudentId(store, entity = {}) {
+  if (store === "students") return entity.id || "";
+  return entity.studentId || "";
+}
+
 function auditTouchesProject(entry, projectId) {
   return entry.projectId === projectId || (entry.projectIds || []).includes(projectId) || (entry.store === "projects" && entry.entityId === projectId);
+}
+
+function auditTouchesStudent(entry, studentId) {
+  return entry.studentId === studentId || (entry.store === "students" && entry.entityId === studentId);
 }
 
 function filterText(items) {

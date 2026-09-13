@@ -1,11 +1,11 @@
 {
   "name": "Erasmus+ Management",
-  "version": "1.28.5",
+  "version": "1.29.0",
   "description": "Lokale Web-App zur Verwaltung von Erasmus+ Schueler*innenaustausch-Projekten, Foerderbudgets, administrierbaren Foerderpauschalen, Partnereinrichtungen, Teilnehmenden, Aufwaenden, Aufgaben, Dokumenten und Managementbenutzern.",
   "entry": "index.html",
   "storage": "IndexedDB",
   "roles": ["Admin", "Benutzer"],
-  "configurable": ["Leitaktionen", "Aufwandskategorien", "Dokumenttypen", "Partnereinrichtungen", "Foerderbudgets", "Foerderpauschalen-Vorlagen mit Import/Export", "Feste Formulardaten", "Projektakte", "Aenderungshistorie", "Erasmus+ Dokumentvorlagen", "Batch-Ausgabe", "Uebersichtliches Admin-Panel mit Akkordeons", "Automatische Zusatzsicherungen", "Auto-Save fuer Formularvorlagen", "Projektbezogene Schueler*innen-Daten"],
+  "configurable": ["Leitaktionen", "Aufwandskategorien", "Dokumenttypen", "Partnereinrichtungen", "Foerderbudgets", "Foerderpauschalen-Vorlagen mit Import/Export", "Feste Formulardaten", "Projektakte", "Mobilitaetsakte", "Aenderungshistorie", "Erasmus+ Dokumentvorlagen", "Batch-Ausgabe", "Uebersichtliches Admin-Panel mit Akkordeons", "Automatische Zusatzsicherungen", "Auto-Save fuer Formularvorlagen", "Projektbezogene Schueler*innen-Daten"],
   "backup": {
     "export": "JSON",
     "import": "JSON"

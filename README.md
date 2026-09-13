@@ -92,6 +92,7 @@ Wichtige Stellen in `app.js`:
 
 - Dashboard mit KPIs, Projektstatus, Restbudget und Risikoueberblick
 - Projektakte mit Projektdetails, Budget, Teilnehmenden, Aufgaben, Aufwaenden, Dokumenten und Historie
+- Mobilitaetsakte pro Schueler*in mit allen Projektteilnahmen, projektbezogenen Rollen, Dokumenten, Aufwaenden, Vorlagen und Historie
 - Aenderungshistorie fuer lokale Verwaltungsaktionen
 - Sicherheitsbackup vor Import, Beispieldaten-Reset und Loeschvorgaengen plus manueller Sicherungsbutton
 - Speicherbare Druckvorlagen fuer Europass Lernvereinbarung und Europass Mobilitaet pro Teilnehmende*r
