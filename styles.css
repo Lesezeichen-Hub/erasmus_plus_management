@@ -1112,8 +1112,13 @@ th {
 
 .template-page {
   display: block;
+  box-sizing: border-box;
   break-inside: avoid;
   page-break-inside: avoid;
+}
+
+.template-batch .template-page {
+  min-height: 1122px;
 }
 
 .template-page + .template-page {
@@ -1668,6 +1673,8 @@ th {
 
   .template-batch .template-page {
     display: block;
+    box-sizing: border-box;
+    min-height: calc(297mm - 24mm);
     break-after: page;
     page-break-after: always;
     break-inside: avoid;
@@ -1686,6 +1693,8 @@ th {
 
   body.printing-template-document .template-page {
     display: block;
+    box-sizing: border-box;
+    min-height: calc(297mm - 24mm);
     break-after: page;
     page-break-after: always;
     break-inside: avoid;
