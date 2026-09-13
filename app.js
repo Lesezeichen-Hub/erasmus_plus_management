@@ -13,13 +13,19 @@ const MOBILITY_PROFILE_FIELDS = [
   "insurance",
   "mediaConsent",
 ];
+const MOBILITY_TYPES = [
+  "Gruppenmobilität",
+  "Individuelle Kurzzeitmobilität",
+  "Individuelle Langzeitmobilität",
+  "Sonstige / gemischt",
+];
 const DEFAULT_MOBILITY_FORM_TEMPLATES = [
   {
     id: "grantAgreement",
     title: "Teilnehmervereinbarung",
     subtitle: "Grant Agreement",
     notice: "Rechtliche Arbeitsvorlage für Teilnahmebedingungen, Pflichten und Zuschüsse. Bei minderjährigen Schüler*innen durch Erziehungsberechtigte unterzeichnen lassen.",
-    body: "{name}, Klasse {klasse}, nimmt im Zeitraum {zeitraum} am Erasmus+ Projekt \"{projekt}\" teil. Die Mobilität findet in {zielland} bei {aufnehmende_einrichtung} statt. Die entsendende Einrichtung ist {entsendende_schule}.\n\nDie teilnehmende Person verpflichtet sich zur aktiven Teilnahme, zur Einhaltung der vereinbarten Regeln, zur fristgerechten Abgabe notwendiger Unterlagen und zur Mitwirkung an der Dokumentation der Lernergebnisse.\n\nFür die Mobilität ist ein Projektbudget von {projektbudget} hinterlegt. Individuelle Zuschüsse, Auszahlungsmodalitäten und Nachweispflichten werden schulintern ergänzt.",
+    body: "{name}, Klasse {klasse}, nimmt im Zeitraum {zeitraum} am Erasmus+ Projekt \"{projekt}\" teil. Mobilitätsart: {mobilitaetsart}. Die Mobilität findet in {zielland} bei {aufnehmende_einrichtung} statt. Die entsendende Einrichtung ist {entsendende_schule}.\n\nDie teilnehmende Person verpflichtet sich zur aktiven Teilnahme, zur Einhaltung der vereinbarten Regeln, zur fristgerechten Abgabe notwendiger Unterlagen und zur Mitwirkung an der Dokumentation der Lernergebnisse.\n\nFür die Mobilität ist ein Projektbudget von {projektbudget} hinterlegt. Individuelle Zuschüsse, Auszahlungsmodalitäten und Nachweispflichten werden schulintern ergänzt.",
     signatures: "Teilnehmende*r, Erziehungsberechtigte, Entsendende Schule",
   },
   {
@@ -27,7 +33,7 @@ const DEFAULT_MOBILITY_FORM_TEMPLATES = [
     title: "Lernvereinbarung",
     subtitle: "Learning Agreement / Learning Programme",
     notice: "Für Gruppenmobilitäten als gemeinsames Lernprogramm nutzbar; für Einzelmobilitäten können die Felder pro Schüler*in angepasst und gespeichert werden.",
-    body: "Lernziele und erwartete Lernergebnisse:\n{lernziele}\n\nGeplante Aktivitäten:\n{aktivitaeten}\n\nBegleitung, Monitoring und Anerkennung:\n{anerkennung}",
+    body: "Mobilitätsart: {mobilitaetsart}\n\nLernziele und erwartete Lernergebnisse:\n{lernziele}\n\nGeplante Aktivitäten:\n{aktivitaeten}\n\nBegleitung, Monitoring und Anerkennung:\n{anerkennung}",
     signatures: "Teilnehmende*r, Erziehungsberechtigte, Entsendende Schule, Aufnehmende Schule",
   },
   {
@@ -371,6 +377,10 @@ function bindNavigation() {
 
 function bindForms() {
   document.querySelector("#project-form").addEventListener("submit", onProjectSubmit);
+  document.querySelector("#project-form").addEventListener("invalid", (event) => {
+    const section = event.target.closest("details");
+    if (section) section.open = true;
+  }, true);
   document.querySelector("#student-form").addEventListener("submit", onStudentSubmit);
   document.querySelector("#expense-form").addEventListener("submit", onExpenseSubmit);
   document.querySelector("#task-form").addEventListener("submit", onTaskSubmit);
@@ -430,6 +440,8 @@ function resetForm(formId) {
     updateFundingBudgetEndDate();
   }
   if (formId === "project-form") {
+    form.querySelector("h2").textContent = "Projekt erfassen";
+    form.querySelectorAll(".project-form-section").forEach((section, index) => { section.open = index === 0; });
     form.elements.budget.dataset.autoGrant = "true";
     updateGrantSuggestion();
   }
@@ -536,8 +548,11 @@ async function onProjectSubmit(event) {
     id: data.id || createId(),
     name: data.name.trim(),
     action: data.action,
+    mobilityType: data.mobilityType || "Gruppenmobilität",
     institutionIds: [...form.elements.institutionIds.selectedOptions].map((option) => option.value),
     partners: data.partners.trim(),
+    // Stored with the project in IndexedDB and included in JSON/SQLite snapshots.
+    completedActivities: (data.completedActivities || "").trim(),
     startDate: data.startDate,
     endDate: data.endDate,
     fundingBudgetId: data.fundingBudgetId || "",
@@ -1148,14 +1163,13 @@ function showTemplateDocument(type, projectId, studentId) {
     state.view = "forms";
     render();
   }
-  const title = templateTitle(type);
   state.templateDocument = { type, projectId, studentId };
   document.querySelector("#mobility-form-project").value = projectId;
   fillMobilityFormStudentSelect();
   document.querySelector("#mobility-form-type").value = type;
   document.querySelector("#mobility-form-student").value = studentId;
   const values = templateValues(type, project, student);
-  document.querySelector("#template-document-title").textContent = title;
+  document.querySelector("#template-document-title").textContent = templateTitleForProject(type, project);
   document.querySelector("#template-document").innerHTML = renderTemplateByType(type, project, student, values);
   bindTemplateSaveTracking();
   setTemplateDocumentLocked(project.status === "Archiviert" || student.archived === true);
@@ -1190,7 +1204,7 @@ function showTemplateBatch(type, projectId) {
   fillMobilityFormStudentSelect();
   document.querySelector("#mobility-form-type").value = type;
   document.querySelector("#mobility-form-student").value = "";
-  document.querySelector("#template-document-title").textContent = `${templateTitle(type)} · ${students.length} Teilnehmende`;
+  document.querySelector("#template-document-title").textContent = `${templateTitleForProject(type, project)} · ${students.length} Teilnehmende`;
   document.querySelector("#template-document").innerHTML = `
     <div class="template-batch">
       ${students.map((student) => `<div class="template-page">${renderTemplateByType(type, project, student, templateValues(type, project, student))}</div>`).join("")}
@@ -1212,9 +1226,16 @@ function templateTitle(type) {
   return "Europass Lernvereinbarung";
 }
 
+function templateTitleForProject(type, project) {
+  if (!project) return templateTitle(type);
+  if (type === "learningAgreement" && !projectIsIndividual(project)) return "Lernprogramm";
+  return templateTitle(type);
+}
+
 function renderTemplateByType(type, project, student, values) {
   if (type === "europass") return europassTemplate(project, student, values);
   if (type === "certificate") return certificateTemplate(project, student, values);
+  if (type === "emergencyCard") return emergencyCardTemplate(project, student, values);
   const customTemplate = getMobilityFormTemplate(type);
   if (customTemplate) return mobilityFormTemplate(customTemplate, project, student, values);
   return learningAgreementTemplate(project, student, values);
@@ -1520,7 +1541,8 @@ function defaultTemplateValues(type, project, student) {
     contactEmail: defaults.contactEmail || "",
     receivingInstitution: stripHtml(projectInstitutionNames(project)),
     learningOutcomes: projectLearningOutcomes(project),
-    activities: projectTaskList(project.id, type === "europass" ? "Aus Projektaufgaben übernehmen und nach der Mobilität anpassen" : "Offen, In Arbeit oder geplant"),
+    activities: project.completedActivities || projectTaskList(project.id, type === "europass" ? "Aus Projektaufgaben übernehmen und nach der Mobilität anpassen" : "Offen, In Arbeit oder geplant"),
+    completedActivities: project.completedActivities || "",
     recognitionText,
     mediaConsent: profile.mediaConsent || "Bitte Auswahl / Einschränkungen ergänzen.",
     emergencyContact1: profile.emergencyContact1 || "Bitte Name, Beziehung und Telefonnummer ergänzen.",
@@ -1548,7 +1570,7 @@ function defaultTemplateValues(type, project, student) {
     return {
       ...common,
       certificateText: `${student.name} hat im Zeitraum ${formatDate(project.startDate)} bis ${formatDate(project.endDate)} am Erasmus+ Projekt "${project.name}" teilgenommen.`,
-      certificateDetails: `Mobilität nach ${project.destinationCountry || "Bitte Land ergänzen"} mit der aufnehmenden Einrichtung ${common.receivingInstitution}.`,
+      certificateDetails: `Mobilität nach ${project.destinationCountry || "Bitte Land ergänzen"} mit der aufnehmenden Einrichtung ${common.receivingInstitution}.${project.completedActivities ? `\n\nDurchgeführte Aktivitäten:\n${project.completedActivities}` : ""}`,
       certificateRecognition: recognitionText,
     };
   }
@@ -1591,6 +1613,7 @@ function applyTemplatePlaceholders(text, project, student, values) {
     geburtsdatum: formatDate(student.birthDate),
     projekt: project.name,
     leitaktion: project.action,
+    mobilitaetsart: projectMobilityType(project),
     zeitraum: `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`,
     zielland: project.destinationCountry || "",
     projektbudget: money.format(Number(project.budget || 0)),
@@ -1598,6 +1621,7 @@ function applyTemplatePlaceholders(text, project, student, values) {
     aufnehmende_einrichtung: values.receivingInstitution,
     lernziele: values.learningOutcomes,
     aktivitaeten: values.activities,
+    durchgefuehrte_aktivitaeten: values.completedActivities,
     anerkennung: values.recognitionText || values.assessmentRecognition || getTemplateDefaults().recognitionText || "",
     medienregelung: values.mediaConsent,
     notfallkontakt_1: values.emergencyContact1,
@@ -1651,7 +1675,7 @@ function mobilityFormTemplate(template, project, student, values) {
     <article class="eu-template mobility-form-template">
       <header>
         <p>Erasmus+ Schulbildung</p>
-        <h1>${escapeHtml(template.title)}</h1>
+        <h1>${escapeHtml(templateTitleForProject(template.id, project))}</h1>
         ${template.subtitle ? `<span>${escapeHtml(template.subtitle)}</span>` : ""}
       </header>
       ${template.notice ? templateNotice(template.notice) : ""}
@@ -1663,6 +1687,7 @@ function mobilityFormTemplate(template, project, student, values) {
       ${templateSection("Projekt und Einrichtungen", [
         ["Projekt", project.name],
         ["Leitaktion", project.action],
+        ["Mobilitätsart", projectMobilityType(project)],
         ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
         ["Zielland", project.destinationCountry || "-"],
         ["Aufnehmende Einrichtung", values.receivingInstitution, "receivingInstitution"],
@@ -1671,6 +1696,46 @@ function mobilityFormTemplate(template, project, student, values) {
         ["Kontakt E-Mail", values.contactEmail, "contactEmail"],
       ])}
       ${templateTextSection("Formularinhalt", values.formBody, "formBody")}
+      ${signatures.length ? signatureGrid(signatures) : ""}
+    </article>
+  `;
+}
+
+function emergencyCardTemplate(project, student, values) {
+  const template = getMobilityFormTemplate("emergencyCard") || {};
+  const signatures = String(template.signatures || "Erziehungsberechtigte, Betreuende Lehrkraft")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return `
+    <article class="eu-template mobility-form-template emergency-card-template">
+      <header>
+        <p>Erasmus+ Schulbildung</p>
+        <h1>${escapeHtml(template.title || "Medizinische Notfallkarte")}</h1>
+        <span>${escapeHtml(template.subtitle || "Gesundheitsblatt und Notfallkontakte")}</span>
+      </header>
+      ${template.notice ? templateNotice(template.notice) : ""}
+      ${templateSection("Teilnehmende Person", [
+        ["Name", student.name],
+        ["Klasse / Gruppe", student.className],
+        ["Geburtsdatum", formatDate(student.birthDate)],
+      ])}
+      ${templateSection("Mobilität", [
+        ["Projekt", project.name],
+        ["Mobilitätsart", projectMobilityType(project)],
+        ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
+        ["Zielland", project.destinationCountry || "-"],
+        ["Aufnehmende Einrichtung", values.receivingInstitution, "receivingInstitution"],
+        ["Entsendende Einrichtung", values.sendingInstitution, "sendingInstitution"],
+      ])}
+      ${templateSection("Notfallkontakte", [
+        ["Notfallkontakt 1", values.emergencyContact1, "emergencyContact1"],
+        ["Notfallkontakt 2", values.emergencyContact2, "emergencyContact2"],
+      ])}
+      ${templateTextSection("Allergien / Unverträglichkeiten", values.allergies, "allergies")}
+      ${templateTextSection("Medizinische Hinweise", values.medicalNotes, "medicalNotes")}
+      ${templateTextSection("Versicherung / Besonderheiten", values.insurance, "insurance")}
+      ${template.body ? templateTextSection("Weitere Hinweise", values.formBody, "formBody") : ""}
       ${signatures.length ? signatureGrid(signatures) : ""}
     </article>
   `;
@@ -1697,6 +1762,7 @@ function europassTemplate(project, student, values) {
         ["Ansprechpartner*in", values.contactPerson, "contactPerson"],
         ["Kontakt E-Mail", values.contactEmail, "contactEmail"],
         ["Projekt", project.name],
+        ["Mobilitätsart", projectMobilityType(project)],
         ["Land", project.destinationCountry || "-"],
         ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
       ])}
@@ -1725,6 +1791,7 @@ function certificateTemplate(project, student, values) {
       ${templateSection("Projekt", [
         ["Projektname", project.name],
         ["Leitaktion", project.action],
+        ["Mobilitätsart", projectMobilityType(project)],
         ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
         ["Zielland", project.destinationCountry || "-"],
         ["Aufnehmende Einrichtung", values.receivingInstitution, "receivingInstitution"],
@@ -1834,7 +1901,28 @@ function renderRiskCenter() {
       detail: budget ? "Projektzeitraum passt nicht zum Förderzeitraum" : "Budget wird nicht in den Fördergeldsummen gezählt",
     }));
 
-  const items = [...fundingIssues, ...overdueTasks, ...missingReceipts, ...missingDocumentItems];
+  const individualMobilityIssues = state.projects
+    .filter((project) => projectIsIndividual(project) && project.status !== "Archiviert")
+    .flatMap((project) => projectStudents(project.id).map((student) => ({ project, student, profile: studentProjectProfile(student, project.id) })))
+    .filter(({ project, student, profile }) => {
+      const hasLearningAgreement = state.templateData.some((entry) => entry.type === "learningAgreement" && entry.projectId === project.id && entry.studentId === student.id);
+      return !hasLearningAgreement || !profile.emergencyContact1;
+    })
+    .map(({ project, student, profile }) => {
+      const missing = [
+        !state.templateData.some((entry) => entry.type === "learningAgreement" && entry.projectId === project.id && entry.studentId === student.id) ? "Lernvereinbarung" : "",
+        !profile.emergencyContact1 ? "Notfallkontakt 1" : "",
+      ].filter(Boolean);
+      return riskItem({
+        tone: "warn",
+        label: "Mobilität",
+        title: student.name,
+        context: project.name,
+        detail: `Individuelle Mobilität: ${missing.join(", ")} fehlt`,
+      });
+    });
+
+  const items = [...fundingIssues, ...individualMobilityIssues, ...overdueTasks, ...missingReceipts, ...missingDocumentItems];
   document.querySelector("#risk-list").innerHTML = items.length
     ? `<div class="risk-stack">${items.join("")}</div>`
     : `<div class="empty success">Alles im grünen Bereich.</div>`;
@@ -1872,7 +1960,7 @@ function renderProjects() {
   const status = document.querySelector("#project-filter").value;
   const rows = filterText(state.projects).filter((project) => !status || project.status === status);
   renderTable("#projects-table", ["Projekt", "Zeitraum", "Budget", "Förderbudget", "Status", "Fortschritt", ""], rows.map((project) => [
-    `<strong>${escapeHtml(project.name)}</strong><div class="meta">${escapeHtml(project.action)} · ${projectInstitutionNames(project)}${project.partners ? `<br>${escapeHtml(project.partners)}` : ""}${project.destinationCountry ? `<br>${escapeHtml(project.destinationCountry)} · ${Number(project.participantCount || 0)} Pers. · Vorschlag ${money.format(Number(project.calculatedGrant || 0))}` : ""}</div>`,
+    `<strong>${escapeHtml(project.name)}</strong><div class="meta">${escapeHtml(project.action)} · ${escapeHtml(projectMobilityType(project))} · ${projectInstitutionNames(project)}${project.partners ? `<br>${escapeHtml(project.partners)}` : ""}${project.destinationCountry ? `<br>${escapeHtml(project.destinationCountry)} · ${Number(project.participantCount || 0)} Pers. · Vorschlag ${money.format(Number(project.calculatedGrant || 0))}` : ""}</div>`,
     `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`,
     `${money.format(project.budget)}<div class="meta">Rest ${money.format(budgetRemaining(project.id))}</div>`,
     projectFundingBudgetNames(project),
@@ -2072,7 +2160,7 @@ function renderProjectFile(projectId, shouldScroll = false) {
   container.innerHTML = `
     <div class="project-file-title">
       <div>
-        <p>${escapeHtml(project.action)} · ${escapeHtml(project.status)}</p>
+        <p>${escapeHtml(project.action)} · ${escapeHtml(projectMobilityType(project))} · ${escapeHtml(project.status)}</p>
         <h2>${escapeHtml(project.name)}</h2>
       </div>
       <div class="project-file-actions">
@@ -2086,10 +2174,12 @@ function renderProjectFile(projectId, shouldScroll = false) {
     ${archived ? `<div class="project-file-warning">${badge("Archiviert", "warn")} Dieses Projekt ist gesperrt und bleibt nur lesbar. Zum Bearbeiten bitte wieder öffnen.</div>` : ""}
     <div class="project-file-grid">
       ${detailCard("Rahmen", [
+        ["Mobilitätsart", projectMobilityType(project)],
         ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
         ["Förderbudget", budget ? fundingBudgetName(budget.id) : "Nicht eindeutig zugeordnet"],
         ["Partnereinrichtungen", stripHtml(projectInstitutionNames(project))],
         ["Weitere Partner", project.partners || "-"],
+        ["Durchgeführte Aktivitäten", project.completedActivities || "Noch nicht erfasst"],
         ["Zielland", project.destinationCountry || "-"],
       ])}
       ${detailCard("Budget", [
@@ -2393,17 +2483,19 @@ function renderMobilityFormOverview() {
   const selectedTemplate = templates.find((template) => template.id === type) || templates[0];
   const project = state.projects.find((entry) => entry.id === projectId);
   const students = project ? projectStudents(project.id) : [];
+  const recommended = project ? recommendedFormIdsForProject(project).includes(selectedTemplate?.id) : false;
   const savedCount = selectedTemplate && project
     ? state.templateData.filter((entry) => entry.type === selectedTemplate.id && entry.projectId === project.id).length
     : 0;
   document.querySelector("#mobility-form-overview").innerHTML = `
     <div class="item">
       <h3>${escapeHtml(selectedTemplate?.title || "Formular auswählen")}</h3>
-      <div class="meta">${escapeHtml(selectedTemplate?.subtitle || "")}</div>
+      <div class="meta">${escapeHtml(selectedTemplate?.subtitle || "")}${project ? ` · ${escapeHtml(projectMobilityType(project))}` : ""}</div>
       <p>${escapeHtml(selectedTemplate?.notice || "Projekt und Formular auswählen.")}</p>
       <div class="mini-kpis">
         <span><strong>${students.length}</strong> Teilnehmende</span>
         <span><strong>${savedCount}</strong> gespeicherte Einzelwerte</span>
+        <span><strong>${recommended ? "Ja" : "Optional"}</strong> Empfehlung</span>
       </div>
     </div>
   `;
@@ -2413,9 +2505,14 @@ function fillMobilityFormTypeSelect(selector) {
   const select = document.querySelector(selector);
   if (!select) return;
   const current = select.value;
+  const project = state.projects.find((entry) => entry.id === document.querySelector("#mobility-form-project")?.value);
+  const recommended = new Set(recommendedFormIdsForProject(project));
   select.innerHTML = "";
-  getPrintableFormTemplates().forEach((template) => {
-    const option = new Option(template.title, template.id);
+  getPrintableFormTemplates()
+    .slice()
+    .sort((a, b) => Number(recommended.has(b.id)) - Number(recommended.has(a.id)) || a.title.localeCompare(b.title, "de"))
+    .forEach((template) => {
+    const option = new Option(`${templateTitleForProject(template.id, project)}${recommended.has(template.id) ? " · empfohlen" : ""}`, template.id);
     option.selected = current === template.id;
     select.add(option);
   });
@@ -3483,6 +3580,8 @@ function editItem(store, id) {
 
   if (store === "projects") {
     fillInstitutionSelect(item.institutionIds || []);
+    form.elements.completedActivities.value = item.completedActivities || "";
+    form.querySelector("h2").textContent = "Projekt bearbeiten";
     form.elements.budget.dataset.autoGrant = "false";
   }
 
@@ -3746,6 +3845,22 @@ function normalizeSearch(value) {
 
 function projectName(id) {
   return state.projects.find((project) => project.id === id)?.name || "Nicht zugeordnet";
+}
+
+function projectMobilityType(project) {
+  return project?.mobilityType || "Gruppenmobilität";
+}
+
+function projectIsIndividual(project) {
+  return projectMobilityType(project).startsWith("Individuelle");
+}
+
+function recommendedFormIdsForProject(project) {
+  if (!project) return [];
+  if (projectIsIndividual(project)) {
+    return ["grantAgreement", "learningAgreement", "consentPrivacy", "emergencyCard", "europass", "certificate"];
+  }
+  return ["grantAgreement", "learningAgreement", "consentPrivacy", "emergencyCard", "certificate"];
 }
 
 function projectStudents(projectId) {

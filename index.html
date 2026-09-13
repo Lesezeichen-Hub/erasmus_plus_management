@@ -128,27 +128,48 @@
           <form id="project-form" class="panel form-panel">
             <h2>Projekt erfassen</h2>
             <input type="hidden" name="id" />
+            <details class="project-form-section" open>
+              <summary>Grunddaten & Zeitraum</summary>
+              <div class="project-form-fields">
             <label>Projektname <input name="name" required minlength="3" /></label>
             <div class="form-row">
               <label>Leitaktion
                 <select name="action" required></select>
               </label>
-              <label>Status
-                <select name="status" required>
-                  <option>Geplant</option>
-                  <option>Aktiv</option>
-                  <option>Abgeschlossen</option>
-                  <option>Abrechnung</option>
-                  <option>Archiviert</option>
+              <label>Mobilitätsart
+                <select name="mobilityType" required>
+                  <option>Gruppenmobilität</option>
+                  <option>Individuelle Kurzzeitmobilität</option>
+                  <option>Individuelle Langzeitmobilität</option>
+                  <option>Sonstige / gemischt</option>
                 </select>
               </label>
             </div>
-            <label>Partnereinrichtungen (Schulen) <select name="institutionIds" multiple size="5"></select></label>
-            <label>Weitere Partnerdetails <textarea name="partners" rows="2" placeholder="Zusatzinfos, Kontakte oder Besonderheiten"></textarea></label>
+            <label>Status
+              <select name="status" required>
+                <option>Geplant</option>
+                <option>Aktiv</option>
+                <option>Abgeschlossen</option>
+                <option>Abrechnung</option>
+                <option>Archiviert</option>
+              </select>
+            </label>
             <div class="form-row">
               <label>Startdatum <input name="startDate" type="date" required /></label>
               <label>Enddatum <input name="endDate" type="date" required /></label>
             </div>
+              </div>
+            </details>
+            <details class="project-form-section">
+              <summary>Partnereinrichtungen</summary>
+              <div class="project-form-fields">
+                <label>Partnereinrichtungen (Schulen) <select name="institutionIds" multiple size="4"></select></label>
+                <label>Weitere Partnerdetails <textarea name="partners" rows="2" placeholder="Zusatzinfos, Kontakte oder Besonderheiten"></textarea></label>
+              </div>
+            </details>
+            <details class="project-form-section">
+              <summary>Finanzierung & Reise</summary>
+              <div class="project-form-fields">
             <label>Förderbudget <select name="fundingBudgetId"></select></label>
             <fieldset>
               <legend>Förderpauschalen</legend>
@@ -180,6 +201,14 @@
             <label>Budget gesamt
               <span class="input-addon"><input name="budget" type="number" min="0" step="0.01" required /><span>€</span></span>
             </label>
+              </div>
+            </details>
+            <details class="project-form-section">
+              <summary>Durchgeführte Aktivitäten</summary>
+              <div class="project-form-fields">
+                <label>Durchgeführte Aktivitäten <textarea name="completedActivities" rows="6" placeholder="Workshops, Unterricht, Exkursionen und gemeinsame Ergebnisse"></textarea></label>
+              </div>
+            </details>
             <div class="form-actions">
               <button type="submit">Speichern</button>
               <button type="button" class="secondary" data-reset-form="project-form">Zurücksetzen</button>
@@ -654,8 +683,8 @@
             <label>Unterschriftenfelder <input name="signatures" placeholder="Teilnehmende*r, Erziehungsberechtigte, Schule" /></label>
             <div class="placeholder-grid">
               <span>{name}</span><span>{klasse}</span><span>{geburtsdatum}</span><span>{projekt}</span>
-              <span>{leitaktion}</span><span>{zeitraum}</span><span>{zielland}</span><span>{projektbudget}</span>
-              <span>{entsendende_schule}</span><span>{aufnehmende_einrichtung}</span><span>{lernziele}</span><span>{aktivitaeten}</span>
+              <span>{leitaktion}</span><span>{mobilitaetsart}</span><span>{zeitraum}</span><span>{zielland}</span><span>{projektbudget}</span>
+              <span>{entsendende_schule}</span><span>{aufnehmende_einrichtung}</span><span>{lernziele}</span><span>{aktivitaeten}</span><span>{durchgefuehrte_aktivitaeten}</span>
               <span>{anerkennung}</span><span>{medienregelung}</span><span>{notfallkontakt_1}</span><span>{notfallkontakt_2}</span>
               <span>{allergien}</span><span>{medizinische_hinweise}</span><span>{versicherung}</span>
             </div>

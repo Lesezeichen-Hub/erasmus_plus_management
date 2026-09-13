@@ -742,6 +742,30 @@ textarea { resize: vertical; }
   gap: 13px;
 }
 
+#project-form { gap: 0; align-content: start; min-width: 0; }
+#project-form h2 { margin-bottom: 16px; }
+.project-form-section { border-top: 1px solid var(--line); min-width: 0; }
+.project-form-section > summary {
+  padding: 15px 0;
+  cursor: pointer;
+  color: var(--muted-strong);
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.project-form-section > summary:hover,
+.project-form-section[open] > summary { color: var(--primary); }
+.project-form-section > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.project-form-fields { display: grid; gap: 12px; padding-bottom: 18px; min-width: 0; }
+.project-form-fields label,
+.project-form-fields .form-row > * { min-width: 0; }
+.project-form-fields input,
+.project-form-fields select,
+.project-form-fields textarea { min-width: 0; max-width: 100%; }
+#project-form .form-actions { border-top: 1px solid var(--line); padding-top: 16px; flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .project-form-fields .form-row { grid-template-columns: minmax(0, 1fr); }
+}
+
 label {
   display: grid;
   gap: 6px;

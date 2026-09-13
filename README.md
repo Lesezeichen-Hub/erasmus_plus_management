@@ -106,8 +106,11 @@ Wichtige Stellen in `app.js`:
 - Batch-Ausgabe pro Projekt fuer Teilnahmebescheinigungen, Europass Mobilitaet und Lernvereinbarungen; beim Drucken/PDF beginnt jedes Dokument auf einer neuen A4-Seite
 - Platzsparendere Dokumentvorlagen mit kompakteren Tabellen, Eingabefeldern und Signaturbereichen
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
+- Projekte mit Mobilitaetsart: Gruppenmobilitaet, individuelle Kurzzeit-/Langzeitmobilitaet oder gemischt
+- Formularzentrale empfiehlt Vorlagen passend zur Mobilitaetsart und gibt Gruppenmobilitaeten als Lernprogramm aus
 - Teilnehmende mit globalen Stammdaten und projektbezogenen Angaben wie Rolle, Dokumentenstatus und Notiz
 - Projektbezogene mobilitaetsrelevante Angaben je Schueler*in: Notfallkontakte, Allergien, medizinische Hinweise, Versicherung und Medienregelung
+- Medizinische Notfallkarte mit eigenen Abschnitten fuer Notfallkontakte, Gesundheit und Versicherung
 - Formulartexte wachsen in der Vorschau automatisch mit und werden beim Drucken/PDF vollstaendig ausgegeben
 - Klassen/Gruppen werden im Admin-Panel gepflegt und bei Teilnehmenden per Dropdown ausgewaehlt
 - Teilnehmendenlisten pro Projekt mit Geburtsdatum, kompaktem Dokumentstatus, fehlenden Dokumenten und Druck-/PDF-Ausgabe
@@ -125,3 +128,17 @@ Wichtige Stellen in `app.js`:
 - Euro-Anzeige direkt an Budget- und Betragsfeldern
 - Globale Suche und fachliche Filter
 - JSON-Export und Import als Backup inklusive Benutzerstruktur
+# Version 1.42.0
+
+Die Projektmaske gliedert Grunddaten, Partnereinrichtungen, Finanzierung und
+durchgefuehrte Aktivitaeten in aufklappbare Abschnitte. Pflichtfeldfehler oeffnen
+den zugehoerigen Abschnitt automatisch.
+
+Durchgefuehrte Aktivitaeten werden pro Projekt gespeichert, in der Projektakte
+angezeigt und in neue Formularausgaben (auch Batch) uebernommen. Europass und
+Lernvereinbarung verwenden sie als Aktivitaetentext; die Teilnahmebescheinigung
+enthaelt sie in den Details. Im Templateeditor ist zusaetzlich
+`{durchgefuehrte_aktivitaeten}` verfuegbar. Individuell gespeicherte Formulartexte
+haben weiterhin Vorrang; mit Zuruecksetzen der Vorlagenwerte werden die aktuellen
+Projektdaten neu eingesetzt. Das Projektfeld ist Teil der bestehenden
+IndexedDB-Speicherung und der JSON-Backups sowie SQLite-Snapshots.
