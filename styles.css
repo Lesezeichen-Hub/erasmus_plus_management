@@ -920,6 +920,90 @@ th {
   flex-wrap: wrap;
 }
 
+.compact-actions {
+  justify-content: flex-end;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+}
+
+.action-menu {
+  min-width: 76px;
+}
+
+.action-menu summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  list-style: none;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 7px;
+  background: var(--secondary-bg);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 700;
+  user-select: none;
+}
+
+.action-menu summary:hover {
+  background: var(--secondary-hover);
+}
+
+.action-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.action-menu summary::after {
+  content: "v";
+  margin-left: 7px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.action-menu[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.action-menu-list {
+  display: grid;
+  gap: 4px;
+  min-width: 180px;
+  margin-top: 6px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow);
+}
+
+.action-menu:not([open]) .action-menu-list {
+  display: none;
+}
+
+.action-menu-list button {
+  width: 100%;
+  justify-content: flex-start;
+  min-height: 34px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.action-menu-list button:hover {
+  background: var(--surface-soft);
+}
+
+.action-menu-list button.danger {
+  color: var(--danger-text);
+}
+
+.action-menu-list button.danger:hover {
+  background: var(--danger-bg);
+}
+
 .settings-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -96,6 +96,7 @@ Wichtige Stellen in `app.js`:
 - Mobilitaetsakte pro Schueler*in mit allen Projektteilnahmen, projektbezogenen Rollen, Dokumenten, Aufwaenden, Vorlagen und Historie
 - Archivmodus fuer abgeschlossene Projekte: archivierte Projekte bleiben sichtbar und durchsuchbar, sind aber gegen Bearbeiten, Loeschen und projektbezogene Folgedaten gesperrt
 - Archivmodus fuer Schueler*innen: archivierte Personen bleiben in Akten sichtbar, werden in neuen Personen-Auswahllisten ausgeblendet und sind bis zum Wieder-Oeffnen gesperrt
+- Kompakte Aktionsmenues im Projektkatalog und Teilnehmendenindex
 - Aenderungshistorie fuer lokale Verwaltungsaktionen
 - Sicherheitsbackup vor Import, Beispieldaten-Reset und Loeschvorgaengen plus manueller Sicherungsbutton
 - Speicherbare Druckvorlagen fuer Europass Lernvereinbarung und Europass Mobilitaet pro Teilnehmende*r

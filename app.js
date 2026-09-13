@@ -2830,6 +2830,14 @@ function renderTable(selector, headers, rows) {
   table.querySelectorAll("[data-funding-budget-toggle]").forEach((button) => button.addEventListener("click", () => toggleFundingBudget(button.dataset.fundingBudgetToggle)));
   table.querySelectorAll("[data-project-archive]").forEach((button) => button.addEventListener("click", () => toggleProjectArchive(button.dataset.projectArchive)));
   table.querySelectorAll("[data-student-archive]").forEach((button) => button.addEventListener("click", () => toggleStudentArchive(button.dataset.studentArchive)));
+  table.querySelectorAll(".action-menu").forEach((menu) => {
+    menu.addEventListener("toggle", () => {
+      if (!menu.open) return;
+      table.querySelectorAll(".action-menu[open]").forEach((otherMenu) => {
+        if (otherMenu !== menu) otherMenu.open = false;
+      });
+    });
+  });
 }
 
 function renderList(selector, items) {
@@ -2860,11 +2868,16 @@ function studentActions(id) {
   const student = state.students.find((entry) => entry.id === id);
   const archived = student?.archived === true;
   return `
-    <div class="row-actions">
+    <div class="row-actions compact-actions">
       <button class="small" data-student-file="${id}">Mobilitätsakte</button>
-      <button class="small secondary" data-student-archive="${id}">${archived ? "Wieder öffnen" : "Archivieren"}</button>
-      <button class="small secondary" data-edit data-store="students" data-id="${id}" ${archived ? "disabled" : ""}>Bearbeiten</button>
-      <button class="small danger" data-delete data-store="students" data-id="${id}" ${archived ? "disabled" : ""}>Löschen</button>
+      <details class="action-menu">
+        <summary class="small secondary" role="button">Mehr</summary>
+        <div class="action-menu-list">
+          <button type="button" data-student-archive="${id}">${archived ? "Wieder öffnen" : "Archivieren"}</button>
+          <button type="button" data-edit data-store="students" data-id="${id}" ${archived ? "disabled" : ""}>Bearbeiten</button>
+          <button type="button" class="danger" data-delete data-store="students" data-id="${id}" ${archived ? "disabled" : ""}>Löschen</button>
+        </div>
+      </details>
     </div>
   `;
 }
@@ -2873,12 +2886,17 @@ function projectActions(id) {
   const project = state.projects.find((entry) => entry.id === id);
   const archived = project?.status === "Archiviert";
   return `
-    <div class="row-actions">
+    <div class="row-actions compact-actions">
       <button class="small" data-project-file="${id}">Projektakte</button>
-      <button class="small" data-participant-list="${id}">Teilnehmendenliste</button>
-      <button class="small secondary" data-project-archive="${id}">${archived ? "Wieder öffnen" : "Archivieren"}</button>
-      <button class="small secondary" data-edit data-store="projects" data-id="${id}" ${archived ? "disabled" : ""}>Bearbeiten</button>
-      <button class="small danger" data-delete data-store="projects" data-id="${id}" ${archived ? "disabled" : ""}>Löschen</button>
+      <details class="action-menu">
+        <summary class="small secondary" role="button">Mehr</summary>
+        <div class="action-menu-list">
+          <button type="button" data-participant-list="${id}">Teilnehmendenliste</button>
+          <button type="button" data-project-archive="${id}">${archived ? "Wieder öffnen" : "Archivieren"}</button>
+          <button type="button" data-edit data-store="projects" data-id="${id}" ${archived ? "disabled" : ""}>Bearbeiten</button>
+          <button type="button" class="danger" data-delete data-store="projects" data-id="${id}" ${archived ? "disabled" : ""}>Löschen</button>
+        </div>
+      </details>
     </div>
   `;
 }
