@@ -1012,8 +1012,130 @@ function closeTemplateDocument() {
 }
 
 function printTemplateDocument() {
-  document.body.classList.add("printing-template-document");
-  window.print();
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    document.body.classList.add("printing-template-document");
+    window.print();
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(buildTemplatePrintDocument());
+  printWindow.document.close();
+  printWindow.addEventListener("load", () => {
+    printWindow.focus();
+    printWindow.print();
+  });
+}
+
+function buildTemplatePrintDocument() {
+  const title = document.querySelector("#template-document-title")?.textContent || "Erasmus+ Dokument";
+  return `<!doctype html>
+    <html lang="de">
+      <head>
+        <meta charset="utf-8" />
+        <title>${escapeHtml(title)}</title>
+        <link rel="stylesheet" href="${new URL("styles.css", document.baseURI).href}" />
+        <style>
+          @page { size: A4 portrait; margin: 12mm; }
+          html, body { margin: 0; padding: 0; background: #fff; color: #17202a; }
+          .print-document { margin: 0; padding: 0; background: #fff; }
+          .print-page {
+            display: block;
+            box-sizing: border-box;
+            background: #fff;
+            break-before: page;
+            page-break-before: always;
+            break-after: page;
+            page-break-after: always;
+          }
+          .print-page:first-child {
+            break-before: auto;
+            page-break-before: auto;
+          }
+          .print-page:last-child {
+            break-after: auto;
+            page-break-after: auto;
+          }
+          .template-document {
+            border: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+          }
+          .template-batch {
+            display: block !important;
+            gap: 0 !important;
+          }
+          .template-page {
+            min-height: 0 !important;
+            break-before: auto !important;
+            page-break-before: auto !important;
+            break-after: auto !important;
+            page-break-after: auto !important;
+          }
+          .eu-template {
+            max-width: none !important;
+            margin: 0 !important;
+            color: #17202a !important;
+          }
+          .eu-template,
+          .eu-template section,
+          .eu-template header,
+          .template-notice {
+            background: #fff !important;
+            box-shadow: none !important;
+          }
+          .template-batch .eu-template {
+            border-bottom: 0 !important;
+            padding-bottom: 0 !important;
+          }
+          .clear-field,
+          .no-print {
+            display: none !important;
+          }
+          .template-input,
+          .template-textarea {
+            border: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            color: #17202a !important;
+            resize: none !important;
+          }
+        </style>
+      </head>
+      <body>
+        <main class="print-document">${templatePrintPagesHtml()}</main>
+      </body>
+    </html>`;
+}
+
+function templatePrintPagesHtml() {
+  const source = document.querySelector("#template-document");
+  if (!source) return "";
+  const clone = source.cloneNode(true);
+  copyTemplateFieldValuesForPrint(source, clone);
+  const batchPages = [...clone.querySelectorAll(".template-page")];
+  if (batchPages.length) {
+    return batchPages.map((page) => `<section class="print-page">${page.innerHTML}</section>`).join("");
+  }
+  return `<section class="print-page">${clone.innerHTML}</section>`;
+}
+
+function copyTemplateFieldValuesForPrint(source, clone) {
+  const sourceFields = source.querySelectorAll("input, textarea, select");
+  const cloneFields = clone.querySelectorAll("input, textarea, select");
+  sourceFields.forEach((sourceField, index) => {
+    const cloneField = cloneFields[index];
+    if (!cloneField) return;
+    if (cloneField.tagName === "TEXTAREA") {
+      cloneField.textContent = sourceField.value;
+    } else if (cloneField.tagName === "SELECT") {
+      [...cloneField.options].forEach((option) => {
+        option.selected = option.value === sourceField.value;
+      });
+    } else {
+      cloneField.setAttribute("value", sourceField.value);
+    }
+  });
 }
 
 async function saveTemplateValues(options = {}) {
