@@ -173,3 +173,9 @@ enthalten aggregierte Zahlen, keine Namen, Geburtsdaten oder Gesundheitsdaten
 von Schueler*innen. Freie Anmerkungen und Projektausschnitte werden unveraendert
 als Text uebernommen. Filter und Anmerkungen sind temporaer; es werden keine
 zusaetzlichen Datensaetze gespeichert. Rechentests: `node management-reports.test.cjs`.
+# Version 1.44.3
+
+Die globale Suche im Teilnehmendenindex findet Teilnehmende jetzt auch ueber
+zugeordnete Projekte: Projektname, Leitaktion, Mobilitaetsart, Zielland,
+Partnerdetails und Partnereinrichtungen. Eine Schueler*in mit mehreren
+Projekten wird bei einem Treffer in einem beliebigen dieser Projekte angezeigt.

@@ -2417,7 +2417,9 @@ function printParticipantList() {
 
 function renderStudents() {
   const role = document.querySelector("#student-filter").value;
-  const rows = filterText(state.students).filter((student) => !role || (student.projectIds || [""]).some((projectId) => studentProjectProfile(student, projectId).role === role));
+  const rows = state.students
+    .filter(studentMatchesSearch)
+    .filter((student) => !role || (student.projectIds || [""]).some((projectId) => studentProjectProfile(student, projectId).role === role));
   renderTable("#students-table", ["Name", "Projektrollen", "Dokumente je Projekt", "Gesamt", ""], rows.map((student) => {
     const missing = missingDocsByProject(student);
     return [
@@ -3915,6 +3917,22 @@ function auditTouchesStudent(entry, studentId) {
 function filterText(items) {
   if (!state.search) return items;
   return items.filter((item) => JSON.stringify(item).toLowerCase().includes(state.search));
+}
+
+function studentMatchesSearch(student) {
+  if (!state.search) return true;
+  const projects = (student.projectIds || [])
+    .map((projectId) => state.projects.find((project) => project.id === projectId))
+    .filter(Boolean);
+  const projectSearchText = projects.map((project) => [
+    project.name,
+    project.action,
+    project.mobilityType,
+    project.destinationCountry,
+    project.partners,
+    ...(project.institutionIds || []).map(institutionName),
+  ].join(" ")).join(" ");
+  return normalizeSearch(`${JSON.stringify(student)} ${projectSearchText}`).includes(normalizeSearch(state.search));
 }
 
 function normalizeSearch(value) {
