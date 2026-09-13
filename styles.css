@@ -761,6 +761,25 @@ legend {
   display: grid;
 }
 
+.project-profile-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+}
+
+.project-profile-fields .wide {
+  grid-column: 1 / -1;
+}
+
+.project-doc-checks {
+  display: grid;
+  gap: 8px;
+}
+
 .project-doc-summary {
   display: grid;
   gap: 8px;
@@ -1089,6 +1108,10 @@ th {
 .template-batch {
   display: grid;
   gap: 22px;
+}
+
+.template-page {
+  display: block;
 }
 
 .template-batch .eu-template {
@@ -1549,6 +1572,7 @@ th {
 
   .project-file-grid,
   .project-file-sections,
+  .project-profile-fields,
   .signature-grid {
     grid-template-columns: 1fr;
   }
@@ -1631,21 +1655,27 @@ th {
     display: block;
   }
 
-  body.printing-template-document .template-batch .eu-template {
+  body.printing-template-document .template-page {
+    display: block;
     break-after: page;
     page-break-after: always;
-    border-bottom: 0;
-    padding-bottom: 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
-  body.printing-template-document .template-batch .eu-template + .eu-template {
+  body.printing-template-document .template-page + .template-page {
     break-before: page;
     page-break-before: always;
   }
 
-  body.printing-template-document .template-batch .eu-template:last-child {
+  body.printing-template-document .template-page:last-child {
     break-after: auto;
     page-break-after: auto;
+  }
+
+  body.printing-template-document .template-batch .eu-template {
+    border-bottom: 0;
+    padding-bottom: 0;
   }
 
   body.printing-template-document .eu-template header h1 {

@@ -425,6 +425,14 @@ async function onStudentSubmit(event) {
     projectIds,
     role: data.get("role"),
     documentStatus: data.get("documentStatus"),
+    projectDataByProject: Object.fromEntries(projectIds.map((projectId) => [
+      projectId,
+      {
+        role: data.get(`projectRole:${projectId}`) || data.get("role"),
+        documentStatus: data.get(`projectDocumentStatus:${projectId}`) || data.get("documentStatus"),
+        mobilityNote: (data.get(`projectMobilityNote:${projectId}`) || "").trim(),
+      },
+    ])),
     documents: Object.fromEntries(getSettingValues("documentTypes").map((type) => [type, projectIds.every((projectId) => data.getAll(`requiredDocuments:${projectId}`).includes(type))])),
     documentsByProject: Object.fromEntries(projectIds.map((projectId) => [
       projectId,
@@ -703,7 +711,10 @@ function render() {
 function renderDashboard() {
   const activeProjects = state.projects.filter((project) => project.status === "Aktiv");
   const openTasks = state.tasks.filter((task) => task.status !== "Erledigt");
-  const travellingStudents = state.students.filter((student) => student.role === "Teilnehmer").length;
+  const travellingStudents = state.students.filter((student) => (student.projectIds || []).some((projectId) => {
+    const project = state.projects.find((entry) => entry.id === projectId);
+    return project?.status === "Aktiv" && studentProjectProfile(student, projectId).role === "Teilnehmer";
+  })).length;
   const overview = fundingOverview();
   const activeFundingCount = state.fundingBudgets.filter((budget) => budget.status !== "Inaktiv").length;
   const unplannedDetail = activeFundingCount > 1 ? `Summe aus ${activeFundingCount} aktiven Förderbudgets` : "aus einem aktiven Förderbudget";
@@ -966,7 +977,7 @@ function showTemplateBatch(type, projectId) {
   document.querySelector("#template-document-title").textContent = `${templateTitle(type)} · ${students.length} Teilnehmende`;
   document.querySelector("#template-document").innerHTML = `
     <div class="template-batch">
-      ${students.map((student) => renderTemplateByType(type, project, student, templateValues(type, project, student))).join("")}
+      ${students.map((student) => `<div class="template-page">${renderTemplateByType(type, project, student, templateValues(type, project, student))}</div>`).join("")}
     </div>
   `;
   setTemplateSaveStatus("batch");
@@ -1462,12 +1473,14 @@ function renderProjectFile(projectId, shouldScroll = false) {
       </section>
     </div>
     <div class="project-file-sections">
-      ${projectFileTable("Teilnehmende & Dokumente", ["Name", "Klasse", "Geburtsdatum", "Dokumente", "Vorlagen"], students.map((student) => {
+      ${projectFileTable("Teilnehmende & Dokumente", ["Name", "Klasse", "Geburtsdatum", "Projektangaben", "Dokumente", "Vorlagen"], students.map((student) => {
         const missing = missingDocs(student, project.id);
+        const profile = studentProjectProfile(student, project.id);
         return [
           escapeHtml(student.name),
           escapeHtml(student.className),
           formatDate(student.birthDate),
+          `${badge(roleLabel(profile.role), profile.role === "Teilnehmer" ? "ok" : "warn")}${profile.mobilityNote ? `<div class="meta">${escapeHtml(profile.mobilityNote)}</div>` : ""}`,
           missing.length ? badge(`${missing.length} fehlt`, "danger") + `<div class="meta">${escapeHtml(missing.join(", "))}</div>` : badge("Vollständig", "ok"),
           templateActions(project.id, student.id),
         ];
@@ -1596,12 +1609,12 @@ function printParticipantList() {
 
 function renderStudents() {
   const role = document.querySelector("#student-filter").value;
-  const rows = filterText(state.students).filter((student) => !role || student.role === role);
-  renderTable("#students-table", ["Name", "Rolle", "Dokumente je Projekt", "Gesamt", ""], rows.map((student) => {
+  const rows = filterText(state.students).filter((student) => !role || (student.projectIds || [""]).some((projectId) => studentProjectProfile(student, projectId).role === role));
+  renderTable("#students-table", ["Name", "Projektrollen", "Dokumente je Projekt", "Gesamt", ""], rows.map((student) => {
     const missing = missingDocsByProject(student);
     return [
     `<strong>${escapeHtml(student.name)}</strong><div class="meta">${escapeHtml(student.className)} · ${formatDate(student.birthDate)}</div>`,
-    badge(roleLabel(student.role), student.role === "Teilnehmer" ? "ok" : "warn"),
+    studentProjectRoleSummary(student),
     documentProjectSummary(student),
     badge(missing.total ? `${missing.total} fehlt` : "Vollständig", missing.total ? "danger" : "ok"),
     actions("students", student.id),
@@ -2267,6 +2280,7 @@ function renderRequiredDocumentFields() {
   const form = document.querySelector("#student-form");
   const projectIds = [...form.elements.projectIds.selectedOptions].map((option) => option.value);
   const previous = collectProjectDocumentChecks(container);
+  const previousProfiles = collectProjectProfileFields(container);
 
   if (!projectIds.length) {
     tabs.innerHTML = "";
@@ -2280,16 +2294,56 @@ function renderRequiredDocumentFields() {
 
   container.innerHTML = projectIds.map((projectId, index) => `
     <div class="doc-tab-panel ${index === 0 ? "active" : ""}" data-doc-panel="${escapeHtml(projectId)}">
+      ${projectProfileFields(form.elements.id.value, projectId, previousProfiles[projectId])}
+      <div class="project-doc-checks">
       ${getSettingValues("documentTypes").map((type) => {
         const checked = previous[projectId]?.[type] ?? currentStudentDocumentValue(form.elements.id.value, projectId, type);
         return `<label class="check"><input type="checkbox" name="requiredDocuments:${escapeHtml(projectId)}" value="${escapeHtml(type)}" ${checked ? "checked" : ""} /> ${escapeHtml(type)}</label>`;
       }).join("")}
+      </div>
     </div>
   `).join("");
 
   tabs.querySelectorAll("[data-doc-tab]").forEach((button) => {
     button.addEventListener("click", () => activateDocumentTab(button.dataset.docTab));
   });
+}
+
+function projectProfileFields(studentId, projectId, previous = null) {
+  const profile = previous || currentStudentProjectProfile(studentId, projectId);
+  const role = profile.role || "Teilnehmer";
+  const documentStatus = profile.documentStatus || "Unvollständig";
+  return `
+    <div class="project-profile-fields">
+      <label>Rolle in diesem Projekt
+        <select name="projectRole:${escapeHtml(projectId)}">
+          <option value="Teilnehmer" ${role === "Teilnehmer" ? "selected" : ""}>Teilnehmende*r</option>
+          <option value="Nachrücker" ${role === "Nachrücker" ? "selected" : ""}>Nachrücker*in</option>
+        </select>
+      </label>
+      <label>Dokumentenstatus in diesem Projekt
+        <select name="projectDocumentStatus:${escapeHtml(projectId)}">
+          ${["Vollständig", "Unvollständig", "Prüfen"].map((status) => `<option ${documentStatus === status ? "selected" : ""}>${status}</option>`).join("")}
+        </select>
+      </label>
+      <label class="wide">Projektbezogene Notiz
+        <textarea name="projectMobilityNote:${escapeHtml(projectId)}" rows="2" placeholder="z. B. besondere Vereinbarung, Reisegruppe, Betreuung">${escapeHtml(profile.mobilityNote || "")}</textarea>
+      </label>
+    </div>
+  `;
+}
+
+function collectProjectProfileFields(container) {
+  const profiles = {};
+  container.querySelectorAll("[data-doc-panel]").forEach((panel) => {
+    const projectId = panel.dataset.docPanel;
+    profiles[projectId] = {
+      role: panel.querySelector(`[name="projectRole:${cssEscape(projectId)}"]`)?.value || "",
+      documentStatus: panel.querySelector(`[name="projectDocumentStatus:${cssEscape(projectId)}"]`)?.value || "",
+      mobilityNote: panel.querySelector(`[name="projectMobilityNote:${cssEscape(projectId)}"]`)?.value || "",
+    };
+  });
+  return profiles;
 }
 
 function collectProjectDocumentChecks(container) {
@@ -2308,6 +2362,12 @@ function currentStudentDocumentValue(studentId, projectId, type) {
   const student = state.students.find((entry) => entry.id === studentId);
   if (!student) return false;
   return hasProjectDocument(student, type, projectId);
+}
+
+function currentStudentProjectProfile(studentId, projectId) {
+  const student = state.students.find((entry) => entry.id === studentId);
+  if (!student) return {};
+  return studentProjectProfile(student, projectId);
 }
 
 function activateDocumentTab(projectId) {
@@ -2565,7 +2625,9 @@ async function cleanupProjectReferences(projectId) {
     await remove("templateData", template.id);
   }
   for (const student of state.students.filter((entry) => entry.projectIds.includes(projectId))) {
-    await put("students", { ...student, projectIds: student.projectIds.filter((id) => id !== projectId) });
+    const projectDataByProject = { ...(student.projectDataByProject || {}) };
+    delete projectDataByProject[projectId];
+    await put("students", { ...student, projectIds: student.projectIds.filter((id) => id !== projectId), projectDataByProject });
   }
 }
 
@@ -2651,6 +2713,15 @@ function roleLabel(role) {
   return role || "-";
 }
 
+function studentProjectProfile(student, projectId) {
+  const profile = student.projectDataByProject?.[projectId] || {};
+  return {
+    role: profile.role || student.role || "Teilnehmer",
+    documentStatus: profile.documentStatus || student.documentStatus || (missingDocs(student, projectId).length ? "Unvollständig" : "Vollständig"),
+    mobilityNote: profile.mobilityNote || "",
+  };
+}
+
 function studentName(id) {
   return state.students.find((student) => student.id === id)?.name || "Nicht zugeordnet";
 }
@@ -2673,6 +2744,22 @@ function missingDocsByProject(student) {
     rows,
     total: rows.reduce((sum, row) => sum + row.missing.length, 0),
   };
+}
+
+function studentProjectRoleSummary(student) {
+  const projectIds = student.projectIds?.length ? student.projectIds : [""];
+  return `<div class="project-doc-summary">${projectIds.map((projectId) => {
+    const profile = studentProjectProfile(student, projectId);
+    return `
+      <div class="project-doc-row compact-row">
+        <div>
+          <strong>${escapeHtml(projectName(projectId))}</strong>
+          <span>${escapeHtml(profile.mobilityNote || profile.documentStatus || "")}</span>
+        </div>
+        ${badge(roleLabel(profile.role), profile.role === "Teilnehmer" ? "ok" : "warn")}
+      </div>
+    `;
+  }).join("")}</div>`;
 }
 
 function documentProjectSummary(student) {

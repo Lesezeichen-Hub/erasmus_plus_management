@@ -97,10 +97,11 @@ Wichtige Stellen in `app.js`:
 - Speicherbare Druckvorlagen fuer Europass Lernvereinbarung und Europass Mobilitaet pro Teilnehmende*r
 - Batch-Ausgabe pro Projekt fuer Teilnahmebescheinigungen, Europass Mobilitaet und Lernvereinbarungen; beim Drucken/PDF beginnt jedes Dokument auf einer neuen A4-Seite
 - Projekte mit Leitaktion, Foerderbudget, Partnereinrichtungen, Zeitraum, Budget und Status
+- Teilnehmende mit globalen Stammdaten und projektbezogenen Angaben wie Rolle, Dokumentenstatus und Notiz
 - Teilnehmendenlisten pro Projekt mit Geburtsdatum, kompaktem Dokumentstatus, fehlenden Dokumenten und Druck-/PDF-Ausgabe
 - Automatische, bearbeitbare Foerderpauschalen pro Zielland und Distanzband beim Projektanlegen
 - Admin-Tabelle zum Aktualisieren, Speichern, Exportieren und Importieren der Foerderpauschalen-Vorlage
-- Teilnehmende mit Projektzuordnung, Rolle und projektbezogenen Dokument-Tabs
+- Teilnehmende mit Projektzuordnung, projektbezogenen Rollen und Dokument-Tabs
 - Aufwaende mit Kategorie, Betrag, Belegstatus, Projekt- und Personenbezug
 - Aufgaben je Projekt mit Fortschrittsbalken
 - Dokumentenindex fuer projekt- und schuelerbezogene Unterlagen

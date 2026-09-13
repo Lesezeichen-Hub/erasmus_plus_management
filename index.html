@@ -239,13 +239,13 @@
             </div>
             <label>Projektzuordnung <select name="projectIds" multiple size="4" required></select></label>
             <div class="form-row">
-              <label>Rolle
+              <label>Standardrolle
                 <select name="role">
                   <option value="Teilnehmer">Teilnehmende*r</option>
                   <option value="Nachrücker">Nachrücker*in</option>
                 </select>
               </label>
-              <label>Dokumentenstatus
+              <label>Standard-Dokumentenstatus
                 <select name="documentStatus">
                   <option>Vollständig</option>
                   <option>Unvollständig</option>
@@ -255,6 +255,7 @@
             </div>
             <fieldset>
               <legend>Dokumente pro Projekt</legend>
+              <p class="hint">Rolle, Dokumentenstatus, Notiz und Dokumenthaken werden je Projekt separat gespeichert.</p>
               <div id="project-document-tabs" class="doc-tabs"></div>
               <div id="required-document-fields" class="check-grid"></div>
             </fieldset>
