@@ -48,6 +48,7 @@
         <button class="nav-item" data-view="expenses">Aufwände</button>
         <button class="nav-item" data-view="tasks">Aufgaben</button>
         <button class="nav-item" data-view="documents">Dokumente</button>
+        <button class="nav-item" data-view="forms">Formulare</button>
         <button class="nav-item" data-view="admin" data-admin-only>Admin</button>
         <button class="nav-item" data-view="backup">Backup</button>
       </nav>
@@ -212,6 +213,28 @@
               <button type="button" class="secondary small" id="close-project-file">Schließen</button>
             </div>
             <div id="project-file" class="project-file"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="forms" class="view">
+        <div class="section-layout">
+          <section class="panel form-panel">
+            <h2>Formularzentrale</h2>
+            <label>Projekt <select id="mobility-form-project"></select></label>
+            <label>Formular <select id="mobility-form-type"></select></label>
+            <label>Schüler*in <select id="mobility-form-student"></select></label>
+            <div class="form-actions">
+              <button type="button" id="open-mobility-form">Einzelformular</button>
+              <button type="button" class="secondary" id="batch-mobility-form">Ganzes Projekt</button>
+            </div>
+            <p class="hint">Die Formulare werden mit Projekt-, Schul- und Schüler*innendaten vorausgefüllt. Individuelle Änderungen werden pro Formular, Projekt und Schüler*in gespeichert.</p>
+          </section>
+          <section class="panel table-panel">
+            <div class="panel-head">
+              <h2>Verfügbare Formulare</h2>
+            </div>
+            <div id="mobility-form-overview" class="list compact"></div>
           </section>
           <section id="template-document-panel" class="panel wide template-document-panel" hidden>
             <div class="panel-head no-print">
@@ -595,6 +618,28 @@
             <div class="form-actions">
               <button type="submit">Speichern</button>
               <button type="button" class="secondary" data-reset-template-defaults>Zurücksetzen</button>
+            </div>
+          </form>
+          <form id="mobility-template-form" class="panel form-panel wide">
+            <h2>Formular-Templates</h2>
+            <label>Vorlage <select name="type"></select></label>
+            <div class="form-row">
+              <label>Titel <input name="title" required minlength="3" /></label>
+              <label>Untertitel <input name="subtitle" /></label>
+            </div>
+            <label>Hinweis <textarea name="notice" rows="2"></textarea></label>
+            <label>Text mit Platzhaltern <textarea name="body" rows="9" required></textarea></label>
+            <label>Unterschriftenfelder <input name="signatures" placeholder="Teilnehmende*r, Erziehungsberechtigte, Schule" /></label>
+            <div class="placeholder-grid">
+              <span>{name}</span><span>{klasse}</span><span>{geburtsdatum}</span><span>{projekt}</span>
+              <span>{leitaktion}</span><span>{zeitraum}</span><span>{zielland}</span><span>{projektbudget}</span>
+              <span>{entsendende_schule}</span><span>{aufnehmende_einrichtung}</span><span>{lernziele}</span><span>{aktivitaeten}</span>
+              <span>{anerkennung}</span><span>{medienregelung}</span><span>{notfallkontakt_1}</span><span>{notfallkontakt_2}</span>
+              <span>{allergien}</span><span>{medizinische_hinweise}</span><span>{versicherung}</span>
+            </div>
+            <div class="form-actions">
+              <button type="submit">Template speichern</button>
+              <button type="button" class="secondary" id="reset-mobility-template">Standard wiederherstellen</button>
             </div>
           </form>
           <section class="panel wide">

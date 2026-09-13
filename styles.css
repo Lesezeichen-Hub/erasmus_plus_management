@@ -733,6 +733,35 @@ legend {
   gap: 8px;
 }
 
+.mini-kpis,
+.placeholder-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mini-kpis span,
+.placeholder-grid span {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 6px 8px;
+  background: var(--surface-soft);
+  color: var(--muted-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.mini-kpis strong {
+  color: var(--text);
+}
+
+.placeholder-grid {
+  padding: 10px;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: var(--surface-raised);
+}
+
 .doc-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -1708,8 +1737,8 @@ button:disabled {
   body.printing-template-document .sidebar,
   body.printing-template-document .topbar,
   body.printing-template-document .no-print,
-  body.printing-template-document .view:not(#projects),
-  body.printing-template-document #projects > .section-layout > :not(#template-document-panel) {
+  body.printing-template-document .view:not(#forms),
+  body.printing-template-document #forms > .section-layout > :not(#template-document-panel) {
     display: none !important;
   }
 
@@ -1721,7 +1750,7 @@ button:disabled {
 
   body.printing-participant-list #projects,
   body.printing-participant-list #participant-list-panel,
-  body.printing-template-document #projects,
+  body.printing-template-document #forms,
   body.printing-template-document #template-document-panel {
     display: block !important;
   }

@@ -4,6 +4,40 @@ const STORES = ["projects", "students", "expenses", "tasks", "documents", "users
 const SESSION_KEY = "erasmus_plus_management_user";
 const AUTO_BACKUP_KEY = "erasmus_plus_management_auto_backups";
 const AUTO_BACKUP_LIMIT = 8;
+const DEFAULT_MOBILITY_FORM_TEMPLATES = [
+  {
+    id: "grantAgreement",
+    title: "Teilnehmervereinbarung",
+    subtitle: "Grant Agreement",
+    notice: "Rechtliche Arbeitsvorlage für Teilnahmebedingungen, Pflichten und Zuschüsse. Bei minderjährigen Schüler*innen durch Erziehungsberechtigte unterzeichnen lassen.",
+    body: "{name}, Klasse {klasse}, nimmt im Zeitraum {zeitraum} am Erasmus+ Projekt \"{projekt}\" teil. Die Mobilität findet in {zielland} bei {aufnehmende_einrichtung} statt. Die entsendende Einrichtung ist {entsendende_schule}.\n\nDie teilnehmende Person verpflichtet sich zur aktiven Teilnahme, zur Einhaltung der vereinbarten Regeln, zur fristgerechten Abgabe notwendiger Unterlagen und zur Mitwirkung an der Dokumentation der Lernergebnisse.\n\nFür die Mobilität ist ein Projektbudget von {projektbudget} hinterlegt. Individuelle Zuschüsse, Auszahlungsmodalitäten und Nachweispflichten werden schulintern ergänzt.",
+    signatures: "Teilnehmende*r, Erziehungsberechtigte, Entsendende Schule",
+  },
+  {
+    id: "learningAgreement",
+    title: "Lernvereinbarung",
+    subtitle: "Learning Agreement / Learning Programme",
+    notice: "Für Gruppenmobilitäten als gemeinsames Lernprogramm nutzbar; für Einzelmobilitäten können die Felder pro Schüler*in angepasst und gespeichert werden.",
+    body: "Lernziele und erwartete Lernergebnisse:\n{lernziele}\n\nGeplante Aktivitäten:\n{aktivitaeten}\n\nBegleitung, Monitoring und Anerkennung:\n{anerkennung}",
+    signatures: "Teilnehmende*r, Erziehungsberechtigte, Entsendende Schule, Aufnehmende Schule",
+  },
+  {
+    id: "consentPrivacy",
+    title: "Einverständnis- und Datenschutzerklärung",
+    subtitle: "Einwilligung für Mobilität, Datenaustausch und Mediennutzung",
+    notice: "Arbeitsvorlage für Einwilligungen. Rechtliche Vorgaben der Schule oder des Trägers bitte bei Bedarf ergänzen.",
+    body: "Ich/Wir bestätige(n), dass {name} am Projekt \"{projekt}\" im Zeitraum {zeitraum} teilnehmen darf.\n\nIch/Wir willige(n) ein, dass die für Organisation und Sicherheit notwendigen personenbezogenen Daten an beteiligte Einrichtungen, Gastfamilien und betreuende Personen weitergegeben werden dürfen.\n\nDie Nutzung von Fotos, kurzen Videos und Projektergebnissen für schulische Erasmus+ Projektarbeit wird wie folgt geregelt: {medienregelung}",
+    signatures: "Erziehungsberechtigte, Teilnehmende*r, Entsendende Schule",
+  },
+  {
+    id: "emergencyCard",
+    title: "Medizinische Notfallkarte",
+    subtitle: "Gesundheitsblatt und Notfallkontakte",
+    notice: "Für die Mitnahme durch betreuende Lehrkräfte. Medizinische Angaben bitte vor Ausgabe prüfen und ergänzen.",
+    body: "Teilnehmende Person: {name}, Klasse {klasse}, Geburtsdatum {geburtsdatum}\nProjekt: {projekt}, Zielland: {zielland}, Zeitraum: {zeitraum}\n\nNotfallkontakt 1: {notfallkontakt_1}\nNotfallkontakt 2: {notfallkontakt_2}\n\nAllergien / Unverträglichkeiten: {allergien}\nMedikamente / Vorerkrankungen: {medizinische_hinweise}\nVersicherung / Besonderheiten: {versicherung}",
+    signatures: "Erziehungsberechtigte, Betreuende Lehrkraft",
+  },
+];
 const DEFAULT_SETTINGS = {
   leadActions: ["KA1", "KA2", "KA3"],
   classGroups: ["8a", "8b", "8c", "9a", "9b", "9c", "10a", "10b", "10c"],
@@ -14,6 +48,7 @@ const DEFAULT_SETTINGS = {
     contactEmail: "",
     recognitionText: "",
   },
+  mobilityFormTemplates: DEFAULT_MOBILITY_FORM_TEMPLATES,
   expenseCategories: ["Reisekosten", "Unterkunft", "Verpflegung", "Taschengeld", "Sonstiges"],
   documentTypes: ["Einverständniserklärung", "Notfallkontakt", "Versicherung", "Beleg", "Vertrag", "Bericht", "Sonstiges"],
 };
@@ -251,6 +286,16 @@ function bindForms() {
   document.querySelector("#institution-form").addEventListener("submit", onInstitutionSubmit);
   document.querySelector("#fundingBudget-form").addEventListener("submit", onFundingBudgetSubmit);
   document.querySelector("#templateDefaults-form").addEventListener("submit", onTemplateDefaultsSubmit);
+  document.querySelector("#mobility-template-form").addEventListener("submit", onMobilityTemplateSubmit);
+  document.querySelector("#mobility-template-form [name=type]").addEventListener("change", renderMobilityTemplateEditor);
+  document.querySelector("#reset-mobility-template").addEventListener("click", resetMobilityTemplate);
+  document.querySelector("#mobility-form-project").addEventListener("change", () => {
+    fillMobilityFormStudentSelect();
+    renderMobilityFormOverview();
+  });
+  document.querySelector("#mobility-form-type").addEventListener("change", renderMobilityFormOverview);
+  document.querySelector("#open-mobility-form").addEventListener("click", openSelectedMobilityForm);
+  document.querySelector("#batch-mobility-form").addEventListener("click", batchSelectedMobilityForm);
   document.querySelector("[data-reset-template-defaults]").addEventListener("click", resetTemplateDefaultsForm);
   document.querySelector("#student-form [name=projectIds]").addEventListener("change", () => renderRequiredDocumentFields());
   document.querySelector("#fundingBudget-form [name=startDate]").addEventListener("change", updateFundingBudgetEndDate);
@@ -742,6 +787,7 @@ function render() {
   renderExpenses();
   renderTasks();
   renderDocuments();
+  renderForms();
   renderUsers();
   renderFundingBudgets();
   renderInstitutions();
@@ -996,8 +1042,16 @@ function showTemplateDocument(type, projectId, studentId) {
     toast("Vorlage konnte nicht erstellt werden");
     return;
   }
+  if (state.view !== "forms") {
+    state.view = "forms";
+    render();
+  }
   const title = templateTitle(type);
   state.templateDocument = { type, projectId, studentId };
+  document.querySelector("#mobility-form-project").value = projectId;
+  fillMobilityFormStudentSelect();
+  document.querySelector("#mobility-form-type").value = type;
+  document.querySelector("#mobility-form-student").value = studentId;
   const values = templateValues(type, project, student);
   document.querySelector("#template-document-title").textContent = title;
   document.querySelector("#template-document").innerHTML = renderTemplateByType(type, project, student, values);
@@ -1019,12 +1073,20 @@ function openTemplateDocument(type, projectId, studentId) {
 
 function showTemplateBatch(type, projectId) {
   const project = state.projects.find((entry) => entry.id === projectId);
-  const students = state.students.filter((entry) => (entry.projectIds || []).includes(projectId));
+  const students = projectStudents(projectId);
   if (!project || !students.length) {
     toast("Keine Teilnehmenden für die Batch-Ausgabe gefunden");
     return;
   }
+  if (state.view !== "forms") {
+    state.view = "forms";
+    render();
+  }
   state.templateDocument = { type, projectId, studentId: "" };
+  document.querySelector("#mobility-form-project").value = projectId;
+  fillMobilityFormStudentSelect();
+  document.querySelector("#mobility-form-type").value = type;
+  document.querySelector("#mobility-form-student").value = "";
   document.querySelector("#template-document-title").textContent = `${templateTitle(type)} · ${students.length} Teilnehmende`;
   document.querySelector("#template-document").innerHTML = `
     <div class="template-batch">
@@ -1039,6 +1101,8 @@ function showTemplateBatch(type, projectId) {
 }
 
 function templateTitle(type) {
+  const customTemplate = getPrintableFormTemplates().find((template) => template.id === type);
+  if (customTemplate) return customTemplate.title;
   if (type === "europass") return "Europass Mobilität";
   if (type === "certificate") return "Teilnahmebescheinigung";
   return "Europass Lernvereinbarung";
@@ -1047,6 +1111,8 @@ function templateTitle(type) {
 function renderTemplateByType(type, project, student, values) {
   if (type === "europass") return europassTemplate(project, student, values);
   if (type === "certificate") return certificateTemplate(project, student, values);
+  const customTemplate = getMobilityFormTemplate(type);
+  if (customTemplate) return mobilityFormTemplate(customTemplate, project, student, values);
   return learningAgreementTemplate(project, student, values);
 }
 
@@ -1327,7 +1393,21 @@ function defaultTemplateValues(type, project, student) {
     receivingInstitution: stripHtml(projectInstitutionNames(project)),
     learningOutcomes: projectLearningOutcomes(project),
     activities: projectTaskList(project.id, type === "europass" ? "Aus Projektaufgaben übernehmen und nach der Mobilität anpassen" : "Offen, In Arbeit oder geplant"),
+    recognitionText,
+    mediaConsent: "Bitte Auswahl / Einschränkungen ergänzen.",
+    emergencyContact1: "Bitte Name, Beziehung und Telefonnummer ergänzen.",
+    emergencyContact2: "Bitte optional ergänzen.",
+    allergies: "Keine Angaben / bitte ergänzen.",
+    medicalNotes: "Keine Angaben / bitte ergänzen.",
+    insurance: "Bitte Versicherung / Auslandsschutz ergänzen.",
   };
+  const customTemplate = getMobilityFormTemplate(type);
+  if (customTemplate) {
+    return {
+      ...common,
+      formBody: applyTemplatePlaceholders(customTemplate.body, project, student, common),
+    };
+  }
   if (type === "europass") {
     return {
       ...common,
@@ -1353,6 +1433,52 @@ function defaultTemplateValues(type, project, student) {
 
 function templateDataId(type, projectId, studentId) {
   return `${type}:${projectId}:${studentId}`;
+}
+
+function getPrintableFormTemplates() {
+  const customTemplates = getMobilityFormTemplates();
+  const builtIns = [
+    { id: "certificate", title: "Teilnahmebescheinigung", subtitle: "Nachweis zur Ausgabe nach der Mobilität", notice: "Vorgefüllte Bescheinigung aus Projektdaten." },
+    { id: "europass", title: "Europass Mobilität", subtitle: "Nachweis einer Lernmobilität im Ausland", notice: "Europass-ähnliche Arbeitsvorlage mit Lernergebnissen." },
+  ];
+  return [...customTemplates, ...builtIns.filter((item) => !customTemplates.some((template) => template.id === item.id))];
+}
+
+function getMobilityFormTemplates() {
+  const saved = Array.isArray(state.settings.mobilityFormTemplates) ? state.settings.mobilityFormTemplates : [];
+  return DEFAULT_MOBILITY_FORM_TEMPLATES.map((defaultTemplate) => ({
+    ...defaultTemplate,
+    ...(saved.find((template) => template.id === defaultTemplate.id) || {}),
+  }));
+}
+
+function getMobilityFormTemplate(type) {
+  return getMobilityFormTemplates().find((template) => template.id === type);
+}
+
+function applyTemplatePlaceholders(text, project, student, values) {
+  const replacements = {
+    name: student.name,
+    klasse: student.className,
+    geburtsdatum: formatDate(student.birthDate),
+    projekt: project.name,
+    leitaktion: project.action,
+    zeitraum: `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`,
+    zielland: project.destinationCountry || "",
+    projektbudget: money.format(Number(project.budget || 0)),
+    entsendende_schule: values.sendingInstitution,
+    aufnehmende_einrichtung: values.receivingInstitution,
+    lernziele: values.learningOutcomes,
+    aktivitaeten: values.activities,
+    anerkennung: values.recognitionText || values.assessmentRecognition || getTemplateDefaults().recognitionText || "",
+    medienregelung: values.mediaConsent,
+    notfallkontakt_1: values.emergencyContact1,
+    notfallkontakt_2: values.emergencyContact2,
+    allergien: values.allergies,
+    medizinische_hinweise: values.medicalNotes,
+    versicherung: values.insurance,
+  };
+  return String(text || "").replace(/\{([a-zA-Z0-9_äöüÄÖÜß]+)\}/g, (match, key) => replacements[key] ?? match);
 }
 
 function learningAgreementTemplate(project, student, values) {
@@ -1384,6 +1510,40 @@ function learningAgreementTemplate(project, student, values) {
       ${templateTextSection("5. Aufgaben und Zuständigkeiten", values.responsibilities, "responsibilities")}
       ${templateTextSection("6. Begleitung, Monitoring und Anerkennung", values.monitoringRecognition, "monitoringRecognition")}
       ${signatureGrid(["Teilnehmende*r", "Erziehungsberechtigte", "Entsendende Schule", "Aufnehmende Schule"])}
+    </article>
+  `;
+}
+
+function mobilityFormTemplate(template, project, student, values) {
+  const signatures = String(template.signatures || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  return `
+    <article class="eu-template mobility-form-template">
+      <header>
+        <p>Erasmus+ Schulbildung</p>
+        <h1>${escapeHtml(template.title)}</h1>
+        ${template.subtitle ? `<span>${escapeHtml(template.subtitle)}</span>` : ""}
+      </header>
+      ${template.notice ? templateNotice(template.notice) : ""}
+      ${templateSection("Teilnehmende Person", [
+        ["Name", student.name],
+        ["Klasse / Gruppe", student.className],
+        ["Geburtsdatum", formatDate(student.birthDate)],
+      ])}
+      ${templateSection("Projekt und Einrichtungen", [
+        ["Projekt", project.name],
+        ["Leitaktion", project.action],
+        ["Zeitraum", `${formatDate(project.startDate)} - ${formatDate(project.endDate)}`],
+        ["Zielland", project.destinationCountry || "-"],
+        ["Aufnehmende Einrichtung", values.receivingInstitution, "receivingInstitution"],
+        ["Entsendende Einrichtung", values.sendingInstitution, "sendingInstitution"],
+        ["Ansprechpartner*in", values.contactPerson, "contactPerson"],
+        ["Kontakt E-Mail", values.contactEmail, "contactEmail"],
+      ])}
+      ${templateTextSection("Formularinhalt", values.formBody, "formBody")}
+      ${signatures.length ? signatureGrid(signatures) : ""}
     </article>
   `;
 }
@@ -2013,6 +2173,84 @@ function renderDocuments() {
   ]));
 }
 
+function renderForms() {
+  fillMobilityFormTypeSelect("#mobility-form-type");
+  fillProjectSelect("#mobility-form-project", false, "Projekt wählen");
+  fillMobilityFormStudentSelect();
+  renderMobilityFormOverview();
+}
+
+function renderMobilityFormOverview() {
+  const projectId = document.querySelector("#mobility-form-project")?.value || "";
+  const type = document.querySelector("#mobility-form-type")?.value || "";
+  const templates = getPrintableFormTemplates();
+  const selectedTemplate = templates.find((template) => template.id === type) || templates[0];
+  const project = state.projects.find((entry) => entry.id === projectId);
+  const students = project ? projectStudents(project.id) : [];
+  const savedCount = selectedTemplate && project
+    ? state.templateData.filter((entry) => entry.type === selectedTemplate.id && entry.projectId === project.id).length
+    : 0;
+  document.querySelector("#mobility-form-overview").innerHTML = `
+    <div class="item">
+      <h3>${escapeHtml(selectedTemplate?.title || "Formular auswählen")}</h3>
+      <div class="meta">${escapeHtml(selectedTemplate?.subtitle || "")}</div>
+      <p>${escapeHtml(selectedTemplate?.notice || "Projekt und Formular auswählen.")}</p>
+      <div class="mini-kpis">
+        <span><strong>${students.length}</strong> Teilnehmende</span>
+        <span><strong>${savedCount}</strong> gespeicherte Einzelwerte</span>
+      </div>
+    </div>
+  `;
+}
+
+function fillMobilityFormTypeSelect(selector) {
+  const select = document.querySelector(selector);
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = "";
+  getPrintableFormTemplates().forEach((template) => {
+    const option = new Option(template.title, template.id);
+    option.selected = current === template.id;
+    select.add(option);
+  });
+}
+
+function fillMobilityFormStudentSelect() {
+  const select = document.querySelector("#mobility-form-student");
+  if (!select) return;
+  const current = select.value;
+  const projectId = document.querySelector("#mobility-form-project")?.value || "";
+  select.innerHTML = `<option value="">Schüler*in wählen</option>`;
+  projectStudents(projectId)
+    .filter((student) => student.archived !== true || current === student.id)
+    .forEach((student) => {
+      const option = new Option(`${student.name}${student.archived ? " · archiviert" : ""}`, student.id);
+      option.selected = current === student.id;
+      select.add(option);
+    });
+}
+
+function openSelectedMobilityForm() {
+  const projectId = document.querySelector("#mobility-form-project").value;
+  const studentId = document.querySelector("#mobility-form-student").value;
+  const type = document.querySelector("#mobility-form-type").value;
+  if (!projectId || !studentId || !type) {
+    toast("Bitte Projekt, Formular und Schüler*in auswählen");
+    return;
+  }
+  showTemplateDocument(type, projectId, studentId);
+}
+
+function batchSelectedMobilityForm() {
+  const projectId = document.querySelector("#mobility-form-project").value;
+  const type = document.querySelector("#mobility-form-type").value;
+  if (!projectId || !type) {
+    toast("Bitte Projekt und Formular auswählen");
+    return;
+  }
+  showTemplateBatch(type, projectId);
+}
+
 function renderUsers() {
   if (!isAdmin()) return;
   const roleFilter = document.querySelector("#user-role-filter").value;
@@ -2108,6 +2346,7 @@ function renderSettings() {
   renderSettingList("documentTypes", "#document-types-list", (value) => settingValueInUse("documentTypes", value));
   renderSettingList("leadActions", "#lead-actions-list", (value) => state.projects.some((project) => project.action === value));
   renderSettingList("classGroups", "#class-groups-list", (value) => state.students.some((student) => student.className === value));
+  renderMobilityTemplateEditor();
   renderGrantSettings();
 }
 
@@ -2122,6 +2361,57 @@ function fillTemplateDefaultsForm(values) {
   ["sendingInstitution", "sendingCity", "contactPerson", "contactEmail", "recognitionText"].forEach((key) => {
     form.elements[key].value = values[key] || "";
   });
+}
+
+function renderMobilityTemplateEditor() {
+  if (!isAdmin()) return;
+  const form = document.querySelector("#mobility-template-form");
+  if (!form) return;
+  const current = form.elements.type.value;
+  form.elements.type.innerHTML = "";
+  getMobilityFormTemplates().forEach((template) => {
+    const option = new Option(template.title, template.id);
+    option.selected = current === template.id;
+    form.elements.type.add(option);
+  });
+  const template = getMobilityFormTemplate(form.elements.type.value) || getMobilityFormTemplates()[0];
+  if (!template) return;
+  form.elements.type.value = template.id;
+  form.elements.title.value = template.title || "";
+  form.elements.subtitle.value = template.subtitle || "";
+  form.elements.notice.value = template.notice || "";
+  form.elements.body.value = template.body || "";
+  form.elements.signatures.value = template.signatures || "";
+}
+
+async function onMobilityTemplateSubmit(event) {
+  event.preventDefault();
+  if (!isAdmin()) {
+    toast("Nur Admins dürfen Formular-Templates bearbeiten");
+    return;
+  }
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  const id = data.get("type");
+  const nextTemplates = getMobilityFormTemplates().map((template) => template.id === id ? {
+    ...template,
+    title: data.get("title").trim(),
+    subtitle: data.get("subtitle").trim(),
+    notice: data.get("notice").trim(),
+    body: data.get("body").trim(),
+    signatures: data.get("signatures").trim(),
+  } : template);
+  await saveSetting("mobilityFormTemplates", nextTemplates);
+}
+
+async function resetMobilityTemplate() {
+  if (!isAdmin()) return;
+  const form = document.querySelector("#mobility-template-form");
+  const id = form.elements.type.value;
+  const defaultTemplate = DEFAULT_MOBILITY_FORM_TEMPLATES.find((template) => template.id === id);
+  if (!defaultTemplate || !confirm("Dieses Formular-Template auf den Standard zurücksetzen?")) return;
+  const nextTemplates = getMobilityFormTemplates().map((template) => template.id === id ? { ...defaultTemplate } : template);
+  await saveSetting("mobilityFormTemplates", nextTemplates);
 }
 
 function renderGrantSettings() {
@@ -2250,6 +2540,7 @@ function settingLabel(key) {
     countryGrantRates: "Förderpauschalen Länder",
     travelGrantBands: "Reisepauschalen",
     templateDefaults: "Feste Formulardaten",
+    mobilityFormTemplates: "Formular-Templates",
     grantTemplateSource: "Förderpauschalen-Quelle",
   };
   return labels[key] || key;
@@ -3212,6 +3503,11 @@ function filterText(items) {
 
 function projectName(id) {
   return state.projects.find((project) => project.id === id)?.name || "Nicht zugeordnet";
+}
+
+function projectStudents(projectId) {
+  if (!projectId) return [];
+  return state.students.filter((student) => (student.projectIds || []).includes(projectId));
 }
 
 function roleLabel(role) {
